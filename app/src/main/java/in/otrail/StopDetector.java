@@ -1,0 +1,42 @@
+package in.otrail;
+
+/** Anchored dwell detection; uncertain fixes and long gaps never imply a stop. */
+public final class StopDetector {
+    public static final long MIN_STOP_MS = 120_000, MAX_GAP_MS = 60_000;
+    public static final double RADIUS_METERS = 35;
+    private long start, last;
+    private double latitude, longitude;
+    private boolean stopped;
+    public record Event(boolean opened, boolean closed, long arrival, long departure, double lat, double lon) {}
+    public Event accept(long time, double lat, double lon, float accuracy, float speed) {
+        if (time <= last) return null;
+        if (accuracy > 50 || time - last > MAX_GAP_MS && last != 0) {
+            Event e = stopped ? new Event(false, true, start, last, latitude, longitude) : null;
+            reset();
+            if (accuracy > 50) return e;
+            seed(time, lat, lon);
+            return e;
+        }
+        if (start == 0) { seed(time, lat, lon); return null; }
+        if (distance(latitude, longitude, lat, lon) > RADIUS_METERS || speed > 1.5f) {
+            Event e = stopped ? new Event(false, true, start, last, latitude, longitude) : null;
+            seed(time, lat, lon); stopped = false;
+            return e;
+        }
+        last = time;
+        if (!stopped && time - start > MIN_STOP_MS) {
+            stopped = true;
+            return new Event(true, false, start, time, latitude, longitude);
+        }
+        return null;
+    }
+    public boolean isStopped() { return stopped; }
+    public long arrival() { return start; }
+    public void reset() { start = last = 0; stopped = false; }
+    private void seed(long t, double lat, double lon) { start = last = t; latitude = lat; longitude = lon; }
+    public static double distance(double a, double b, double c, double d) {
+        double p = Math.toRadians(c-a), q = Math.toRadians(d-b);
+        double h = Math.sin(p/2)*Math.sin(p/2)+Math.cos(Math.toRadians(a))*Math.cos(Math.toRadians(c))*Math.sin(q/2)*Math.sin(q/2);
+        return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1-h)));
+    }
+}

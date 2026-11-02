@@ -1,0 +1,13 @@
+.gradle/
+**/build/
+local.properties
+*.jks
+*.keystore
+*.apk
+*.osm.pbf
+*.map
+*.mbtiles
+*.sqlite
+*.geojson
+captures/
+.idea/
