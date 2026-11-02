@@ -1,5 +1,18 @@
 # Installable builds
 
+## 0.2.0 — 2026-11-02
+
+`oTraiL-0.2.0-debug.apk` — always-on GPS recording, Android 11+.
+
+- Recording automatically starts after location permission; Live / History are display states.
+- GPS request interval: 5 seconds, no distance threshold. Persistent notification and START_STICKY service.
+- Boot-after-unlock and package-update receivers restart the service with background location permission.
+- Configurable Google Drive / Files trail-backup document via Android Save picker. Backup now, automatic snapshots approximately every 15 minutes, and transactional merge restore.
+- Snapshot includes normalized trips, fixes, stops, update logs, map/offline preferences and dataset status references. It does not include map datasets.
+- Completed new map downloads stay in shared Downloads/oTraiL; import the retained .map after reinstall. Regrant permissions and select the saved trail backup after uninstall/reinstall. In-progress download jobs are not restored after uninstall.
+
+Validation: six JVM stop-detector tests, Android lint (no errors), debug app/test assembly, five backup checks on the connected phone in isolated storage (round trip, merge deduplication, malformed-input rollback, stops and logs). Installed 0.2.0 over 0.1.0. Verified the foreground location service automatically started from the package-replaced receiver while the UI was closed. Background location + notifications granted; Android battery-optimization exemption applied. Full physical reboot and real Google Drive upload remain untested. Drive must be selected by the user in Maps & downloads; no cloud account or folder is preconfigured.
+
 ## 0.1.0 — 2026-11-02
 
 `oTraiL-0.1.0-debug.apk` — Android 11+, personal debug build. Built from source commit shown by the preceding source commit in Git history. Install with `adb install -r releases/oTraiL-0.1.0-debug.apk`.

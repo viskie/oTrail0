@@ -9,7 +9,8 @@ import java.io.*;
 import java.util.*;
 
 public final class TrailDb extends SQLiteOpenHelper {
-    public TrailDb(Context c) { super(c, "trails.db", null, 1); setWriteAheadLoggingEnabled(true); }
+    private final Context context;
+    public TrailDb(Context c) { super(c, "trails.db", null, 1); context=c.getApplicationContext();setWriteAheadLoggingEnabled(true); }
     @Override public void onConfigure(SQLiteDatabase db) { db.setForeignKeyConstraintsEnabled(true); }
     @Override public void onCreate(SQLiteDatabase d) {
         d.execSQL("CREATE TABLE trips(id INTEGER PRIMARY KEY, started_ms INTEGER NOT NULL, ended_ms INTEGER)");
@@ -49,6 +50,44 @@ public final class TrailDb extends SQLiteOpenHelper {
         }}
         for(long trip:trips())for(Stop s:stops(trip)){JSONObject p=new JSONObject().put("kind","stop").put("trip_id",trip).put("arrival_ms",s.arrival()).put("departure_ms",s.departure()==0?JSONObject.NULL:s.departure()).put("observed_ms",s.observed()).put("duration_ms",s.observed()-s.arrival());if(!first)w.write(",");w.write(feature(s.lon(),s.lat(),p).toString());first=false;}
         w.write("]}");w.flush();
+    }
+    private static final String[] BACKUP_TABLES={"trips","fixes","stops","sync_logs"};
+    /** JSON snapshot preserves normalized tables, IDs, units and nullable values. */
+    public void writeBackup(Writer output)throws Exception{
+        android.util.JsonWriter w=new android.util.JsonWriter(output);SQLiteDatabase d=getReadableDatabase();d.beginTransactionNonExclusive();
+        try{w.beginObject();w.name("otrail_backup_version").value(1);w.name("created_ms").value(System.currentTimeMillis());
+            for(String table:BACKUP_TABLES){w.name(table).beginArray();try(Cursor c=d.rawQuery("SELECT * FROM "+table+" ORDER BY id",null)){
+                while(c.moveToNext()){w.beginObject();for(int i=0;i<c.getColumnCount();i++){w.name(c.getColumnName(i));switch(c.getType(i)){case Cursor.FIELD_TYPE_NULL:w.nullValue();break;case Cursor.FIELD_TYPE_INTEGER:w.value(c.getLong(i));break;case Cursor.FIELD_TYPE_FLOAT:w.value(c.getDouble(i));break;default:w.value(c.getString(i));}}w.endObject();}
+            }w.endArray();}
+            w.name("settings").beginObject();android.content.SharedPreferences ui=context.getSharedPreferences("MainActivity",0);w.name("provider").value(ui.getInt("provider",0));w.name("offline").value(ui.getBoolean("offline",false));
+            android.content.SharedPreferences pack=context.getSharedPreferences("packs",0);for(String key:new String[]{"mapsforge_status","geofabrik_status","mapsforge_retained","geofabrik_retained","raw_path"})if(pack.contains(key))w.name(key).value(pack.getString(key,""));w.endObject();
+            w.endObject();w.flush();d.setTransactionSuccessful();
+        }finally{d.endTransaction();}
+    }
+    /** Merge history with new always-on fixes. Any parsing failure rolls back the whole restore. */
+    public void restoreBackup(Reader input)throws Exception{
+        android.util.JsonReader r=new android.util.JsonReader(input);android.content.ContentValues settings=new android.content.ContentValues();SQLiteDatabase d=getWritableDatabase();d.beginTransaction();
+        try{
+            r.beginObject();if(!r.hasNext()||!r.nextName().equals("otrail_backup_version")||r.nextInt()!=1)throw new IOException("Not a supported oTraiL backup");
+            java.util.Set<String> restored=new java.util.HashSet<>();java.util.Map<Long,Long> tripIds=new java.util.HashMap<>();java.util.Set<Long> historicalTrips=new java.util.HashSet<>();
+            while(r.hasNext()){String table=r.nextName();if(table.equals("settings")){r.beginObject();while(r.hasNext()){String key=r.nextName();if(key.equals("provider")){int value=r.nextInt();if(value<0||value>2)throw new IOException("Invalid provider");settings.put(key,value);}else if(key.equals("offline"))settings.put(key,r.nextBoolean());else if(java.util.Arrays.asList("mapsforge_status","geofabrik_status","mapsforge_retained","geofabrik_retained","raw_path").contains(key))settings.put(key,r.nextString());else r.skipValue();}r.endObject();continue;}if(!java.util.Arrays.asList(BACKUP_TABLES).contains(table)){r.skipValue();continue;}if(!restored.add(table))throw new IOException("Duplicate table in backup");
+                java.util.Set<String> allowed=new java.util.HashSet<>();try(Cursor columns=d.rawQuery("SELECT * FROM "+table+" LIMIT 0",null)){java.util.Collections.addAll(allowed,columns.getColumnNames());}
+                r.beginArray();while(r.hasNext()){ContentValues v=new ContentValues();r.beginObject();while(r.hasNext()){String field=r.nextName();if(!allowed.contains(field))throw new IOException("Unknown backup field: "+field);if(r.peek()==android.util.JsonToken.NULL){r.nextNull();v.putNull(field);}else{v.put(field,r.nextString());}}r.endObject();
+                    if(table.equals("trips")){long original=v.getAsLong("id");long mapped=-1;try(Cursor existing=d.rawQuery("SELECT id FROM trips WHERE started_ms=? LIMIT 1",new String[]{v.getAsString("started_ms")})){if(existing.moveToFirst())mapped=existing.getLong(0);}
+                        if(mapped==-1){v.remove("id");if(v.get("ended_ms")==null){v.put("ended_ms",v.getAsLong("started_ms"));}mapped=d.insertOrThrow(table,null,v);historicalTrips.add(mapped);}tripIds.put(original,mapped);
+                    }else if(table.equals("fixes")||table.equals("stops")){
+                        Long mapped=tripIds.get(v.getAsLong("trip_id"));if(mapped==null)throw new IOException("Backup references an unknown trip");v.put("trip_id",mapped);v.remove("id");String time=table.equals("fixes")?"time_ms":"arrival_ms";
+                        boolean duplicate;try(Cursor existing=d.rawQuery("SELECT id FROM "+table+" WHERE trip_id=? AND "+time+"=? LIMIT 1",new String[]{""+mapped,v.getAsString(time)})){duplicate=existing.moveToFirst();}
+                        if(!duplicate){if(table.equals("stops")&&v.get("departure_ms")==null)v.put("departure_ms",v.getAsLong("observed_ms"));d.insertOrThrow(table,null,v);}
+                    }else{v.remove("id");boolean duplicate;try(Cursor existing=d.rawQuery("SELECT id FROM sync_logs WHERE time_ms=? AND provider=? AND status=? AND detail=? LIMIT 1",new String[]{v.getAsString("time_ms"),v.getAsString("provider"),v.getAsString("status"),v.getAsString("detail")})){duplicate=existing.moveToFirst();}if(!duplicate)d.insertOrThrow(table,null,v);}
+}r.endArray();
+            }r.endObject();if(restored.size()!=BACKUP_TABLES.length)throw new IOException("Incomplete trail backup");
+            if(r.peek()!=android.util.JsonToken.END_DOCUMENT)throw new IOException("Unexpected data after backup");
+            for(long id:historicalTrips)d.execSQL("UPDATE trips SET ended_ms=MAX(COALESCE(ended_ms,started_ms),COALESCE((SELECT MAX(time_ms) FROM fixes WHERE trip_id=?),started_ms)) WHERE id=?",new Object[]{id,id});
+            d.setTransactionSuccessful();
+        }finally{d.endTransaction();}
+        android.content.SharedPreferences.Editor ui=context.getSharedPreferences("MainActivity",0).edit();if(settings.containsKey("provider"))ui.putInt("provider",settings.getAsInteger("provider"));if(settings.containsKey("offline"))ui.putBoolean("offline",settings.getAsBoolean("offline"));ui.apply();
+        android.content.SharedPreferences.Editor pack=context.getSharedPreferences("packs",0).edit();for(String key:settings.keySet())if(!key.equals("provider")&&!key.equals("offline")){String value=settings.getAsString(key);if(key.endsWith("_status")&&value.startsWith("Ready"))value="Previously downloaded · import retained file";pack.putString(key,value);}pack.apply();
     }
     private JSONObject feature(double lon,double lat,JSONObject p)throws JSONException{return new JSONObject().put("type","Feature").put("geometry",new JSONObject().put("type","Point").put("coordinates",new JSONArray().put(lon).put(lat))).put("properties",p);}
 }
