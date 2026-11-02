@@ -1,5 +1,9 @@
 # Installable builds
 
+## 0.2.1 — 2026-11-02
+
+`oTraiL-0.2.1-debug.apk` enables map downloads over Wi-Fi or cellular (metered networks). Roaming remains disabled. Previously queued Wi-Fi-only jobs retain their original Android download policy; cancel/retry those to use cellular. Debug assembly passed.
+
 ## 0.2.0 — 2026-11-02
 
 `oTraiL-0.2.0-debug.apk` — always-on GPS recording, Android 11+.

@@ -25,8 +25,8 @@ New completed dataset downloads are retained in shared **Downloads/oTraiL** outs
 | Provider | Use | Phone download |
 | --- | --- | --- |
 | OpenStreetMap | Online roads + normal viewed-tile cache | No bulk downloads on public tile server |
-| Mapsforge / OSM | Full India offline vector map, rendered on-device | Manual Wi-Fi download/update, about 1.5 GiB |
-| Geofabrik / OSM | Optional India raw PBF source data | Manual Wi-Fi download/update, about 1.6 GiB; **not rendered or used for routing yet** |
+| Mapsforge / OSM | Full India offline vector map, rendered on-device | Manual Wi-Fi or cellular download/update, about 1.5 GiB |
+| Geofabrik / OSM | Optional India raw PBF source data | Manual Wi-Fi or cellular download/update, about 1.6 GiB; **not rendered or used for routing yet** |
 | Esri World Imagery | Online satellite + common trail/stop overlays | No offline pack |
 | Google Maps / OsmAnd | External navigation handoff | Installed app manages its own data |
 

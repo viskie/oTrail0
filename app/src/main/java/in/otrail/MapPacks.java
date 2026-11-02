@@ -26,7 +26,7 @@ public final class MapPacks {
         if(prefs.getLong(p.key(),-1)!=-1)throw new IllegalStateException("This download is already queued");
         String relative="oTraiL/"+System.currentTimeMillis()+"-"+p.filename();File tmp=new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),relative);
         prefs.edit().putString(p.key()+"_candidate",tmp.getAbsolutePath()).apply();
-        DownloadManager.Request r=new DownloadManager.Request(Uri.parse(p.url())).setTitle("oTraiL · "+p.name()).setDescription("India · Wi-Fi only · "+size(p.estimatedBytes())).setAllowedOverMetered(false).setAllowedOverRoaming(false).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,relative);
+        DownloadManager.Request r=new DownloadManager.Request(Uri.parse(p.url())).setTitle("oTraiL · "+p.name()).setDescription("India · Wi-Fi or cellular · "+size(p.estimatedBytes())).setAllowedOverMetered(true).setAllowedOverRoaming(false).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,relative);
         long id=dm.enqueue(r);prefs.edit().putLong(p.key(),id).putString(p.key()+"_status","Queued").apply();db.log(p.name(),"QUEUED",p.url());
     }
     public synchronized void cancel(Pack p){long id=prefs.getLong(p.key(),-1);if(id!=-1)dm.remove(id);prefs.edit().remove(p.key()).putString(p.key()+"_status","Cancelled").apply();db.log(p.name(),"CANCELLED","Previous installed dataset retained");}
@@ -43,7 +43,7 @@ public final class MapPacks {
                 }catch(Exception e){finish(p,"Failed validation: "+e.getMessage());}
                 return state(p);
             }
-            String s=status==DownloadManager.STATUS_PAUSED?"Paused · waiting for Wi-Fi / Android scheduler":status==DownloadManager.STATUS_PENDING?"Queued · waiting for Wi-Fi":"Downloading";
+            String s=status==DownloadManager.STATUS_PAUSED?"Paused · waiting for network / Android scheduler":status==DownloadManager.STATUS_PENDING?"Queued · waiting for network":"Downloading";
             return new State(s,bytes,total,true,installed.exists());
         }
     }
