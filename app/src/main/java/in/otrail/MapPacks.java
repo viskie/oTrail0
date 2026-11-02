@@ -49,8 +49,8 @@ public final class MapPacks {
     private void finish(Pack p,String status){prefs.edit().remove(p.key()).putString(p.key()+"_status",status).apply();db.log(p.name(),status.startsWith("Ready")?"SUCCESS":"FINISHED",status);}
     public synchronized void install(InputStream in)throws Exception{
         File target=active();target.getParentFile().mkdirs();File part=new File(target.getParentFile(),"candidate.map");
-        try{try(FileOutputStream out=new FileOutputStream(part)){in.transferTo(out);out.getFD().sync();}
-            try(MapFile map=new MapFile(part)){org.mapsforge.core.model.BoundingBox b=map.boundingBox();if(b.maxLatitude<6||b.minLatitude>38||b.maxLongitude<68||b.minLongitude>98)throw new IOException("Map does not overlap India");}
+        try{try(FileOutputStream out=new FileOutputStream(part)){byte[] buffer=new byte[65536];int n;while((n=in.read(buffer))!=-1)out.write(buffer,0,n);out.getFD().sync();}
+            MapFile map=new MapFile(part);try{org.mapsforge.core.model.BoundingBox b=map.boundingBox();if(b.maxLatitude<6||b.minLatitude>38||b.maxLongitude<68||b.minLongitude>98)throw new IOException("Map does not overlap India");}finally{map.close();}
             Files.move(part.toPath(),target.toPath(),StandardCopyOption.ATOMIC_MOVE,StandardCopyOption.REPLACE_EXISTING);
             db.log("India offline pack","SUCCESS","Validated map installed; "+target.length()+" bytes");
         }catch(Exception e){part.delete();throw e;}

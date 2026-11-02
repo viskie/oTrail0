@@ -1,6 +1,6 @@
 # oTraiL · India
 
-Personal Android GPS journal for life on the road. Android 8+, targeting Android 15. Map data is never bundled in the APK or committed. All dataset download options run on the phone through Android DownloadManager.
+Personal Android GPS journal for life on the road. Android 11+, targeting Android 15. Map data is never bundled in the APK or committed. All dataset download options run on the phone through Android DownloadManager.
 
 ## First run
 

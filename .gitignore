@@ -4,6 +4,7 @@ local.properties
 *.jks
 *.keystore
 *.apk
+!releases/*.apk
 *.osm.pbf
 *.map
 *.mbtiles
