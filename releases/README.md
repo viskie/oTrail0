@@ -1,5 +1,9 @@
 # Installable builds
 
+## 0.2.2 — 2026-11-02
+
+Automatically replaces stalled zero-byte legacy Wi-Fi-only jobs with metered-network requests. Shows specific Android pause/retry reasons instead of guessing network state. Installed on connected phone; legacy request migrated and Android download job active on validated metered Wi-Fi.
+
 ## 0.2.1 — 2026-11-02
 
 `oTraiL-0.2.1-debug.apk` enables map downloads over Wi-Fi or cellular (metered networks). Roaming remains disabled. Previously queued Wi-Fi-only jobs retain their original Android download policy; cancel/retry those to use cellular. Debug assembly passed.

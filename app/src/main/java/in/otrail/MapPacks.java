@@ -27,7 +27,7 @@ public final class MapPacks {
         String relative="oTraiL/"+System.currentTimeMillis()+"-"+p.filename();File tmp=new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),relative);
         prefs.edit().putString(p.key()+"_candidate",tmp.getAbsolutePath()).apply();
         DownloadManager.Request r=new DownloadManager.Request(Uri.parse(p.url())).setTitle("oTraiL · "+p.name()).setDescription("India · Wi-Fi or cellular · "+size(p.estimatedBytes())).setAllowedOverMetered(true).setAllowedOverRoaming(false).setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED).setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,relative);
-        long id=dm.enqueue(r);prefs.edit().putLong(p.key(),id).putString(p.key()+"_status","Queued").apply();db.log(p.name(),"QUEUED",p.url());
+        long id=dm.enqueue(r);prefs.edit().putLong(p.key(),id).putInt(p.key()+"_policy",2).putString(p.key()+"_status","Queued").apply();db.log(p.name(),"QUEUED",p.url());
     }
     public synchronized void cancel(Pack p){long id=prefs.getLong(p.key(),-1);if(id!=-1)dm.remove(id);prefs.edit().remove(p.key()).putString(p.key()+"_status","Cancelled").apply();db.log(p.name(),"CANCELLED","Previous installed dataset retained");}
     public synchronized State state(Pack p){
@@ -35,7 +35,7 @@ public final class MapPacks {
         if(id==-1)return new State(prefs.getString(p.key()+"_status",installed.exists()?"Ready offline":"Not downloaded"),installed.exists()?installed.length():0,p.estimatedBytes(),false,installed.exists());
         try(Cursor cur=dm.query(new DownloadManager.Query().setFilterById(id))){
             if(!cur.moveToFirst()){finish(p,"Removed from Android downloads");return state(p);}
-            int status=cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));long bytes=cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));long total=cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));if(total<=0)total=p.estimatedBytes();
+            int status=cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));long bytes=cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));if(prefs.getInt(p.key()+"_policy",0)<2&&bytes==0&&(status==DownloadManager.STATUS_PENDING||status==DownloadManager.STATUS_PAUSED)){dm.remove(id);prefs.edit().remove(p.key()).apply();download(p);db.log(p.name(),"MIGRATED","Replaced zero-byte legacy Wi-Fi-only request with metered-network request");return new State("Requeued · Wi-Fi or cellular allowed",0,p.estimatedBytes(),true,installed.exists());}long total=cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));if(total<=0)total=p.estimatedBytes();
             if(status==DownloadManager.STATUS_FAILED){finish(p,"Failed · reason "+cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)));return state(p);}
             if(status==DownloadManager.STATUS_SUCCESSFUL){
                 try{if(p.key().equals("mapsforge")){try(InputStream in=new FileInputStream(candidate(p))){install(in);}}else{File file=candidate(p);if(file.length()<1000000)throw new IOException("Dataset is unexpectedly small");prefs.edit().putString("raw_path",file.getAbsolutePath()).apply();}
@@ -43,7 +43,9 @@ public final class MapPacks {
                 }catch(Exception e){finish(p,"Failed validation: "+e.getMessage());}
                 return state(p);
             }
-            String s=status==DownloadManager.STATUS_PAUSED?"Paused · waiting for network / Android scheduler":status==DownloadManager.STATUS_PENDING?"Queued · waiting for network":"Downloading";
+            int reason=cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+            String s=status==DownloadManager.STATUS_PAUSED?switch(reason){case DownloadManager.PAUSED_WAITING_FOR_NETWORK->"Paused · no usable network";case DownloadManager.PAUSED_QUEUED_FOR_WIFI->"Paused · Android requires unmetered Wi-Fi";case DownloadManager.PAUSED_WAITING_TO_RETRY->"Paused · server/network retry pending";default->"Paused by Android · reason "+reason;}:status==DownloadManager.STATUS_PENDING?"Queued by Android · awaiting scheduler":"Downloading";
+            if(prefs.getInt(p.key()+"_policy",0)<2&&bytes>0)s+=" · legacy Wi-Fi-only job; cancel/retry for cellular";
             return new State(s,bytes,total,true,installed.exists());
         }
     }
