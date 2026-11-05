@@ -463,7 +463,7 @@ public final class MainActivity extends Activity {
     for (TrailSegments.Segment segment : segments) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       for (TrailSegments.Sample p : segment.points()) points.add(new GeoPoint(p.lat(), p.lon()));
-      line(points, segment.inferred() ? 0xffd88919 : recorded ? 0xff00adc5 : TEAL);
+      line(points, segment.inferred() ? 0xff24b55a : recorded ? 0xff00adc5 : TEAL);
     }
     for (TrailDb.Stop s : stops) {
       Marker m = new Marker(map);

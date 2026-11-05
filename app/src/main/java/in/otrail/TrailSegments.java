@@ -26,8 +26,6 @@ public final class TrailSegments {
         observed.add(b);
         double distance = StopDetector.distance(a.lat, a.lon, b.lat, b.lon);
         if (elapsed > 0
-            && elapsed <= MAX_BRIDGE_MS
-            && distance <= 60_000
             && distance / (elapsed / 1000.0) <= 60) result.add(new Segment(true, List.of(a, b)));
       }
     }

@@ -28,10 +28,10 @@ public class TrailSegmentsTest {
   }
 
   @Test
-  public void longOrImpossibleGapsStayDisconnected() {
+  public void longGapsConnectButImpossibleSpeedsDoNot() {
     assertTrue(
         TrailSegments.build(List.of(p(1, 1, 1000, 20), p(2, 1, 3601000, 20.001)), 100).stream()
-            .noneMatch(TrailSegments.Segment::inferred));
+            .anyMatch(TrailSegments.Segment::inferred));
     assertTrue(
         TrailSegments.build(List.of(p(1, 1, 1000, 20), p(2, 1, 121000, 25)), 100).stream()
             .noneMatch(TrailSegments.Segment::inferred));

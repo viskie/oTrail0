@@ -68,7 +68,7 @@ public final class TrackingService extends Service implements LocationListener {
           30,
           60,
           java.util.concurrent.TimeUnit.SECONDS);
-      db.recoverStops(trip);
+      db.restoreDetector(trip, detector);
       try {
         manager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, FIX_INTERVAL_MS, 0, this, Looper.getMainLooper());
@@ -102,6 +102,7 @@ public final class TrackingService extends Service implements LocationListener {
     if (active != trip) {
       trip = active == -1 ? db.begin() : active;
       detector.reset();
+      db.restoreDetector(trip, detector);
     }
     long newStopId = db.record(trip, l, detector);
     try {

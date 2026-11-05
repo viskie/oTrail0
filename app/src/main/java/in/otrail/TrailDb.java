@@ -128,11 +128,19 @@ public final class TrailDb extends SQLiteOpenHelper {
     }
   }
 
-  public synchronized void recoverStops(long trip) {
-    getWritableDatabase()
-        .execSQL(
-            "UPDATE stops SET departure_ms=observed_ms WHERE trip_id=? AND departure_ms IS NULL",
-            new Object[] {trip});
+  public synchronized void restoreDetector(long trip, StopDetector detector) {
+    Fix last = latestFix();
+    try (Cursor c = getReadableDatabase().rawQuery(
+        "SELECT id,arrival_ms,observed_ms,latitude,longitude FROM stops WHERE departure_ms IS NULL OR departure_ms=observed_ms ORDER BY observed_ms DESC LIMIT 1", null)) {
+      if (c.moveToFirst() && last != null && last.time() <= c.getLong(2)
+          && StopDetector.distance(last.lat(), last.lon(), c.getDouble(3), c.getDouble(4)) <= StopDetector.RADIUS_METERS) {
+        detector.restore(c.getLong(1), c.getLong(2), c.getDouble(3), c.getDouble(4), true);
+        detector.persistedStopId = c.getLong(0);
+        return;
+      }
+    }
+    if (last != null && last.trip() == trip && last.accuracy() <= 50 && last.speed() <= 1.5f)
+      detector.restore(last.time(), last.time(), last.lat(), last.lon(), false);
   }
 
   public synchronized long record(long trip, Location l, StopDetector detector) {
@@ -160,8 +168,8 @@ public final class TrailDb extends SQLiteOpenHelper {
               l.hasSpeed() ? l.getSpeed() : 0);
       if (e != null && e.closed())
         d.execSQL(
-            "UPDATE stops SET departure_ms=? WHERE trip_id=? AND departure_ms IS NULL",
-            new Object[] {e.departure(), trip});
+            "UPDATE stops SET departure_ms=? WHERE id=? OR (trip_id=? AND departure_ms IS NULL)",
+            new Object[] {e.departure(), detector.persistedStopId, trip});
       if (e != null && e.opened()) {
         ContentValues s = new ContentValues();
         s.put("trip_id", trip);
@@ -170,11 +178,12 @@ public final class TrailDb extends SQLiteOpenHelper {
         s.put("latitude", e.lat());
         s.put("longitude", e.lon());
         newStopId = d.insertOrThrow("stops", null, s);
+        detector.persistedStopId = newStopId;
       }
       if (detector.isStopped())
         d.execSQL(
-            "UPDATE stops SET observed_ms=? WHERE trip_id=? AND departure_ms IS NULL",
-            new Object[] {l.getTime(), trip});
+            "UPDATE stops SET observed_ms=?,departure_ms=NULL WHERE id=? OR (trip_id=? AND departure_ms IS NULL)",
+            new Object[] {l.getTime(), detector.persistedStopId, trip});
       d.setTransactionSuccessful();
     } finally {
       d.endTransaction();
@@ -611,7 +620,8 @@ public final class TrailDb extends SQLiteOpenHelper {
               duplicate = existing.moveToFirst();
             }
             if (!duplicate) {
-              if (table.equals("stops") && v.get("departure_ms") == null)
+              if (table.equals("stops") && v.get("departure_ms") == null
+                  && historicalTrips.contains(mapped))
                 v.put("departure_ms", v.getAsLong("observed_ms"));
               d.insertOrThrow(table, null, v);
             } else if (table.equals("stops")) mergeStopAddress(d, v);

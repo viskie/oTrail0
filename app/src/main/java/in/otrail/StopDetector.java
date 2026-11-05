@@ -7,10 +7,11 @@ public final class StopDetector {
     private long start, last;
     private double latitude, longitude;
     private boolean stopped;
+    public long persistedStopId = -1;
     public record Event(boolean opened, boolean closed, long arrival, long departure, double lat, double lon) {}
     public Event accept(long time, double lat, double lon, float accuracy, float speed) {
         if (time <= last) return null;
-        if (accuracy > 50 || time - last > MAX_GAP_MS && last != 0) {
+        if (accuracy > 50) {
             Event e = stopped ? new Event(false, true, start, last, latitude, longitude) : null;
             reset();
             if (accuracy > 50) return e;
@@ -23,6 +24,10 @@ public final class StopDetector {
             seed(time, lat, lon); stopped = false;
             return e;
         }
+        if (!stopped && time - last > MAX_GAP_MS) {
+            seed(time, lat, lon);
+            return null;
+        }
         last = time;
         if (!stopped && time - start > MIN_STOP_MS) {
             stopped = true;
@@ -30,9 +35,13 @@ public final class StopDetector {
         }
         return null;
     }
+    /** Restore only persisted observations; the next fix confirms continuation or departure. */
+    public void restore(long arrival, long observed, double lat, double lon, boolean open) {
+        start = arrival; last = observed; latitude = lat; longitude = lon; stopped = open;
+    }
     public boolean isStopped() { return stopped; }
     public long arrival() { return start; }
-    public void reset() { start = last = 0; stopped = false; }
+    public void reset() { start = last = 0; stopped = false; persistedStopId = -1; }
     private void seed(long t, double lat, double lon) { start = last = t; latitude = lat; longitude = lon; }
     public static double distance(double a, double b, double c, double d) {
         double p = Math.toRadians(c-a), q = Math.toRadians(d-b);
