@@ -2,11 +2,11 @@
 
 ## 0.2.3 — 2026-11-05
 
-`oTraiL-0.2.3-debug.apk` — source commit `ebd72cb`.
+`oTraiL-0.2.3-debug.apk` — source commit `b767cec`.
 
 - Additive SQLite v1 → v2 migration, stop address enrichment and historical backfill; enriched backup/GeoJSON compatibility.
 - Full collected trail by default, viewport fitted to its extent. Short plausible gaps drawn in amber; inference recorded only in logs, no estimate label on the map or invented GPS samples.
-- Sequential popup fix with stable ownership across redraws.
+- Sequential popup fix with stable ownership across redraws; historic-place and navigation action lists remain visible in Android dialogs.
 - Nearby 200–600-year-old places from OSM source dates, gold name highlights and an offline result cache. Provider availability/coverage and age metadata are not guaranteed.
 - Keep foreground recording, reboot/update recovery, map packs, cellular downloads and Drive backup.
 
