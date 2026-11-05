@@ -38,7 +38,7 @@ Attribution: © OpenStreetMap contributors, ODbL. Satellite tiles © Esri / Maxa
 
 ## Tracking and data
 
-`trips`, `fixes`, `stops`, `sync_logs` are separate normalized tables with foreign keys and a trip/time index. Schema version 1. UTC Unix milliseconds, WGS84 decimal latitude/longitude, meters, m/s, degrees. Optional altitude and bearing remain null when unavailable. Source provider is retained. GeoJSON export streams Point features, `[longitude, latitude]`, with fix and stop properties plus trip IDs. Consumers can group fixes by trip/time into lines. Existing 12,000 km of journeys cannot be reconstructed without previous GPS logs; import of historical journeys is a future feature.
+`trips`, `fixes`, `stops`, `sync_logs` are separate normalized tables with foreign keys and a trip/time index. Database schema version 2 (additive v1 migration). UTC Unix milliseconds, WGS84 decimal latitude/longitude, meters, m/s, degrees. Optional altitude and bearing remain null when unavailable. Source provider is retained. GeoJSON export streams Point features, `[longitude, latitude]`, with fix and stop properties plus trip IDs. Consumers can group fixes by trip/time into lines. Existing 12,000 km of journeys cannot be reconstructed without previous GPS logs; import of historical journeys is a future feature.
 
 A stop requires >120 seconds within a 35 m anchored radius with speed ≤1.5 m/s and accuracy ≤50 m. Gaps >60 seconds break dwell inference. Departure is the last observed stationary fix; signal loss is never counted as additional stopped time. Fixes older than 30 seconds or worse than 100 m accuracy are discarded; >30-second-old location is marked stale on screen. Live state colors: green recording/ready, blue moving, turquoise stopped, cyan historical. Tappable stop markers show arrival and observed duration on every basemap. No fake/demo coordinates.
 
@@ -48,10 +48,20 @@ JDK 21 and Android SDK platform 35 required. Use `./gradlew testDebugUnitTest li
 
 ## Scaffold limits
 
-Navigation is handed to Google Maps or OsmAnd; there is no embedded routing engine, rerouting, spoken guidance or offline route graph. Commercial providers such as Mappls/Google/Mapbox require separate SDK credentials and terms before integration. Raw PBF is an optional source archive only. No GPX importer, map delta updates, or validated all-day battery guarantee yet. Drive provider upload and full physical reboot behavior require device/account testing. osmdroid 6.1.20 is a legacy renderer; evaluate a maintained renderer before production. UI currently loads a trip's fixes before thinning the displayed line; multi-year datasets will need paginated queries and simplification.
+Navigation is handed to Google Maps or OsmAnd; there is no embedded routing engine, rerouting, spoken guidance or offline route graph. Commercial providers such as Mappls/Google/Mapbox require separate SDK credentials and terms before integration. Raw PBF is an optional source archive only. No GPX importer, map delta updates, or validated all-day battery guarantee yet. Drive provider upload and full physical reboot behavior require device/account testing. osmdroid 6.1.20 is a legacy renderer; evaluate a maintained renderer before production. UI loads collected fixes before thinning display geometry; multi-year datasets will need paginated queries and simplification.
 
 Dependencies: osmdroid (Apache 2.0); osmdroid-mapsforge bridge and Mapsforge (LGPL family—retain notices and applicable source/relinking obligations when distributing). See upstream licenses. No release-store readiness is claimed.
 
 ## Validation
 
 `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest` builds the app and isolated backup test APK. On a connected phone, install both debug APKs and run `adb shell am instrument -w in.otrail.test/in.otrail.BackupInstrumentation`. The five backup checks use device-protected test storage, separate from the user's credential-protected trail database. Six JVM stop-detector tests cover dwell threshold, signal gaps, accuracy rejection, moving fixes, duplicate timestamps and drift.
+
+## Stop location enrichment and complete trails (0.2.3)
+
+Confirmed stops are queued for place/locality/district/state/country/PIN/road lookup through Android Geocoder, independently of the five-second GPS writer. Existing stops are backfilled automatically; failed lookups retry after 24 hours. Maps & downloads has an Identify historical stop locations action. Coordinates and timings survive lookup failure. Addresses appear in stop popups, snapshots and GeoJSON. The Mapsforge `.map` is an offline rendering dataset, **not** an offline reverse-geocoding database. Android's geocoding service may use network providers and may be unavailable.
+
+Live displays the complete collected journal; History can display all journeys or one selected journey. Short plausible gaps are joined in amber without map text labels. Inference details are stored only in logs; no guessed GPS coordinates enter the journal, backup or export. Long/implausible gaps stay open.
+
+Old places searches the recent phone location within 25 km for OSM historic/heritage/tourism elements whose source date falls within 200–600 years of the current year. Gold markers highlight names; source dates and age uncertainty are visible in their popups. Results are cached on the phone for offline display. Lookup requires connectivity and is blocked by Offline only; coverage and age tags are incomplete and not independently verified. No historic datasets are bundled with the APK.
+
+For detailed file-by-file changes, migration safeguards and validation commands, see [the 0.2.3 implementation guide](docs/0.2.3-changes.md).
