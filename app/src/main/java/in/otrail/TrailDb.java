@@ -226,6 +226,26 @@ public final class TrailDb extends SQLiteOpenHelper {
         c.getLong(15));
   }
 
+  public Fix latestFix() {
+    try (Cursor c =
+        getReadableDatabase()
+            .rawQuery(
+                "SELECT id,trip_id,time_ms,latitude,longitude,accuracy_m,speed_mps FROM fixes ORDER"
+                    + " BY time_ms DESC,id DESC LIMIT 1",
+                null)) {
+      return c.moveToFirst()
+          ? new Fix(
+              c.getLong(0),
+              c.getLong(1),
+              c.getLong(2),
+              c.getDouble(3),
+              c.getDouble(4),
+              c.getFloat(5),
+              c.getFloat(6))
+          : null;
+    }
+  }
+
   public List<Fix> fixes(long trip) {
     List<Fix> out = new ArrayList<>();
     try (Cursor c =

@@ -28,7 +28,8 @@ New completed dataset downloads are retained in shared **Downloads/oTraiL** outs
 | Mapsforge / OSM | Full India offline vector map, rendered on-device | Manual Wi-Fi or cellular download/update, about 1.5 GiB |
 | Geofabrik / OSM | Optional India raw PBF source data | Manual Wi-Fi or cellular download/update, about 1.6 GiB; **not rendered or used for routing yet** |
 | Esri World Imagery | Online satellite + common trail/stop overlays | No offline pack |
-| Google Maps / OsmAnd | External navigation handoff | Installed app manages its own data |
+| OSRM / FOSSGIS | In-app online driving routes, text guidance and rerouting | Last route cached on phone; no offline graph yet |
+| Google Maps / OsmAnd | Optional external navigation | Installed app manages its own data |
 
 Maps & downloads shows estimated size before download, server-reported size/progress during download, queued/paused/failure/ready status, cancellation, retry, manual updates and timestamped logs. No automatic map updates. Downloads survive closing oTraiL. A failed candidate retains the installed map. India `.map` import is also supported. Allow enough free phone storage for the old map plus downloaded candidate plus validation copy (roughly 4.6 GiB during an update, plus retained older versions in Downloads). The offline-only switch blocks online map requests, but explicit dataset downloads are separate actions.
 
@@ -48,7 +49,7 @@ JDK 21 and Android SDK platform 35 required. Use `./gradlew testDebugUnitTest li
 
 ## Scaffold limits
 
-Navigation is handed to Google Maps or OsmAnd; there is no embedded routing engine, rerouting, spoken guidance or offline route graph. Commercial providers such as Mappls/Google/Mapbox require separate SDK credentials and terms before integration. Raw PBF is an optional source archive only. No GPX importer, map delta updates, or validated all-day battery guarantee yet. Drive provider upload and full physical reboot behavior require device/account testing. osmdroid 6.1.20 is a legacy renderer; evaluate a maintained renderer before production. UI loads collected fixes before thinning display geometry; multi-year datasets will need paginated queries and simplification.
+In-app online navigation uses OSRM with written guidance and rerouting. No voice guidance, live traffic, embedded offline routing engine or offline graph is included. Google Maps/OsmAnd remain optional external choices. Commercial providers such as Mappls/Google/Mapbox require separate SDK credentials and terms before integration. Raw PBF is an optional source archive only. No GPX importer, map delta updates, or validated all-day battery guarantee yet. Drive provider upload and full physical reboot behavior require device/account testing. osmdroid 6.1.20 is a legacy renderer; evaluate a maintained renderer before production. UI loads collected fixes before thinning display geometry; multi-year datasets will need paginated queries and simplification.
 
 Dependencies: osmdroid (Apache 2.0); osmdroid-mapsforge bridge and Mapsforge (LGPL family—retain notices and applicable source/relinking obligations when distributing). See upstream licenses. No release-store readiness is claimed.
 
@@ -65,3 +66,11 @@ Live displays the complete collected journal; History can display all journeys o
 Old places searches the recent phone location within 25 km for OSM historic/heritage/tourism elements whose source date falls within 200–600 years of the current year. Gold markers highlight names; source dates and age uncertainty are visible in their popups. Results are cached on the phone for offline display. Lookup requires connectivity and is blocked by Offline only; coverage and age tags are incomplete and not independently verified. No historic datasets are bundled with the APK.
 
 For detailed file-by-file changes, migration safeguards and validation commands, see [the 0.2.3 implementation guide](docs/0.2.3-changes.md).
+
+## Silent navigation and daily app updates (0.2.4)
+
+Navigate searches an Indian place or coordinates; holding the map offers an in-app route preview. Start enables written turn directions, remaining distance/time and rate-limited rerouting from fresh GPS. No voice or speech code is included. Cached routes can be followed during loss of connectivity, but new calculations require internet. Navigation is separate from recorded fixes/stops; this release keeps SQLite schema version 2 unchanged.
+
+App updates in Maps & downloads checks the repository's `releases/latest.json`, manually or approximately daily through Android's scheduler. Only newer versionCodes are offered. Downloads require matching size, SHA-256, package identity, advertised version and installed signing key. Android install confirmation is required; there is no silent installation or uninstall/data-clear operation.
+
+See [0.2.4 usage, integrity checks, update publishing and offline-routing options](docs/0.2.4-navigation-updates.md). APKs remain committed in `releases/`, not GitHub Releases. Device/road/installer testing for 0.2.4 remains pending; JVM tests, Android checks and the online route/parser smoke test are automated here.

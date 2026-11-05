@@ -2,11 +2,12 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk 35
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 5; versionName '0.2.3'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 6; versionName '0.2.4'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
     implementation 'org.osmdroid:osmdroid-android:6.1.20'
     implementation 'org.osmdroid:osmdroid-mapsforge:6.1.20'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
 }

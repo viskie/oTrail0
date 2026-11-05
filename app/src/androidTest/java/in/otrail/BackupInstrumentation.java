@@ -220,6 +220,7 @@ public final class BackupInstrumentation extends Instrumentation {
             }
           });
       check("sequential marker popup ownership", this::markerPopups);
+      check("cached navigation preserves journal", this::navigationIntegrity);
       result.putString(
           "stream",
           "PASS: "
@@ -450,6 +451,73 @@ public final class BackupInstrumentation extends Instrumentation {
           }
         });
     if (failure.get() != null) throw new AssertionError("popup regression", failure.get());
+  }
+
+  private void navigationIntegrity() throws Exception {
+    try (TrailDb db = new TrailDb(context)) {
+      StringWriter beforeOut = new StringWriter();
+      db.writeBackup(beforeOut);
+      JSONObject before = new JSONObject(beforeOut.toString());
+      before.remove("created_ms");
+      JSONObject maneuver =
+          new JSONObject().put("type", "depart").put("location", new JSONArray("[77,20]"));
+      JSONObject response =
+          new JSONObject()
+              .put("code", "Ok")
+              .put(
+                  "routes",
+                  new JSONArray()
+                      .put(
+                          new JSONObject()
+                              .put("distance", 1112)
+                              .put("duration", 120)
+                              .put(
+                                  "geometry",
+                                  new JSONObject()
+                                      .put("coordinates", new JSONArray("[[77,20],[77,20.01]]")))
+                              .put(
+                                  "legs",
+                                  new JSONArray()
+                                      .put(
+                                          new JSONObject()
+                                              .put(
+                                                  "steps",
+                                                  new JSONArray()
+                                                      .put(
+                                                          new JSONObject()
+                                                              .put("name", "Fixture road")
+                                                              .put("maneuver", maneuver)))))));
+      JSONObject cached =
+          new JSONObject()
+              .put("version", 1)
+              .put("response", response)
+              .put("name", "Test route")
+              .put("latitude", 20.01)
+              .put("longitude", 77)
+              .put("mode", "ACTIVE");
+      try (Writer w =
+          new java.io.FileWriter(
+              new java.io.File(context.getFilesDir(), "navigation-route.json"))) {
+        w.write(cached.toString());
+      }
+      NavigationManager navigation = NavigationManager.get(context);
+      long until = System.currentTimeMillis() + 5000;
+      while (navigation.state().route() == null && System.currentTimeMillis() < until)
+        Thread.sleep(20);
+      require(navigation.state().route() != null, "cached route not restored");
+      navigation.start();
+      Location l = fix(System.currentTimeMillis(), 20.005, 77, 4);
+      navigation.update(l);
+      Thread.sleep(100);
+      navigation.clear();
+      StringWriter afterOut = new StringWriter();
+      db.writeBackup(afterOut);
+      JSONObject after = new JSONObject(afterOut.toString());
+      after.remove("created_ms");
+      require(
+          before.toString().equals(after.toString()),
+          "navigation altered trail tables or backup settings");
+    }
   }
 
   private void awaitStatus(TrailDb db, long id, String expected) throws Exception {

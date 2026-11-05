@@ -1,0 +1,341 @@
+package in.otrail;
+
+import android.app.*;
+import android.content.Intent;
+import android.location.Location;
+import android.net.Uri;
+import android.view.View;
+import android.widget.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import org.osmdroid.util.*;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.*;
+
+/**
+ * Text-only guidance controls; route overlays have their own identities, separate from trail
+ * history.
+ */
+final class NavigationControls implements AutoCloseable {
+  private final Activity activity;
+  private final NavigationManager manager;
+  private final Supplier<Location> origin;
+  private final Runnable locate, changed;
+  private final ExecutorService searches = Executors.newSingleThreadExecutor();
+  private LinearLayout panel;
+  private TextView title, instruction, summary;
+  private Button start;
+  private MapView lastMap;
+  private long drawnRevision = -1;
+  private final List<Overlay> overlays = new ArrayList<>();
+  private DestinationSearch.Result pending;
+  private boolean searching;
+
+  NavigationControls(Activity a, Supplier<Location> origin, Runnable locate, Runnable changed) {
+    activity = a;
+    manager = NavigationManager.get(a);
+    this.origin = origin;
+    this.locate = locate;
+    this.changed = changed;
+  }
+
+  LinearLayout panel() {
+    panel = new LinearLayout(activity);
+    panel.setOrientation(LinearLayout.VERTICAL);
+    panel.setBackgroundColor(0xffe4efff);
+    title = text("", 15);
+    instruction = text("", 17);
+    summary = text("", 12);
+    panel.addView(title);
+    panel.addView(instruction);
+    panel.addView(summary);
+    LinearLayout row = new LinearLayout(activity);
+    start =
+        button(
+            "Start",
+            () -> {
+              NavigationManager.State s = manager.state();
+              if ("ACTIVE".equals(s.mode())) {
+                locate.run();
+              } else {
+                if (origin.get() == null) {
+                  toast("A fresh GPS fix is required to start");
+                  locate.run();
+                  return;
+                }
+                manager.start();
+                Location current = origin.get();
+                if (current != null) manager.update(current);
+                locate.run();
+              }
+              changed.run();
+            });
+    row.addView(start, new LinearLayout.LayoutParams(0, dp(44), 1));
+    row.addView(button("Turns", this::turns), new LinearLayout.LayoutParams(0, dp(44), 1));
+    row.addView(
+        button(
+            "Clear",
+            () -> {
+              pending = null;
+              manager.clear();
+              changed.run();
+            }),
+        new LinearLayout.LayoutParams(0, dp(44), 1));
+    panel.addView(row);
+    TextView credits = text("OSRM / FOSSGIS · © OpenStreetMap contributors", 10);
+    credits.setOnClickListener(
+        v ->
+            activity.startActivity(
+                new Intent(
+                    Intent.ACTION_VIEW, Uri.parse("https://routing.openstreetmap.de/about.html"))));
+    panel.addView(credits);
+    panel.setVisibility(View.GONE);
+    return panel;
+  }
+
+  private int dp(int value) {
+    return (int) (value * activity.getResources().getDisplayMetrics().density + .5f);
+  }
+
+  private TextView text(String value, int size) {
+    TextView v = new TextView(activity);
+    v.setText(value);
+    v.setTextSize(size);
+    v.setTextColor(0xff102d32);
+    v.setPadding(dp(12), dp(3), dp(12), dp(3));
+    return v;
+  }
+
+  private Button button(String label, Runnable click) {
+    Button b = new Button(activity);
+    b.setText(label);
+    b.setAllCaps(false);
+    b.setTextSize(12);
+    b.setOnClickListener(v -> click.run());
+    return b;
+  }
+
+  void search() {
+    if (searching) {
+      toast("Search is already running");
+      return;
+    }
+    EditText query = new EditText(activity);
+    query.setHint("Place in India or latitude, longitude");
+    query.setSingleLine(true);
+    new AlertDialog.Builder(activity)
+        .setTitle("Where are you going?")
+        .setView(query)
+        .setPositiveButton(
+            "Search",
+            (d, w) -> {
+              if (manager.offline()) {
+                toast("Turn off Offline only to search or calculate a new route");
+                return;
+              }
+              String q = query.getText().toString().trim();
+              if (q.isEmpty()) return;
+              searching = true;
+              toast("Searching places…");
+              searches.execute(
+                  () -> {
+                    try {
+                      List<DestinationSearch.Result> results =
+                          DestinationSearch.search(activity.getApplicationContext(), q);
+                      activity.runOnUiThread(
+                          () -> {
+                            if (activity.isFinishing() || activity.isDestroyed()) return;
+                            if (results.isEmpty()) {
+                              toast(
+                                  "No matching place in India. Try a nearby town or coordinates.");
+                              return;
+                            }
+                            String[] names =
+                                results.stream()
+                                    .map(DestinationSearch.Result::name)
+                                    .toArray(String[]::new);
+                            new AlertDialog.Builder(activity)
+                                .setTitle("Choose destination")
+                                .setItems(names, (dialog, index) -> plan(results.get(index)))
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                          });
+                    } catch (Exception e) {
+                      activity.runOnUiThread(() -> toast("Search unavailable: " + e.getMessage()));
+                    } finally {
+                      searching = false;
+                    }
+                  });
+            })
+        .setNegativeButton("Cancel", null)
+        .show();
+  }
+
+  void plan(DestinationSearch.Result destination) {
+    if (!DestinationSearch.india(destination.point())) {
+      toast("Choose a destination in India");
+      return;
+    }
+    if (manager.offline()) {
+      toast("Turn off Offline only to calculate a route. Cached navigation remains available.");
+      return;
+    }
+    pending = destination;
+    Location current = origin.get();
+    if (current == null) {
+      toast("Waiting for an accurate GPS fix…");
+      locate.run();
+    } else begin(current);
+    changed.run();
+  }
+
+  private void begin(Location current) {
+    DestinationSearch.Result target = pending;
+    pending = null;
+    manager.preview(
+        new RoutePlan.Point(current.getLatitude(), current.getLongitude()),
+        target.point(),
+        target.name());
+  }
+
+  void refresh(MapView map) {
+    if (panel == null) return;
+    if (pending != null) {
+      Location current = origin.get();
+      if (current != null) begin(current);
+    }
+    NavigationManager.State s = manager.state();
+    boolean has = s.route() != null;
+    panel.setVisibility(has || pending != null || !s.note().isEmpty() ? View.VISIBLE : View.GONE);
+    if (panel.getVisibility() != View.VISIBLE) {
+      draw(map, s);
+      return;
+    }
+    title.setText(pending != null ? pending.name() : s.name());
+    NavigationProgress.Guidance g = s.guidance();
+    boolean active = "ACTIVE".equals(s.mode());
+    boolean stale =
+        active && (s.fixTime() == 0 || System.currentTimeMillis() - s.fixTime() > 30_000);
+    instruction.setText(
+        pending != null
+            ? "Waiting for a fresh GPS fix"
+            : stale
+                ? "GPS stale · waiting for location"
+                : g != null && g.offRoute()
+                    ? s.note()
+                    : g != null && active && !g.arrived()
+                        ? distance(g.untilTurn()) + " · " + g.instruction()
+                        : s.note());
+    double remaining = g != null ? g.remaining() : has ? s.route().distance : 0,
+        seconds = g != null ? g.seconds() : has ? s.route().duration : 0;
+    summary.setText(
+        has
+            ? distance(remaining)
+                + " remaining · "
+                + Math.max(1, Math.round(seconds / 60))
+                + " min · no live traffic"
+                + (g != null && g.offRoute() ? " · " + s.note() : "")
+            : s.note());
+    start.setText(active ? "Recenter" : "Start");
+    start.setEnabled(has && !"ARRIVED".equals(s.mode()) && !"PLANNING".equals(s.mode()));
+    draw(map, s);
+  }
+
+  private void draw(MapView map, NavigationManager.State s) {
+    if (map == null) return;
+    if (lastMap != map) {
+      lastMap = map;
+      drawnRevision = -1;
+      overlays.clear();
+    }
+    if (drawnRevision == s.revision() && overlays.stream().allMatch(map.getOverlays()::contains))
+      return;
+    map.getOverlays().removeAll(overlays);
+    overlays.clear();
+    drawnRevision = s.revision();
+    if (s.route() != null) {
+      ArrayList<GeoPoint> points = new ArrayList<>();
+      for (RoutePlan.Point p : s.route().points) points.add(new GeoPoint(p.lat(), p.lon()));
+      Polyline route = new Polyline(map);
+      route.setId("navigation:route");
+      route.setPoints(points);
+      route.getOutlinePaint().setColor(0xff2864e9);
+      route.getOutlinePaint().setStrokeWidth(dp(5));
+      route.setOnClickListener(
+          (line, view, event) -> {
+            turns();
+            return true;
+          });
+      int index = map.getOverlays().size();
+      for (int i = 0; i < map.getOverlays().size(); i++)
+        if (map.getOverlays().get(i) instanceof Marker) {
+          index = i;
+          break;
+        }
+      map.getOverlays().add(index, route);
+      overlays.add(route);
+      Marker end = new Marker(map);
+      end.setId("navigation:destination");
+      end.setPosition(new GeoPoint(s.target().lat(), s.target().lon()));
+      end.setTitle(s.name());
+      end.setSnippet("Navigation destination");
+      end.setOnMarkerClickListener(
+          (marker, view) -> {
+            MarkerPopups.openOnly(view, marker);
+            return true;
+          });
+      map.getOverlays().add(end);
+      overlays.add(end);
+    }
+    map.invalidate();
+  }
+
+  void fit(MapView map) {
+    NavigationManager.State s = manager.state();
+    if (map == null || s.route() == null) return;
+    List<GeoPoint> points = new ArrayList<>();
+    for (RoutePlan.Point p : s.route().points) points.add(new GeoPoint(p.lat(), p.lon()));
+    map.zoomToBoundingBox(BoundingBox.fromGeoPoints(points), false, dp(25));
+  }
+
+  private void turns() {
+    NavigationManager.State s = manager.state();
+    if (s.route() == null) {
+      toast("Choose a destination first");
+      return;
+    }
+    StringBuilder out = new StringBuilder();
+    for (RoutePlan.Step step : s.route().steps)
+      out.append(distance(step.along()))
+          .append(" from start · ")
+          .append(step.instruction())
+          .append("\n\n");
+    new AlertDialog.Builder(activity)
+        .setTitle(s.name())
+        .setMessage(out.toString())
+        .setPositiveButton("Close", null)
+        .setNeutralButton(
+            "Map corrections",
+            (d, w) ->
+                activity.startActivity(
+                    new Intent(
+                        Intent.ACTION_VIEW, Uri.parse("https://www.openstreetmap.org/fixthemap"))))
+        .show();
+  }
+
+  static String distance(double m) {
+    return m < 1000
+        ? Math.round(m) + " m"
+        : String.format(Locale.getDefault(), "%.1f km", m / 1000);
+  }
+
+  private void toast(String message) {
+    if (!activity.isDestroyed()) Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
+  }
+
+  @Override
+  public void close() {
+    searches.shutdownNow();
+  }
+}

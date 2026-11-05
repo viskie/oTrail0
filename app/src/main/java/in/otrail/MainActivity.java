@@ -32,6 +32,10 @@ public final class MainActivity extends Activity {
       MUTED = 0xff597277,
       PAPER = 0xfff3f6f3;
   private TrailDb db;
+  private NavigationControls navigation;
+  private UpdateControls updates;
+  private boolean navigationFollow = true;
+  private long routeFitRevision = -1;
   private MapPacks packs;
   private MapView map;
   private LinearLayout root, body, downloadCards;
@@ -59,7 +63,10 @@ public final class MainActivity extends Activity {
         public void run() {
           if (downloads) {
             for (Runnable r : cardUpdates) r.run();
-          } else refresh();
+          } else {
+            refresh();
+            navigationTick();
+          }
           handler.postDelayed(this, 2500);
         }
       };
@@ -69,6 +76,10 @@ public final class MainActivity extends Activity {
     super.onCreate(b);
     db = new TrailDb(this);
     packs = new MapPacks(this, db);
+    navigation =
+        new NavigationControls(this, this::navigationOrigin, this::locate, this::navigationChanged);
+    updates = new UpdateControls(this);
+    AppUpdater.schedule(this);
     io.execute(
         () -> {
           for (MapPacks.Pack p : MapPacks.PACKS) packs.state(p);
@@ -82,6 +93,7 @@ public final class MainActivity extends Activity {
     offlineOnly = getPreferences(0).getBoolean("offline", false);
     provider = getPreferences(0).getInt("provider", 0);
     showMap();
+    if (AppUpdater.ACTION.equals(getIntent().getAction())) handler.post(() -> updates.show());
     if (!TrackingStartup.hasLocation(this))
       requestPermissions(
           new String[] {
@@ -159,6 +171,7 @@ public final class MainActivity extends Activity {
     mode = text(history ? "HISTORY" : "LIVE TRAIL", 13, TEAL);
     mode.setTypeface(null, Typeface.BOLD);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
+    row.addView(button("Navigate", () -> navigation.search()));
     row.addView(button("Maps & downloads", this::showDownloads));
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
@@ -173,8 +186,15 @@ public final class MainActivity extends Activity {
     network.setChecked(offlineOnly);
     tools.addView(network);
     body.addView(tools);
+    body.addView(navigation.panel());
     map = new MapView(this);
     map.setMultiTouchControls(true);
+    map.setOnTouchListener(
+        (v, event) -> {
+          if (event.getActionMasked() == android.view.MotionEvent.ACTION_MOVE)
+            navigationFollow = false;
+          return false;
+        });
     map.getController().setZoom(5.0);
     map.getController().setCenter(new GeoPoint(22.5, 79));
     map.setMinZoomLevel(4.0);
@@ -429,7 +449,16 @@ public final class MainActivity extends Activity {
     if (selected == null || !selected.isInfoWindowShown()) openMarkerKey = null;
     org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
     visibleMarkers.clear();
-    map.getOverlays().removeIf(o -> o instanceof Marker || o instanceof Polyline);
+    map.getOverlays()
+        .removeIf(
+            o ->
+                (o instanceof Marker || o instanceof Polyline)
+                    && (!(o instanceof Marker)
+                        || ((Marker) o).getId() == null
+                        || !((Marker) o).getId().startsWith("navigation:"))
+                    && (!(o instanceof Polyline)
+                        || ((Polyline) o).getId() == null
+                        || !((Polyline) o).getId().startsWith("navigation:")));
     for (TrailSegments.Segment segment : segments) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       for (TrailSegments.Sample p : segment.points()) points.add(new GeoPoint(p.lat(), p.lon()));
@@ -487,6 +516,7 @@ public final class MainActivity extends Activity {
     drawHistoricPlaces();
     Marker reopen = visibleMarkers.get(openMarkerKey);
     if (reopen != null) reopen.showInfoWindow();
+    if (NavigationManager.get(this).state().route() != null && !history) fitTrail = false;
     if (fitTrail) {
       fitTrail = false;
       follow = false;
@@ -561,7 +591,7 @@ public final class MainActivity extends Activity {
                 + (TrackingStartup.rebootReady(this)
                     ? "Reboot location permission is ready."
                     : "Setup needed: grant precise location and select Allow all the time so"
-                          + " recording can restart after reboot.")
+                        + " recording can restart after reboot.")
                 + "\n\n"
                 + "On POCO: enable Background autostart and set Battery → No restrictions. Android"
                 + " force-stop prevents automatic restart until you reopen oTraiL.")
@@ -599,6 +629,7 @@ public final class MainActivity extends Activity {
 
   private void locate() {
     fitTrail = false;
+    navigationFollow = true;
     follow = true;
     lastFixId = -1;
     lastStopSignature = 0;
@@ -643,7 +674,9 @@ public final class MainActivity extends Activity {
         .setTitle("Old places · 200–600 years · 25 km")
         .setItems(
             new String[] {
-              "Find / refresh nearby places (OSM)", "Show cached nearby places", "Hide historic labels"
+              "Find / refresh nearby places (OSM)",
+              "Show cached nearby places",
+              "Hide historic labels"
             },
             (d, i) -> {
               if (i == 2) {
@@ -827,7 +860,23 @@ public final class MainActivity extends Activity {
 
   private void destination(GeoPoint p) {
     new AlertDialog.Builder(this)
-        .setTitle(String.format(Locale.US,"Navigate to %.5f, %.5f",p.getLatitude(),p.getLongitude()))
+        .setTitle(
+            String.format(Locale.US, "Destination %.5f, %.5f", p.getLatitude(), p.getLongitude()))
+        .setPositiveButton(
+            "Preview in oTraiL",
+            (d, w) ->
+                navigation.plan(
+                    new DestinationSearch.Result(
+                        "Map destination", new RoutePlan.Point(p.getLatitude(), p.getLongitude()))))
+        .setNeutralButton("Other apps", (d, w) -> externalDestination(p))
+        .setNegativeButton("Cancel", null)
+        .show();
+  }
+
+  private void externalDestination(GeoPoint p) {
+    new AlertDialog.Builder(this)
+        .setTitle(
+            String.format(Locale.US, "Navigate to %.5f, %.5f", p.getLatitude(), p.getLongitude()))
         .setItems(
             new String[] {"Google Maps", "OsmAnd", "Other maps"},
             (d, i) -> {
@@ -877,6 +926,29 @@ public final class MainActivity extends Activity {
             MUTED));
     cardUpdates.clear();
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
+    downloadCards.addView(button("App updates · daily / check now", () -> updates.show()));
+    downloadCards.addView(
+        button(
+            "Online routing server",
+            () -> {
+              EditText endpoint = new EditText(this);
+              endpoint.setText(NavigationManager.get(this).server());
+              new AlertDialog.Builder(this)
+                  .setTitle("HTTPS OSRM driving endpoint")
+                  .setView(endpoint)
+                  .setPositiveButton(
+                      "Save",
+                      (d, w) -> {
+                        try {
+                          NavigationManager.get(this).server(endpoint.getText().toString());
+                          toast("Routing endpoint saved");
+                        } catch (Exception e) {
+                          toast(e.getMessage());
+                        }
+                      })
+                  .setNegativeButton("Cancel", null)
+                  .show();
+            }));
     downloadCards.addView(
         button(
             "Identify historical stop locations",
@@ -947,10 +1019,11 @@ public final class MainActivity extends Activity {
         "Satellite context with your trail overlay. Tiles © Esri, Maxar, Earthstar Geographics and"
             + " contributors. Bulk offline download is not enabled.");
     infoCard(
-        "Google Maps / OsmAnd",
-        "NAVIGATION HANDOFF",
-        "Long-press a destination on the map. The selected installed app provides live guidance;"
-            + " oTraiL keeps recording in the background.");
+        "In-app driving navigation",
+        "TEXT DIRECTIONS · NO VOICE",
+        "Use Navigate to search or hold a point on the map. Preview and start a driving route in"
+            + " oTraiL. OSRM / FOSSGIS provides online routes; rerouting needs internet. No live"
+            + " traffic or voice. Other apps remain optional.");
     downloadCards.addView(
         button(
             "Import an India .map file",
@@ -1196,6 +1269,57 @@ public final class MainActivity extends Activity {
         });
   }
 
+  private Location navigationOrigin() {
+    long now = System.currentTimeMillis();
+    Location best = preview;
+    TrailDb.Fix fix = db.latestFix();
+    if (fix != null && (best == null || fix.time() > best.getTime())) {
+      best = new Location("trail");
+      best.setLatitude(fix.lat());
+      best.setLongitude(fix.lon());
+      best.setTime(fix.time());
+      best.setAccuracy(fix.accuracy());
+      best.setSpeed(fix.speed());
+    }
+    if (best == null
+        || !best.hasAccuracy()
+        || best.getAccuracy() > 50
+        || now - best.getTime() > 30000
+        || now - best.getTime() < -10000) return null;
+    return best;
+  }
+
+  private void navigationChanged() {
+    routeFitRevision = -1;
+    if ("ACTIVE".equals(NavigationManager.get(this).state().mode())) {
+      navigationFollow = true;
+      if (history) {
+        history = false;
+        showMap();
+      }
+    }
+    navigationTick();
+    lastFixId = -1;
+    refresh();
+  }
+
+  private void navigationTick() {
+    if (downloads || map == null) return;
+    navigation.refresh(map);
+    NavigationManager.State state = NavigationManager.get(this).state();
+    if (!history && state.route() != null && routeFitRevision != state.revision()) {
+      routeFitRevision = state.revision();
+      if ("PREVIEW".equals(state.mode())) navigation.fit(map);
+    }
+    if (!history && "ACTIVE".equals(state.mode()) && navigationFollow) {
+      Location fix = navigationOrigin();
+      if (fix != null) {
+        map.getController().setCenter(new GeoPoint(fix.getLatitude(), fix.getLongitude()));
+        if (map.getZoomLevelDouble() < 14) map.getController().setZoom(16.0);
+      }
+    }
+  }
+
   private String clock(long t) {
     return new SimpleDateFormat("dd MMM, HH:mm:ss", Locale.getDefault()).format(new Date(t));
   }
@@ -1219,6 +1343,7 @@ public final class MainActivity extends Activity {
     TrackingStartup.start(this, false);
     StopGeocoder.backfill(this);
     if (map != null) map.onResume();
+    updates.resume();
     handler.post(ticker);
   }
 
@@ -1244,6 +1369,7 @@ public final class MainActivity extends Activity {
     if (map != null) map.onDetach();
     io.shutdown();
     heritageIo.shutdownNow();
+    navigation.close();
     super.onDestroy();
   }
 }

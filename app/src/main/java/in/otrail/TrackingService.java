@@ -104,6 +104,11 @@ public final class TrackingService extends Service implements LocationListener {
       detector.reset();
     }
     long newStopId = db.record(trip, l, detector);
+    try {
+      NavigationManager.get(this).update(l);
+    } catch (RuntimeException e) {
+      db.log("Navigation", "ERROR", e.toString());
+    }
     if (newStopId > 0) StopGeocoder.enqueue(this, newStopId);
   }
 
