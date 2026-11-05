@@ -1,0 +1,8 @@
+{
+  "versionCode": 6,
+  "versionName": "0.2.4",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.2.4-debug.apk",
+  "sha256": "3205e5a6ad6a7f7b60736e20459d5b360f48821cab8616837f8c7a89063b8053",
+  "sizeBytes": 4655877,
+  "notes": "In-app driving navigation with written directions and rerouting; no voice. Cached routes, daily/manual GitHub update checks, verified APK installation. Trail schema and signing identity preserved. Install over your existing app."
+}

@@ -1,5 +1,18 @@
 # Installable builds
 
+## 0.2.4 — 2026-11-05
+
+`oTraiL-0.2.4-debug.apk` — source commit `771c5ad`, versionCode 6.
+
+- In-app online driving route preview, destination search/coordinates/map points, written turns, remaining distance/time and rate-limited automatic rerouting. No voice guidance or live traffic.
+- Cached active routes can resume after restart and be followed offline; new paths/reroutes still need internet.
+- Daily/manual update checks use `releases/latest.json`, not GitHub Releases. APK size/SHA-256/package/version/signing identity checked before opening Android's user-confirmed installer.
+- Journal schema stays at 2. Route caches and updater files are separate from GPS fixes, stops, maps and backups. Signing certificate matches 0.2.3.
+
+Validation: 29 passing JVM tests, Android lint without errors, debug app/instrumentation APK compilation. Live synthetic routing API + production parser smoke test: 244 points / 20 written maneuvers. Phone/road/UI/installer testing is pending because no device is connected; uploaded to GitHub as requested. The new journal-invariance instrumentation check is compiled but not executed. Install over the existing app to preserve its data; do not uninstall.
+
+[Usage, integrity, release-manifest maintenance and offline routing options](../docs/0.2.4-navigation-updates.md).
+
 ## 0.2.3 — 2026-11-05
 
 `oTraiL-0.2.3-debug.apk` — source commit `b767cec`.
