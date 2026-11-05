@@ -61,3 +61,7 @@ Validation: six JVM stop-detector tests, Android lint (no errors), debug app/tes
 Validation: debug assembly, six stop-detector unit tests, Android lint with no errors; installed and launched over Wi-Fi ADB on POCO model 26020PCB4I / Android 15. Long-duration GPS/battery performance and full India pack download remain device tests.
 
 APK snapshots are committed here, not published as GitHub Releases. Debug signing keys are local to the build environment and are not in Git. Save/export trails before uninstalling; builds signed with a different debug key cannot update the existing app in place.
+
+## 0.2.6 — 2026-11-05
+
+`oTraiL-0.2.6-debug.apk`: stop arrival recovery from saved stationary fixes, green display-only gap connections, history lifecycle/viewport safeguards, embedded BRouter and native Valhalla with settings selection and graph download/import progress. BRouter has a regional public download source; Valhalla requires a configured compatible India graph .tar URL or imported pack. No voice. No map or routing datasets bundled. Same signature and database schema. 34 JVM tests and lint pass; device checks remain pending. See docs/0.2.6-offline-routing-continuity.md.

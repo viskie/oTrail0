@@ -1,11 +1,13 @@
 plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
-    compileSdk 35
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 7; versionName '0.2.5'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 8; versionName '0.2.6'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
+    implementation project(':brouter')
+    implementation 'io.github.rallista:valhalla-mobile:0.6.4'
     implementation 'org.osmdroid:osmdroid-android:6.1.20'
     implementation 'org.osmdroid:osmdroid-mapsforge:6.1.20'
     testImplementation 'junit:junit:4.13.2'

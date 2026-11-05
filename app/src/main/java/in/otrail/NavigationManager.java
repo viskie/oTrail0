@@ -73,7 +73,7 @@ public final class NavigationManager {
 
   private synchronized void request(
       RoutePlan.Point origin, RoutePlan.Point target, String name, boolean reroute) {
-    if (offline()) {
+    if (offline() && !OfflineRouting.selected(context)) {
       state =
           new State(
               state.route,
@@ -105,7 +105,9 @@ public final class NavigationManager {
     requests.execute(
         () -> {
           try {
-            String json = OnlineRouting.route(server(), origin, target);
+            String engine = OfflineRouting.engine(context);
+            String json = engine.equals("online") ? OnlineRouting.route(server(), origin, target)
+                : OfflineRouting.route(context, engine, origin, target);
             RoutePlan plan = OsrmRouteParser.parse(json);
             synchronized (this) {
               if (request != ticket) return;
@@ -198,8 +200,8 @@ public final class NavigationManager {
                     + Math.round(RoutePlan.metres(point, state.target))
                     + " m away"
                 : g.offRoute()
-                    ? (offline()
-                        ? "Off route · offline; cached route retained"
+                    ? (offline() && !OfflineRouting.selected(context)
+                        ? "Off route · select an offline engine in settings"
                         : "Off route · checking a new route")
                     : "Following route";
     state =
@@ -216,7 +218,7 @@ public final class NavigationManager {
       ticket++;
       fetching = false;
       persist();
-    } else if (g.offRoute() && !offline()) request(point, state.target, state.name, true);
+    } else if (g.offRoute() && (!offline() || OfflineRouting.selected(context))) request(point, state.target, state.name, true);
   }
 
   private void persist() {

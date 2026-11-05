@@ -130,17 +130,33 @@ public final class TrailDb extends SQLiteOpenHelper {
 
   public synchronized void restoreDetector(long trip, StopDetector detector) {
     Fix last = latestFix();
+    if (last == null || last.accuracy() > 50 || last.speed() > 1.5f) return;
+    long stationarySince = last.time();
+    // Walk actual observations backwards, across collector sessions and restored trips.
+    // An observed departure is a hard boundary; an unobserved gap is not a new arrival.
+    try (Cursor fixes = getReadableDatabase().rawQuery(
+        "SELECT time_ms,latitude,longitude,accuracy_m,speed_mps FROM fixes ORDER BY time_ms DESC,id DESC", null)) {
+      while (fixes.moveToNext()) {
+        if (fixes.getFloat(3) > 50) continue;
+        if (fixes.getFloat(4) > 1.5f || StopDetector.distance(last.lat(), last.lon(), fixes.getDouble(1), fixes.getDouble(2)) > StopDetector.RADIUS_METERS) break;
+        stationarySince = fixes.getLong(0);
+      }
+    }
     try (Cursor c = getReadableDatabase().rawQuery(
         "SELECT id,arrival_ms,observed_ms,latitude,longitude FROM stops WHERE departure_ms IS NULL OR departure_ms=observed_ms ORDER BY observed_ms DESC LIMIT 1", null)) {
-      if (c.moveToFirst() && last != null && last.time() <= c.getLong(2)
+      if (c.moveToFirst() && stationarySince <= c.getLong(2)
           && StopDetector.distance(last.lat(), last.lon(), c.getDouble(3), c.getDouble(4)) <= StopDetector.RADIUS_METERS) {
-        detector.restore(c.getLong(1), c.getLong(2), c.getDouble(3), c.getDouble(4), true);
+        long arrival = Math.min(c.getLong(1), stationarySince);
+        detector.restore(arrival, last.time(), last.lat(), last.lon(), true);
         detector.persistedStopId = c.getLong(0);
+        if (arrival < c.getLong(1)) {
+          getWritableDatabase().execSQL("UPDATE stops SET arrival_ms=? WHERE id=?",new Object[]{arrival,c.getLong(0)});
+          log("Stop continuity", "RECOVERED", "Stop " + c.getLong(0) + " original arrival " + c.getLong(1) + "; reconstructed stationary arrival " + arrival + "; GPS observations retained");
+        }
         return;
       }
     }
-    if (last != null && last.trip() == trip && last.accuracy() <= 50 && last.speed() <= 1.5f)
-      detector.restore(last.time(), last.time(), last.lat(), last.lon(), false);
+    if (last.trip() == trip) detector.restore(stationarySince, last.time(), last.lat(), last.lon(), false);
   }
 
   public synchronized long record(long trip, Location l, StopDetector detector) {
@@ -253,6 +269,16 @@ public final class TrailDb extends SQLiteOpenHelper {
               c.getFloat(6))
           : null;
     }
+  }
+
+  public record TripSummary(long id, long first, long count) {}
+  public List<TripSummary> tripSummaries() {
+    List<TripSummary> out = new ArrayList<>();
+    try (Cursor c = getReadableDatabase().rawQuery(
+        "SELECT t.id,COALESCE(MIN(f.time_ms),t.started_ms),COUNT(f.id) FROM trips t LEFT JOIN fixes f ON f.trip_id=t.id GROUP BY t.id ORDER BY t.id DESC", null)) {
+      while(c.moveToNext()) out.add(new TripSummary(c.getLong(0),c.getLong(1),c.getLong(2)));
+    }
+    return out;
   }
 
   public List<Fix> fixes(long trip) {

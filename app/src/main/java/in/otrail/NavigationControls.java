@@ -130,11 +130,11 @@ final class NavigationControls implements AutoCloseable {
         .setPositiveButton(
             "Search",
             (d, w) -> {
-              if (manager.offline()) {
-                toast("Turn off Offline only to search or calculate a new route");
+              String q = query.getText().toString().trim();
+              if (manager.offline() && !q.matches("[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+")) {
+                toast("Offline: enter latitude, longitude or hold a point on the map");
                 return;
               }
-              String q = query.getText().toString().trim();
               if (q.isEmpty()) return;
               searching = true;
               toast("Searching places…");
@@ -177,8 +177,8 @@ final class NavigationControls implements AutoCloseable {
       toast("Choose a destination in India");
       return;
     }
-    if (manager.offline()) {
-      toast("Turn off Offline only to calculate a route. Cached navigation remains available.");
+    if (manager.offline() && !OfflineRouting.selected(activity)) {
+      toast("Choose BRouter or Valhalla in Maps & downloads to calculate offline routes.");
       return;
     }
     pending = destination;

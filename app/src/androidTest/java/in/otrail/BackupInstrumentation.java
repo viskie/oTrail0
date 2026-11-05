@@ -221,6 +221,7 @@ public final class BackupInstrumentation extends Instrumentation {
           });
       check("sequential marker popup ownership", this::markerPopups);
       check("cached navigation preserves journal", this::navigationIntegrity);
+      check("restart recovers earliest stationary arrival", this::stopContinuity);
       result.putString(
           "stream",
           "PASS: "
@@ -233,6 +234,33 @@ public final class BackupInstrumentation extends Instrumentation {
       finish(Activity.RESULT_CANCELED, result);
     } finally {
       context.deleteDatabase("trails.db");
+    }
+  }
+
+  private void stopContinuity() throws Exception {
+    context.deleteDatabase("trails.db");
+    long trip, stop;
+    try (TrailDb db = new TrailDb(context)) {
+      trip = db.begin(); StopDetector detector = new StopDetector(); stop = -1;
+      for(int i=1;i<=26;i++) {
+        Location l=new Location("test");l.setTime(i*5000);l.setLatitude(20);l.setLongitude(77);l.setAccuracy(8);l.setSpeed(0);
+        long id=db.record(trip,l,detector);if(id>0)stop=id;
+      }
+      require(stop>0,"missing confirmed stop");
+      // Simulate a legacy version closing and restarting the same dwell.
+      db.getWritableDatabase().execSQL("UPDATE stops SET arrival_ms=60000,departure_ms=observed_ms WHERE id=?",new Object[]{stop});
+    }
+    try (TrailDb db = new TrailDb(context)) {
+      StopDetector detector=new StopDetector();db.restoreDetector(trip,detector);
+      require(detector.arrival()==5000,"lost earlier stationary observations");
+      Location resumed=new Location("test");resumed.setTime(3600000);resumed.setLatitude(20);resumed.setLongitude(77);resumed.setAccuracy(8);resumed.setSpeed(0);
+      db.record(trip,resumed,detector);
+      require(db.stopById(stop).arrival()==5000 && db.stopById(stop).departure()==0,"stop did not resume");
+      require(db.stops(-1).size()==1,"restart duplicated stop");
+      resumed.setTime(3605000);resumed.setLatitude(20.01);resumed.setSpeed(5);db.record(trip,resumed,detector);
+      require(db.stopById(stop).departure()==3600000,"departure not preserved");
+      StopDetector moved=new StopDetector();db.restoreDetector(trip,moved);require(!moved.isStopped(),"resurrected departed stop");
+      require(db.fixes(-1).size()==28,"recovery changed GPS rows");
     }
   }
 

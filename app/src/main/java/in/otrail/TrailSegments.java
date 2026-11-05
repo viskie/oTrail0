@@ -8,7 +8,6 @@ public final class TrailSegments {
 
   public record Segment(boolean inferred, List<Sample> points) {}
 
-  private static final long MAX_BRIDGE_MS = 30 * 60 * 1000;
 
   public static List<Segment> build(List<Sample> samples, int maxPoints) {
     List<Segment> result = new ArrayList<>();

@@ -43,6 +43,7 @@ public final class MainActivity extends Activity {
   private final Handler handler = new Handler(Looper.getMainLooper());
   private final ExecutorService io = Executors.newSingleThreadExecutor();
   private final ExecutorService heritageIo = Executors.newSingleThreadExecutor();
+  private RoutingControls routingControls;
   private final ArrayList<Runnable> cardUpdates = new ArrayList<>();
   private boolean downloads, history, offlineOnly, follow = true, busy;
   private long selectedTrip = -1, lastFixId = -1;
@@ -160,6 +161,12 @@ public final class MainActivity extends Activity {
   }
 
   private void showMap() {
+    if (map != null) {
+      org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
+      map.onPause();
+      map.onDetach();
+      map = null;
+    }
     fitTrail = true;
     routeFitRevision = -1;
     lastHeritageSignature = 0;
@@ -371,7 +378,13 @@ public final class MainActivity extends Activity {
                   busy = false;
                   if (downloads || history != viewHistory || viewHistory && selectedTrip != chosen)
                     return;
-                  render(active, trip, fixes, stops, segments, places);
+                  if (map == null || isFinishing() || isDestroyed()) return;
+                  try { render(active, trip, fixes, stops, segments, places); }
+                  catch (RuntimeException e) {
+                    android.util.Log.e("oTraiL", "Trail render failed", e);
+                    io.execute(() -> db.log("History display", "ERROR", android.util.Log.getStackTraceString(e)));
+                    toast("Trail display could not finish; your recorded data is safe");
+                  }
                 });
           } catch (Exception e) {
             runOnUiThread(
@@ -532,12 +545,11 @@ public final class MainActivity extends Activity {
         map.getController().setCenter(dot.getPosition());
         map.getController().setZoom(16.0);
       } else {
+        if (north - south < .001) { north += .0005; south -= .0005; }
+        if (east - west < .001) { east += .0005; west -= .0005; }
         BoundingBox bounds = new BoundingBox(north, east, south, west);
         MapView view = map;
-        view.post(
-            () -> {
-              if (view == map) view.zoomToBoundingBox(bounds, false, dp(30));
-            });
+        fitBounds(view, bounds);
       }
     } else if (follow) {
       map.getController().setCenter(dot.getPosition());
@@ -829,34 +841,45 @@ public final class MainActivity extends Activity {
       showMap();
       return;
     }
-    List<Long> ids = db.trips();
-    if (ids.isEmpty()) {
-      toast("Waiting for the first GPS trail");
-      return;
-    }
-    String[] names = new String[ids.size() + 1];
-    names[0] = "Entire collected trail";
-    for (int i = 0; i < ids.size(); i++) {
-      List<TrailDb.Fix> f = db.fixes(ids.get(i));
-      names[i + 1] =
-          "Trail #"
-              + ids.get(i)
-              + (f.isEmpty()
-                  ? " · waiting for GPS"
-                  : " · " + clock(f.get(0).time()) + " · " + f.size() + " fixes");
-    }
-    new AlertDialog.Builder(this)
-        .setTitle("Your journeys")
-        .setItems(
-            names,
-            (d, i) -> {
-              selectedTrip = i == 0 ? -1 : ids.get(i - 1);
-              history = true;
-              follow = true;
-              showMap();
-            })
-        .setNegativeButton("Close", null)
-        .show();
+    toast("Loading journey list…");
+    io.execute(() -> {
+      try {
+        List<TrailDb.TripSummary> trips = db.tripSummaries();
+        String[] names = new String[trips.size() + 1];
+        names[0] = "Entire collected trail";
+        for (int i = 0; i < trips.size(); i++) {
+          TrailDb.TripSummary t = trips.get(i);
+          names[i + 1] = "Trail #" + t.id() + (t.count() == 0 ? " · waiting for GPS"
+              : " · " + clock(t.first()) + " · " + t.count() + " fixes");
+        }
+        runOnUiThread(() -> {
+          if (isFinishing() || isDestroyed() || downloads) return;
+          new AlertDialog.Builder(this).setTitle("Your journeys").setItems(names, (d, i) -> {
+            selectedTrip = i == 0 ? -1 : trips.get(i - 1).id();
+            history = true; follow = true; showMap();
+          }).setNegativeButton("Close", null).show();
+        });
+      } catch (Exception e) { runOnUiThread(() -> toast("History unavailable: " + e.getMessage())); }
+    });
+  }
+
+  private void fitBounds(MapView view, BoundingBox bounds) {
+    Runnable fit = () -> {
+      if (view != map || view.getWidth() <= dp(60) || view.getHeight() <= dp(60)) return;
+      try { view.zoomToBoundingBox(bounds, false, dp(30)); }
+      catch (RuntimeException e) {
+        android.util.Log.e("oTraiL", "Trail viewport failed", e);
+        view.getController().setCenter(bounds.getCenterWithDateLine());
+        view.getController().setZoom(12.0);
+      }
+    };
+    if (view.getWidth() > dp(60) && view.getHeight() > dp(60)) view.post(fit);
+    else view.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+      @Override public void onLayoutChange(View v,int l,int t,int r,int b,int ol,int ot,int or,int ob) {
+        if (view != map) { view.removeOnLayoutChangeListener(this); return; }
+        if (r-l > dp(60) && b-t > dp(60)) { view.removeOnLayoutChangeListener(this); view.post(fit); }
+      }
+    });
   }
 
   private void destination(GeoPoint p) {
@@ -927,6 +950,8 @@ public final class MainActivity extends Activity {
             MUTED));
     cardUpdates.clear();
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
+    if (routingControls == null) routingControls = new RoutingControls(this);
+    routingControls.addTo(downloadCards, cardUpdates);
     downloadCards.addView(button("App updates · daily / check now", () -> updates.show()));
     downloadCards.addView(
         button(
@@ -1208,6 +1233,11 @@ public final class MainActivity extends Activity {
     super.onActivityResult(request, result, data);
     if (result != RESULT_OK || data == null || data.getData() == null) return;
     Uri uri = data.getData();
+    if (request == 31) {
+      if (routingControls == null) routingControls = new RoutingControls(this);
+      routingControls.imported(uri);
+      return;
+    }
     if (request == 22) {
       try {
         new TrailBackup(this).configure(uri, data.getFlags());
@@ -1371,6 +1401,7 @@ public final class MainActivity extends Activity {
     io.shutdown();
     heritageIo.shutdownNow();
     navigation.close();
+    if (routingControls != null) routingControls.close();
     super.onDestroy();
   }
 }
