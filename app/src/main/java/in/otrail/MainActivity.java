@@ -640,14 +640,10 @@ public final class MainActivity extends Activity {
 
   private void oldPlaces() {
     new AlertDialog.Builder(this)
-        .setTitle("Old places near me · 200–600 years")
-        .setMessage(
-            "Named historic sites within 25 km. Gold labels use OpenStreetMap source dates; ages"
-                + " are not independently verified and coverage is incomplete. Recent successful"
-                + " results remain available offline.")
+        .setTitle("Old places · 200–600 years · 25 km")
         .setItems(
             new String[] {
-              "Find / refresh nearby places", "Show cached nearby places", "Hide historic labels"
+              "Find / refresh nearby places (OSM)", "Show cached nearby places", "Hide historic labels"
             },
             (d, i) -> {
               if (i == 2) {
@@ -680,6 +676,8 @@ public final class MainActivity extends Activity {
                             locate();
                             return;
                           }
+                          map.getController().setCenter(nearbyCenter);
+                          map.getController().setZoom(10.5);
                           lastFixId = -1;
                           lastStopSignature = 0;
                           if (i == 0) fetchHistoricPlaces();
@@ -829,15 +827,7 @@ public final class MainActivity extends Activity {
 
   private void destination(GeoPoint p) {
     new AlertDialog.Builder(this)
-        .setTitle("Navigate here")
-        .setMessage(
-            String.format(
-                Locale.US,
-                "%.5f, %.5f\n"
-                    + "Live guidance opens in an installed navigation app. Trail recording"
-                    + " continues.",
-                p.getLatitude(),
-                p.getLongitude()))
+        .setTitle(String.format(Locale.US,"Navigate to %.5f, %.5f",p.getLatitude(),p.getLongitude()))
         .setItems(
             new String[] {"Google Maps", "OsmAnd", "Other maps"},
             (d, i) -> {
