@@ -1,8 +1,8 @@
 {
-  "versionCode": 8,
-  "versionName": "0.2.6",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.2.6-debug.apk",
-  "sha256": "58b4857b69bde893de15f679825e2d843e28d3af9187819e0fead7ab3c358397",
-  "sizeBytes": 41771764,
-  "notes": "Recover original stop arrival from saved stationary fixes; green inferred gaps; history crash safeguards. Embedded BRouter and Valhalla offline routing with engine selection and phone-only graph downloads/import. Valhalla requires a compatible India graph pack URL or import. No voice. Install over existing app; database schema and signing key unchanged."
+  "versionCode": 9,
+  "versionName": "0.2.7",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.2.7-debug.apk",
+  "sha256": "86417d25105d2a1bd0d8045447db7ee440ef3c23432c9c77505dd014ccd1f0d7",
+  "sizeBytes": 41797372,
+  "notes": "Fix confirmed map repository crash on screen changes. Independent stop detail dialogs and Stops list. Preserve confirmed stops through GPS boundary jitter. Tested full/individual history across OSM, Esri and India offline on POCO. Install over existing app; database schema and signing key retained."
 }
