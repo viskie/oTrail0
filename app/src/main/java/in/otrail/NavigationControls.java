@@ -291,12 +291,18 @@ final class NavigationControls implements AutoCloseable {
     map.invalidate();
   }
 
-  void fit(MapView map) {
+  boolean fit(MapView map) {
     NavigationManager.State s = manager.state();
-    if (map == null || s.route() == null) return;
+    if (map == null || s.route() == null || map.getWidth() == 0 || map.getHeight() == 0)
+      return false;
     List<GeoPoint> points = new ArrayList<>();
     for (RoutePlan.Point p : s.route().points) points.add(new GeoPoint(p.lat(), p.lon()));
-    map.zoomToBoundingBox(BoundingBox.fromGeoPoints(points), false, dp(25));
+    BoundingBox bounds = BoundingBox.fromGeoPoints(points);
+    if (bounds.getLatitudeSpan() < .0001 && bounds.getLongitudeSpan() < .0001) {
+      map.getController().setCenter(points.get(0));
+      map.getController().setZoom(16.0);
+    } else map.zoomToBoundingBox(bounds, false, dp(25));
+    return true;
   }
 
   private void turns() {

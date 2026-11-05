@@ -161,6 +161,7 @@ public final class MainActivity extends Activity {
 
   private void showMap() {
     fitTrail = true;
+    routeFitRevision = -1;
     lastHeritageSignature = 0;
     openMarkerKey = null;
     visibleMarkers.clear();
@@ -1308,8 +1309,8 @@ public final class MainActivity extends Activity {
     navigation.refresh(map);
     NavigationManager.State state = NavigationManager.get(this).state();
     if (!history && state.route() != null && routeFitRevision != state.revision()) {
-      routeFitRevision = state.revision();
-      if ("PREVIEW".equals(state.mode())) navigation.fit(map);
+      if (!"PREVIEW".equals(state.mode()) || navigation.fit(map))
+        routeFitRevision = state.revision();
     }
     if (!history && "ACTIVE".equals(state.mode()) && navigationFollow) {
       Location fix = navigationOrigin();
