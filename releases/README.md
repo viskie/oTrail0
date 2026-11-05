@@ -2,7 +2,7 @@
 
 ## 0.2.4 — 2026-11-05
 
-`oTraiL-0.2.4-debug.apk` — source commit `771c5ad`, versionCode 6.
+`oTraiL-0.2.4-debug.apk` — source commit `3811a1d`, versionCode 6.
 
 - In-app online driving route preview, destination search/coordinates/map points, written turns, remaining distance/time and rate-limited automatic rerouting. No voice guidance or live traffic.
 - Cached active routes can resume after restart and be followed offline; new paths/reroutes still need internet.
