@@ -163,9 +163,13 @@ public final class MainActivity extends Activity {
   private void showMap() {
     if (map != null) {
       org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
-      map.onPause();
-      map.onDetach();
+      MapView old = map;
       map = null;
+      old.setDestroyMode(false);
+      old.onPause();
+      if (old.getParent() instanceof android.view.ViewGroup)
+        ((android.view.ViewGroup)old.getParent()).removeView(old);
+      old.onDetach();
     }
     fitTrail = true;
     routeFitRevision = -1;
@@ -196,6 +200,7 @@ public final class MainActivity extends Activity {
     body.addView(tools);
     body.addView(navigation.panel());
     map = new MapView(this);
+    map.setDestroyMode(false); // Lifecycle is owned here; avoid a second teardown on window detach.
     map.setMultiTouchControls(true);
     map.setOnTouchListener(
         (v, event) -> {
@@ -257,7 +262,7 @@ public final class MainActivity extends Activity {
         button("Tracker status", this::trackerStatus), new LinearLayout.LayoutParams(0, dp(52), 1));
     actions.addView(
         button("Old places", this::oldPlaces), new LinearLayout.LayoutParams(0, dp(52), 1));
-    actions.addView(button("Locate", this::locate), new LinearLayout.LayoutParams(0, dp(52), 1));
+    actions.addView(button("Stops", this::showStops), new LinearLayout.LayoutParams(0, dp(52), 1));
     actions.addView(
         button(history ? "Live" : "History", this::history),
         new LinearLayout.LayoutParams(0, dp(52), 1));
@@ -381,6 +386,7 @@ public final class MainActivity extends Activity {
                   if (map == null || isFinishing() || isDestroyed()) return;
                   try { render(active, trip, fixes, stops, segments, places); }
                   catch (RuntimeException e) {
+                    CrashReports.save(this, "Trail render · provider=" + provider + " history=" + history, e);
                     android.util.Log.e("oTraiL", "Trail render failed", e);
                     io.execute(() -> db.log("History display", "ERROR", android.util.Log.getStackTraceString(e)));
                     toast("Trail display could not finish; your recorded data is safe");
@@ -568,7 +574,12 @@ public final class MainActivity extends Activity {
     marker.setOnMarkerClickListener(
         (m, view) -> {
           openMarkerKey = key;
-          MarkerPopups.openOnly(view, m);
+          if (key.startsWith("stop:")) {
+            new AlertDialog.Builder(this).setTitle(m.getTitle())
+                .setMessage(android.text.Html.fromHtml(m.getSnippet(), android.text.Html.FROM_HTML_MODE_LEGACY))
+                .setPositiveButton("Close", null).show();
+            openMarkerKey = null;
+          } else MarkerPopups.openOnly(view, m);
           return true;
         });
     map.getOverlays().add(marker);
@@ -834,6 +845,34 @@ public final class MainActivity extends Activity {
     return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
   }
 
+  private void showStops() {
+    final long chosen = history ? selectedTrip : -1;
+    io.execute(() -> {
+      try {
+        List<TrailDb.Stop> stops = db.stops(chosen);
+        Collections.reverse(stops);
+        String[] labels = new String[stops.size()];
+        for(int i=0;i<stops.size();i++) {
+          TrailDb.Stop s=stops.get(i);
+          labels[i]=clock(s.arrival())+" · "+duration(s.observed()-s.arrival())+" · "+(s.placeName()==null?"Stop #"+s.id():s.placeName());
+        }
+        runOnUiThread(() -> {
+          if(isFinishing() || isDestroyed())return;
+          new AlertDialog.Builder(this).setTitle("Recorded stops · "+stops.size())
+            .setItems(labels,(d,index)->{
+              TrailDb.Stop s=stops.get(index);
+              String details="Arrived: "+clock(s.arrival())+"\nObserved duration: "+duration(s.observed()-s.arrival())
+                +"\n"+(s.departure()==0?"Last observation: "+clock(s.observed()):"Departed: "+clock(s.departure()))
+                +"\n"+String.format(Locale.US,"GPS: %.6f, %.6f",s.lat(),s.lon());
+              for(String value:new String[]{s.locality(),s.road(),s.district(),s.state(),s.country(),s.postalCode()})
+                if(value!=null&&!value.isBlank())details+="\n"+value;
+              new AlertDialog.Builder(this).setTitle(s.placeName()==null?"Stop #"+s.id():s.placeName()).setMessage(details).setPositiveButton("Close",null).show();
+            }).setPositiveButton("Close",null).show();
+        });
+      }catch(Exception e){CrashReports.save(this,"Stop list",e);runOnUiThread(()->toast("Cannot read stop list: "+e.getMessage()));}
+    });
+  }
+
   private void history() {
     if (history) {
       history = false;
@@ -925,9 +964,13 @@ public final class MainActivity extends Activity {
   private void showDownloads() {
     downloads = true;
     if (map != null) {
-      map.onPause();
-      map.onDetach();
+      MapView old = map;
       map = null;
+      old.setDestroyMode(false);
+      old.onPause();
+      if (old.getParent() instanceof android.view.ViewGroup)
+        ((android.view.ViewGroup)old.getParent()).removeView(old);
+      old.onDetach();
     }
     base("MAPS & DOWNLOADS  ·  India only");
     Button back = button("← Back to map", this::showMap);
@@ -953,6 +996,7 @@ public final class MainActivity extends Activity {
     if (routingControls == null) routingControls = new RoutingControls(this);
     routingControls.addTo(downloadCards, cardUpdates);
     downloadCards.addView(button("App updates · daily / check now", () -> updates.show()));
+    downloadCards.addView(button("Last app crash · view / copy", () -> CrashReports.show(this)));
     downloadCards.addView(
         button(
             "Online routing server",

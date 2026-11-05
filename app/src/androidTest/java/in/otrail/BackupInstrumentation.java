@@ -220,6 +220,7 @@ public final class BackupInstrumentation extends Instrumentation {
             }
           });
       check("sequential marker popup ownership", this::markerPopups);
+      check("map reparent keeps repository and stop details", this::mapReparent);
       check("cached navigation preserves journal", this::navigationIntegrity);
       check("restart recovers earliest stationary arrival", this::stopContinuity);
       result.putString(
@@ -440,6 +441,29 @@ public final class BackupInstrumentation extends Instrumentation {
       require(HistoricPlaces.cached(db, 20, 77).size() == 1, "cache missing");
       require(HistoricPlaces.cached(db, 25, 77).isEmpty(), "distant place shown nearby");
     }
+  }
+
+  private static final class ReparentMap extends org.osmdroid.views.MapView {
+    ReparentMap(Context c) { super(c); }
+    void windowDetached() { super.onDetachedFromWindow(); }
+  }
+  private void mapReparent() throws Exception {
+    java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
+    runOnMainSync(() -> {
+      ReparentMap map=null;
+      try {
+        map=new ReparentMap(getTargetContext());map.setDestroyMode(false);map.setUseDataConnection(false);
+        org.osmdroid.views.overlay.Marker stop=new org.osmdroid.views.overlay.Marker(map);
+        stop.setTitle("Preserved stop");stop.setSnippet("Arrived 13:47 · duration 1h");map.getOverlays().add(stop);
+        map.windowDetached();
+        map.getOverlays().add(new org.osmdroid.views.overlay.Polyline(map));
+        require("Preserved stop".equals(stop.getTitle()),"stop title lost during reparent");
+        require(stop.getSnippet().contains("13:47"),"stop details lost during reparent");
+        org.osmdroid.views.overlay.Marker another=new org.osmdroid.views.overlay.Marker(map);
+        require(another.getInfoWindow()!=null,"marker repository destroyed");
+      }catch(Throwable e){failure.set(e);}finally{if(map!=null)map.onDetach();}
+    });
+    if(failure.get()!=null)throw new Exception("Map reparent regression",failure.get());
   }
 
   private void markerPopups() throws Exception {
