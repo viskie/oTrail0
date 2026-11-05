@@ -138,14 +138,14 @@ public final class TrailDb extends SQLiteOpenHelper {
         "SELECT time_ms,latitude,longitude,accuracy_m,speed_mps FROM fixes ORDER BY time_ms DESC,id DESC", null)) {
       while (fixes.moveToNext()) {
         if (fixes.getFloat(3) > 50) continue;
-        if (fixes.getFloat(4) > 1.5f || StopDetector.distance(last.lat(), last.lon(), fixes.getDouble(1), fixes.getDouble(2)) > StopDetector.RADIUS_METERS) break;
+        if (fixes.getFloat(4) > 1.5f || StopDetector.distance(last.lat(), last.lon(), fixes.getDouble(1), fixes.getDouble(2)) > StopDetector.RADIUS_METERS + 2 * Math.max(last.accuracy(), fixes.getFloat(3))) break;
         stationarySince = fixes.getLong(0);
       }
     }
     try (Cursor c = getReadableDatabase().rawQuery(
         "SELECT id,arrival_ms,observed_ms,latitude,longitude FROM stops WHERE departure_ms IS NULL OR departure_ms=observed_ms ORDER BY observed_ms DESC LIMIT 1", null)) {
       if (c.moveToFirst() && stationarySince <= c.getLong(2)
-          && StopDetector.distance(last.lat(), last.lon(), c.getDouble(3), c.getDouble(4)) <= StopDetector.RADIUS_METERS) {
+          && StopDetector.distance(last.lat(), last.lon(), c.getDouble(3), c.getDouble(4)) <= StopDetector.RADIUS_METERS + 2 * last.accuracy()) {
         long arrival = Math.min(c.getLong(1), stationarySince);
         detector.restore(arrival, last.time(), last.lat(), last.lon(), true);
         detector.persistedStopId = c.getLong(0);

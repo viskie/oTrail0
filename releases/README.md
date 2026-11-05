@@ -65,3 +65,7 @@ APK snapshots are committed here, not published as GitHub Releases. Debug signin
 ## 0.2.6 — 2026-11-05
 
 `oTraiL-0.2.6-debug.apk`: stop arrival recovery from saved stationary fixes, green display-only gap connections, history lifecycle/viewport safeguards, embedded BRouter and native Valhalla with settings selection and graph download/import progress. BRouter has a regional public download source; Valhalla requires a configured compatible India graph .tar URL or imported pack. No voice. No map or routing datasets bundled. Same signature and database schema. 34 JVM tests and lint pass; device checks remain pending. See docs/0.2.6-offline-routing-continuity.md.
+
+## 0.2.7 — 2026-11-05
+
+Fixes map repository destruction when switching/reparenting views, the confirmed cause of trail/navigation crashes in phone logs. Stop detail dialogs and a main-screen Stops list provide independent access to saved details. Confirmed stops tolerate GPS accuracy and require sustained departure evidence. Adds a private last-crash report with copy action. Database schema and signature retained. See docs/0.2.7-crash-stop-hotfix.md for device validation and backup notes.

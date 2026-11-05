@@ -7,6 +7,8 @@ public final class StopDetector {
     private long start, last;
     private double latitude, longitude;
     private boolean stopped;
+    private int departureEvidence;
+    private long departureAt;
     public long persistedStopId = -1;
     public record Event(boolean opened, boolean closed, long arrival, long departure, double lat, double lon) {}
     public Event accept(long time, double lat, double lon, float accuracy, float speed) {
@@ -19,8 +21,19 @@ public final class StopDetector {
             return e;
         }
         if (start == 0) { seed(time, lat, lon); return null; }
-        if (distance(latitude, longitude, lat, lon) > RADIUS_METERS || speed > 1.5f) {
-            Event e = stopped ? new Event(false, true, start, last, latitude, longitude) : null;
+        double displacement = distance(latitude, longitude, lat, lon);
+        double tolerance = RADIUS_METERS + Math.min(50, accuracy * 2);
+        boolean moving = stopped
+            ? displacement > tolerance && (speed > 1.5f || displacement > tolerance + 35)
+            : displacement > RADIUS_METERS || speed > 1.5f;
+        if (stopped && moving && !(displacement > 500 && speed > 3)) {
+            if (departureEvidence++ == 0) departureAt = last;
+            if (departureEvidence < 3) return null;
+        } else if (!moving) departureEvidence = 0;
+        if (moving) {
+            Event e = stopped ? new Event(false, true, start,
+                departureEvidence >= 3 ? departureAt : last, latitude, longitude) : null;
+            departureEvidence = 0;
             seed(time, lat, lon); stopped = false;
             return e;
         }
@@ -41,7 +54,7 @@ public final class StopDetector {
     }
     public boolean isStopped() { return stopped; }
     public long arrival() { return start; }
-    public void reset() { start = last = 0; stopped = false; persistedStopId = -1; }
+    public void reset() { start = last = 0; stopped = false; persistedStopId = -1; departureEvidence = 0; }
     private void seed(long t, double lat, double lon) { start = last = t; latitude = lat; longitude = lon; }
     public static double distance(double a, double b, double c, double d) {
         double p = Math.toRadians(c-a), q = Math.toRadians(d-b);
