@@ -77,3 +77,7 @@ Fixes map repository destruction when switching/reparenting views, the confirmed
 ## 0.3.1 — 2026-11-06
 
 Grey fullscreen UI, purple buttons with magenta text, floating Locate, improved overlapping trail colors. Editable UiConfig.java for fonts, sizes, colors and UI language/copy. Corrects oversized offline city labels. 47 JVM checks and lint pass; installed and checked on POCO. Existing recorded data retained. Source configuration/build instructions: docs/edit-ui-config.md. Native startup/dialog resources are generated from the same configuration. Same signing certificate; upgrade in place. No map datasets bundled.
+
+## 0.3.2 — 2026-11-06
+
+Conservative GPS departure confirmation, stop recovery after stable reception and restart, audited duplicate-stop reconciliation, uncertain-signal status and anchored live dot. Shared journal pool and read-only backups. Configurable native text, dialogs, selectors, popups and offline map labels; manual color choices retained. Raw GPS rows and stop IDs preserved. 52 JVM checks, lint and 24 phone checks pass. Same certificate; upgrade in place. See docs/0.3.2-gps-quality-ui.md and docs/edit-ui-config.md.

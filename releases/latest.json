@@ -1,8 +1,8 @@
 {
-  "versionCode": 11,
-  "versionName": "0.3.1",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.1-debug.apk",
-  "sha256": "7442c613d3f8ea83affebd33d79b039844fd7114e72956ebccfe9de3bc959e7a",
-  "sizeBytes": 41920976,
-  "notes": "Grey fullscreen UI, purple buttons with magenta text, floating Locate, improved overlapping trail colors. Editable UiConfig.java for fonts, sizes, colors and UI language/copy. Corrects oversized offline city labels. 47 JVM checks and lint pass; installed and checked on POCO. Existing recorded data retained."
+  "versionCode": 12,
+  "versionName": "0.3.2",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.2-debug.apk",
+  "sha256": "1e9b29b13dc96461e4bc03eefa50e5cc22b613c00f2871cba5546957001f0d68",
+  "sizeBytes": 41967396,
+  "notes": "Conservative GPS departure confirmation, stop recovery after stable reception and restart, audited duplicate-stop reconciliation, uncertain-signal status and anchored live dot. Shared journal pool and read-only backups. Configurable native text, dialogs, selectors, popups and offline map labels; manual color choices retained. Raw GPS rows and stop IDs preserved. 52 JVM checks, lint and 24 phone checks pass."
 }
