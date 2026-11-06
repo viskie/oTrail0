@@ -263,11 +263,12 @@ public final class TrailDb implements AutoCloseable {
         }
         d.execSQL("UPDATE stops SET arrival_ms=MIN(arrival_ms,?),observed_ms=?,departure_ms=NULL WHERE id=?",
             new Object[]{detector.arrival(),detector.observationTime(),detector.persistedStopId});
-        // Older collectors may have opened a second row during the same uncertain dwell.
+        // Replay confirmed one continuous dwell. Later open rows cannot also be active,
+        // even if their anchors drifted outside the recovery radius.
         // Retain its ID/content; only the recovered canonical stop remains open.
         try(Cursor other=d.rawQuery("SELECT id,latitude,longitude,observed_ms FROM stops WHERE departure_ms IS NULL AND id!=? AND arrival_ms>=?",
             new String[]{Long.toString(detector.persistedStopId),Long.toString(detector.arrival())})) {
-          while(other.moveToNext())if(StopDetector.distance(detector.latitude(),detector.longitude(),other.getDouble(1),other.getDouble(2))<=RADIUS_FOR_RECOVERY) {
+          while(other.moveToNext()) {
             d.execSQL("UPDATE stops SET departure_ms=observed_ms WHERE id=?",new Object[]{other.getLong(0)});
             log("Stop continuity","SUPERSEDED","stop="+other.getLong(0)+"; retained record and observed_ms="+other.getLong(3)+"; continuing canonical stop="+detector.persistedStopId);
           }

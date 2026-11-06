@@ -312,7 +312,7 @@ public final class BackupInstrumentation extends Instrumentation {
       require(db.stopById(stop).observed()==observed,"uncertain fix advanced confirmed observation");
       poor=fix(1145000,20.01,77,30);poor.setAccuracy(15);db.record(trip,poor,detector);
       ContentValues duplicate=new ContentValues();duplicate.put("trip_id",trip);duplicate.put("arrival_ms",1145000L);
-      duplicate.put("observed_ms",1145000L);duplicate.put("latitude",20);duplicate.put("longitude",77);duplicate.put("place_name","Retained user label");
+      duplicate.put("observed_ms",1145000L);duplicate.put("latitude",20);duplicate.put("longitude",77.001);duplicate.put("place_name","Retained user label");
       long duplicateId=db.getWritableDatabase().insertOrThrow("stops",null,duplicate);
       for(int n=0;n<3;n++)db.record(trip,fix(1150000+n*5000,20,77,0),detector);
       require(db.stopById(stop).arrival()==arrival,"stable return reset original arrival");
