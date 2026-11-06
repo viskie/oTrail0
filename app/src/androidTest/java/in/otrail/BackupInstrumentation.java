@@ -225,6 +225,8 @@ public final class BackupInstrumentation extends Instrumentation {
       check("restart recovers earliest stationary arrival", this::stopContinuity);
       check("v2 metrics migration preserves normalized journal", this::metricsMigration);
       check("road cache survives reopen without network", this::roadCache);
+      check("shared journal pool under concurrent writes", this::concurrentJournal);
+      check("backup snapshot does not block GPS writer", this::backupDuringRecording);
       check("fullscreen activity cold launch", this::fullscreenStartup);
       result.putString(
           "stream",
@@ -238,6 +240,62 @@ public final class BackupInstrumentation extends Instrumentation {
       finish(Activity.RESULT_CANCELED, result);
     } finally {
       context.deleteDatabase("trails.db");
+    }
+  }
+
+  private void concurrentJournal() throws Exception {
+    try(TrailDb tracker=new TrailDb(context);TrailDb ui=new TrailDb(context)) {
+      require(tracker.getWritableDatabase()==ui.getWritableDatabase(),"journal handles opened competing pools");
+      TrailDb temporary=new TrailDb(context);temporary.getReadableDatabase();temporary.close();temporary.close();
+      require(tracker.getWritableDatabase().isOpen(),"closing UI handle closed active tracker pool");
+      long trip=tracker.begin();int before=tracker.fixes(-1).size();
+      ExecutorService workers=Executors.newFixedThreadPool(3);
+      try {
+        Future<?> fixes=workers.submit(()->{
+          StopDetector detector=new StopDetector();
+          for(int n=0;n<60;n++) {
+            Location fix=new Location("gps");fix.setLatitude(20);fix.setLongitude(77);
+            fix.setTime(2_000_000_000L+n*5000L);fix.setAccuracy(3);fix.setSpeed(0);
+            tracker.record(trip,fix,detector);
+          }
+        });
+        Future<?> logs=workers.submit(()->{try(TrailDb db=new TrailDb(context)){for(int n=0;n<100;n++)db.log("Concurrency fixture","OK","entry "+n);}});
+        Future<?> reads=workers.submit(()->{try(TrailDb db=new TrailDb(context)){for(int n=0;n<10;n++){db.fixes(-1);db.stops(-1);}}});
+        fixes.get(20,TimeUnit.SECONDS);logs.get(20,TimeUnit.SECONDS);reads.get(20,TimeUnit.SECONDS);
+        require(tracker.fixes(-1).size()==before+60,"concurrent work dropped GPS fixes");
+        try(Cursor check=tracker.getReadableDatabase().rawQuery("PRAGMA integrity_check",null)) {
+          require(check.moveToFirst()&&"ok".equals(check.getString(0)),"concurrent journal integrity");
+        }
+      } finally {workers.shutdownNow();}
+    }
+  }
+
+  private void backupDuringRecording() throws Exception {
+    if(android.os.Build.VERSION.SDK_INT<35)return;
+    try(TrailDb backup=new TrailDb(context);TrailDb tracker=new TrailDb(context)) {
+      long trip=tracker.begin();CountDownLatch snapshotOpen=new CountDownLatch(1),release=new CountDownLatch(1);
+      ExecutorService workers=Executors.newFixedThreadPool(2);
+      try {
+        Future<?> snapshot=workers.submit(()->{
+          try {
+            backup.writeBackup(new Writer(){
+              boolean waited;
+              @Override public void write(char[] b,int start,int count)throws IOException {
+                if(!waited){waited=true;snapshotOpen.countDown();try{if(!release.await(10,TimeUnit.SECONDS))throw new IOException("snapshot fixture timed out");}catch(InterruptedException e){Thread.currentThread().interrupt();throw new IOException(e);}}
+              }
+              @Override public void flush(){}
+              @Override public void close(){}
+            });
+          } catch(Exception e){throw new RuntimeException(e);}
+        });
+        require(snapshotOpen.await(10,TimeUnit.SECONDS),"backup snapshot not started");
+        Future<?> write=workers.submit(()->{
+          Location fix=new Location("gps");fix.setLatitude(20);fix.setLongitude(77);fix.setAccuracy(3);
+          fix.setTime(2_001_000_000L);tracker.record(trip,fix,new StopDetector());
+        });
+        write.get(5,TimeUnit.SECONDS); // Must finish while backup's read snapshot is still open.
+        release.countDown();snapshot.get(10,TimeUnit.SECONDS);
+      } finally {release.countDown();workers.shutdownNow();}
     }
   }
 

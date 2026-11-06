@@ -23,7 +23,7 @@ public final class TrailBackup {
             Uri uri=Uri.parse(prefs.getString("document",""));
             // Keep a complete local candidate before touching a remote document.
             File candidate=new File(c.getCacheDir(),"trail-backup-candidate.json");
-            try{try(Writer w=new OutputStreamWriter(new FileOutputStream(candidate),StandardCharsets.UTF_8)){db.writeBackup(w);}
+            try{try(Writer w=new BufferedWriter(new OutputStreamWriter(new FileOutputStream(candidate),StandardCharsets.UTF_8),65536)){db.writeBackup(w);}
                 try(InputStream in=new FileInputStream(candidate);OutputStream out=c.getContentResolver().openOutputStream(uri,"wt")){if(out==null)throw new IOException("Backup provider did not open the file");copy(in,out);}
                 prefs.edit().putLong("last_success",System.currentTimeMillis()).putString("status","Trail backup saved to selected document").apply();
             }catch(Exception e){prefs.edit().putString("status","Backup needs attention: "+e.getMessage()).apply();throw e;}finally{candidate.delete();}

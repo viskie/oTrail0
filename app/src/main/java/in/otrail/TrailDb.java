@@ -8,21 +8,57 @@ import java.io.*;
 import java.util.*;
 import org.json.*;
 
-public final class TrailDb extends SQLiteOpenHelper {
+public final class TrailDb implements AutoCloseable {
   private final Context context;
+  private static final Map<String,Shared> CONNECTIONS=new HashMap<>();
+  private final String databasePath;
+  private final Shared shared;
+  private boolean closed;
 
-  public TrailDb(Context c) {
-    super(c, "trails.db", null, 3);
-    context = c.getApplicationContext();
-    setWriteAheadLoggingEnabled(true);
+  /** One SQLite pool per database file, shared by GPS, UI, geocoder and backup workers. */
+  private static final class Shared {
+    final SQLiteOpenHelper helper;
+    int users;
+    Shared(Context context,TrailDb schema) {
+      helper=new SQLiteOpenHelper(context,"trails.db",null,3) {
+        @Override public void onConfigure(SQLiteDatabase db){schema.onConfigure(db);}
+        @Override public void onCreate(SQLiteDatabase db){schema.onCreate(db);}
+        @Override public void onUpgrade(SQLiteDatabase db,int oldVersion,int newVersion){schema.onUpgrade(db,oldVersion,newVersion);}
+      };
+      helper.setWriteAheadLoggingEnabled(true);
+    }
   }
 
-  @Override
+  public TrailDb(Context c) {
+    context=c.getApplicationContext();
+    databasePath=context.getDatabasePath("trails.db").getAbsolutePath();
+    synchronized(CONNECTIONS) {
+      Shared existing=CONNECTIONS.get(databasePath);
+      if(existing==null){existing=new Shared(context,this);CONNECTIONS.put(databasePath,existing);}
+      shared=existing;
+      shared.users++;
+    }
+  }
+  public synchronized SQLiteDatabase getReadableDatabase() {
+    if(closed)throw new IllegalStateException("Trail database handle is closed");
+    return shared.helper.getReadableDatabase();
+  }
+  public synchronized SQLiteDatabase getWritableDatabase() {
+    if(closed)throw new IllegalStateException("Trail database handle is closed");
+    return shared.helper.getWritableDatabase();
+  }
+  @Override public synchronized void close() {
+    if(closed)return;
+    closed=true;
+    synchronized(CONNECTIONS) {
+      if(--shared.users==0){shared.helper.close();CONNECTIONS.remove(databasePath);}
+    }
+  }
+
   public void onConfigure(SQLiteDatabase db) {
     db.setForeignKeyConstraintsEnabled(true);
   }
 
-  @Override
   public void onCreate(SQLiteDatabase d) {
     d.execSQL(
         "CREATE TABLE trips(id INTEGER PRIMARY KEY, started_ms INTEGER NOT NULL, ended_ms"
@@ -56,7 +92,6 @@ public final class TrailDb extends SQLiteOpenHelper {
     d.execSQL("CREATE INDEX stops_geocode_queue ON stops(geocode_status,geocode_attempt_ms)");
   }
 
-  @Override
   public void onUpgrade(SQLiteDatabase d, int oldVersion, int newVersion) {
     if (oldVersion < 2) {
       long trips = tableCount(d, "trips"),
@@ -531,7 +566,9 @@ public final class TrailDb extends SQLiteOpenHelper {
   public void writeBackup(Writer output) throws Exception {
     android.util.JsonWriter w = new android.util.JsonWriter(output);
     SQLiteDatabase d = getReadableDatabase();
-    d.beginTransactionNonExclusive();
+    // Android 15+ supports a real read snapshot: backups do not reserve the writer.
+    if(android.os.Build.VERSION.SDK_INT>=35)d.beginTransactionReadOnly();
+    else d.beginTransactionNonExclusive();
     try {
       w.beginObject();
       w.name("otrail_backup_version").value(1);
