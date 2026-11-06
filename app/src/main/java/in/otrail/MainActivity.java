@@ -38,6 +38,7 @@ public final class MainActivity extends Activity {
   private long routeFitRevision = -1;
   private MapPacks packs;
   private MapView map;
+  private FrameLayout mapFrame;
   private LinearLayout root, body, downloadCards;
   private TextView status, stats, mode, packSummary;
   private final Handler handler = new Handler(Looper.getMainLooper());
@@ -128,7 +129,7 @@ public final class MainActivity extends Activity {
     v.setText(s);
     AppStyle.text(v);
     v.setTextSize(size);
-    v.setTextColor(color);
+    v.setTextColor(color == INK || color == MUTED || color == TEAL ? AppStyle.textColor(size, false) : color);
     v.setPadding(dp(10), dp(3), dp(10), dp(3));
     return v;
   }
@@ -196,6 +197,7 @@ public final class MainActivity extends Activity {
     LinearLayout row = new LinearLayout(this);
     mode = text(history ? "HISTORY" : "LIVE TRAIL", 13, TEAL);
     mode.setTypeface(null, Typeface.BOLD);
+    mode.setTextColor(AppStyle.HEADING);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button("Navigate", () -> navigation.search()));
     row.addView(button("Settings", this::showDownloads));
@@ -233,7 +235,14 @@ public final class MainActivity extends Activity {
     map.getController().setCenter(new GeoPoint(22.5, 79));
     map.setMinZoomLevel(4.0);
     map.setScrollableAreaLimitDouble(new BoundingBox(38, 98, 6, 68));
-    body.addView(map, new LinearLayout.LayoutParams(-1, 0, 1));
+    mapFrame = new FrameLayout(this);
+    mapFrame.addView(map, new FrameLayout.LayoutParams(-1, -1));
+    Button locateButton=button("Locate",this::locate);
+    locateButton.setContentDescription("Locate me and follow GPS");
+    FrameLayout.LayoutParams locatePosition=new FrameLayout.LayoutParams(dp(84),dp(44),Gravity.BOTTOM|Gravity.END);
+    locatePosition.setMargins(dp(8),dp(8),dp(10),dp(12));
+    mapFrame.addView(locateButton,locatePosition);
+    body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
         new android.widget.AdapterView.OnItemSelectedListener() {
@@ -276,7 +285,8 @@ public final class MainActivity extends Activity {
     tip.setVisibility(View.GONE);
     body.addView(tip);
     status = text("Ready when you are", 15, INK);
-    status.setTypeface(android.graphics.Typeface.create("sans-serif-medium", Typeface.NORMAL));
+    status.setTypeface(android.graphics.Typeface.create("sans-serif-medium", Typeface.BOLD));
+    status.setTextColor(AppStyle.HEADING);
     status.setSingleLine(true);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
@@ -285,9 +295,9 @@ public final class MainActivity extends Activity {
     body.addView(stats);
     LinearLayout actions = new LinearLayout(this);
     actions.addView(
-        button("Tracker status", this::trackerStatus), new LinearLayout.LayoutParams(0, dp(44), 1));
+        button("Tracker", this::trackerStatus), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(
-        button("Old places", this::oldPlaces), new LinearLayout.LayoutParams(0, dp(44), 1));
+        button("Places", this::oldPlaces), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(button("Stops", this::showStops), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(
         button(history ? "Live" : "History", this::history),
@@ -304,11 +314,11 @@ public final class MainActivity extends Activity {
       ArrayList<View> controls = new ArrayList<>();
       for (int i = 0; i < body.getChildCount(); i++) {
         View child = body.getChildAt(i);
-        if (child != map) controls.add(child);
+        if (child != mapFrame) controls.add(child);
       }
       body.removeAllViews();
       body.setOrientation(LinearLayout.HORIZONTAL);
-      body.addView(map, new LinearLayout.LayoutParams(0, -1, 1));
+      body.addView(mapFrame, new LinearLayout.LayoutParams(0, -1, 1));
       ScrollView panel = new ScrollView(this);
       LinearLayout stack = new LinearLayout(this);
       stack.setOrientation(LinearLayout.VERTICAL);

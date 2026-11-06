@@ -107,6 +107,8 @@ final class NavigationControls implements AutoCloseable {
     v.setText(value);
     v.setTextSize(size);
     AppStyle.text(v);
+    v.setTextColor(AppStyle.textColor(size, size>=14));
+    if(size>=14)v.setTypeface(android.graphics.Typeface.create("sans-serif-condensed",android.graphics.Typeface.BOLD));
     v.setPadding(dp(8), dp(2), dp(8), dp(2));
     return v;
   }

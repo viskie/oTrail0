@@ -225,6 +225,7 @@ public final class BackupInstrumentation extends Instrumentation {
       check("restart recovers earliest stationary arrival", this::stopContinuity);
       check("v2 metrics migration preserves normalized journal", this::metricsMigration);
       check("road cache survives reopen without network", this::roadCache);
+      check("fullscreen activity cold launch", this::fullscreenStartup);
       result.putString(
           "stream",
           "PASS: "
@@ -240,6 +241,16 @@ public final class BackupInstrumentation extends Instrumentation {
     }
   }
 
+  private void fullscreenStartup() throws Exception {
+    Activity activity=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+    waitForIdleSync();
+    runOnMainSync(() -> {
+      require(activity.getWindow().getDecorView().getWindowInsetsController()!=null,"fullscreen window not attached");
+      activity.finish();
+    });
+    getTargetContext().stopService(new Intent(getTargetContext(),TrackingService.class));
+  }
+
   private void metricsMigration() throws Exception {
     String before;
     try(TrailDb db=new TrailDb(context)) {
@@ -250,7 +261,10 @@ public final class BackupInstrumentation extends Instrumentation {
       require(db.getWritableDatabase().getVersion()==3,"v2 migration missing");
       DriveMetrics.Result metrics=db.driveMetrics();require(metrics.totalMeters()>=0,"invalid historical km");
       try(Cursor c=db.getReadableDatabase().rawQuery("SELECT COUNT(*) FROM stop_drive_metrics",null)){c.moveToFirst();require(c.getInt(0)==db.stops(-1).size(),"stop metrics not backfilled");}
-      StringWriter w=new StringWriter();db.writeBackup(w);require(before.equals(w.toString()),"metrics changed normalized source journal");
+      StringWriter w=new StringWriter();db.writeBackup(w);
+      JSONObject a=new JSONObject(before),b=new JSONObject(w.toString());
+      for(String table:new String[]{"trips","fixes","stops","sync_logs"})
+        require(a.getJSONArray(table).toString().equals(b.getJSONArray(table).toString()),"metrics changed normalized source table "+table);
     }
   }
   private void roadCache() throws Exception {

@@ -71,7 +71,7 @@ public final class RoutingControls {
     String key=importKey!=null?importKey:a.getPreferences(0).getString("routingImportKey","");
     message("Validating routing graph…");files.execute(()->{try{packs.importFile(key,uri);a.runOnUiThread(()->message("Routing graph ready offline"));}catch(Exception e){a.runOnUiThread(()->message("Graph import failed: "+e.getMessage()));}});
   }
-  private TextView label(LinearLayout box,String text,int size){TextView t=new TextView(a);t.setText(text);AppStyle.text(t);t.setTextSize(size);t.setPadding(0,8,0,8);box.addView(t);return t;}
+  private TextView label(LinearLayout box,String text,int size){TextView t=new TextView(a);t.setText(text);AppStyle.text(t);t.setTextSize(size);t.setTextColor(AppStyle.textColor(size,size>=18));t.setPadding(0,8,0,8);box.addView(t);return t;}
   private Spinner spinner(LinearLayout box,List<String> names){Spinner s=new Spinner(a);s.setAdapter(new ArrayAdapter<>(a,android.R.layout.simple_spinner_dropdown_item,names));box.addView(s);return s;}
   private ProgressBar progress(LinearLayout box){ProgressBar p=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);p.setMax(100);box.addView(p,new LinearLayout.LayoutParams(-1,16));return p;}
   private void button(LinearLayout box,String text,Runnable run){Button b=new Button(a);b.setText(text);AppStyle.button(b);b.setOnClickListener(v->run.run());box.addView(b);}
