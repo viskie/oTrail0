@@ -51,7 +51,7 @@ final class RoadControls implements AutoCloseable {
     hide();if(map==null)return;
     for(RoadContext.Landmark p:current.landmarks().subList(0,Math.min(40,current.landmarks().size()))) {
       Marker m=new Marker(map);m.setId("roadpoi:"+p.key());m.setPosition(new GeoPoint(p.lat(),p.lon()));m.setTitle(p.name());m.setSnippet(p.kind()+" · "+Math.round(p.meters())+" m · © OpenStreetMap contributors");
-      GradientDrawable icon=new GradientDrawable();icon.setShape(GradientDrawable.OVAL);icon.setColor(0xffffa000);icon.setStroke(2,0xff603800);icon.setSize(18,18);m.setIcon(icon);m.setAnchor(.5f,.5f);
+      GradientDrawable icon=new GradientDrawable();icon.setShape(GradientDrawable.OVAL);icon.setColor(AppStyle.ORANGE);icon.setStroke(2,AppStyle.INK);icon.setSize(18,18);m.setIcon(icon);m.setAnchor(.5f,.5f);
       m.setOnMarkerClickListener((marker,view)->{new AlertDialog.Builder(activity).setTitle(p.name()).setMessage(p.kind()+"\n"+Math.round(p.meters())+" m away\nMapped alongside "+current.road()+"\nAccess and opening hours are not verified.").setPositiveButton("Close",null).show();return true;});map.getOverlays().add(m);markers.add(m);
     }
     map.invalidate();

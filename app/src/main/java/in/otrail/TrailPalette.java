@@ -2,10 +2,18 @@ package in.otrail;
 
 import java.util.*;
 
-/** Thirty-one fixed pass colors; green is exclusively the inferred continuity overlay. */
+/** Thirty-one source-palette pass colors; the user-selected continuity color stays separate. */
 public final class TrailPalette {
-  public static final int CONTINUITY=0xff24b55a;
-  public static final int[] COLORS={0xff0077cc,0xffe53935,0xff8e24aa,0xfffb8c00,0xff00acc1,0xffd81b60,0xff3949ab,0xff6d4c41,0xfff4511e,0xff5e35b1,0xff00838f,0xffc62828,0xffad1457,0xff1565c0,0xffef6c00,0xff7b1fa2,0xff455a64,0xffff4081,0xff536dfe,0xff795548,0xffb71c1c,0xff0097a7,0xfff57c00,0xff512da8,0xff880e4f,0xff0277bd,0xffa0522d,0xffe64a19,0xff6a1b9a,0xff283593,0xff546e7a};
+  public static final int CONTINUITY=0xFF00FBFF;
+  // First five: Vibrant Life (color-hex 5338). Remaining 26: Siter retro palettes.
+  public static final int[] COLORS = {
+      0xff17deee, 0xffff7f50, 0xffff4162, 0xffecf284, 0xff10aeb2,
+      0xff3e2a18, 0xff8a5a2b, 0xffc1651e, 0xffd9a441, 0xffefe0bf,
+      0xffc9a227, 0xffefe7c8, 0xff2a4747, 0xff5c8d89, 0xff9bc5be,
+      0xfff4a6a0, 0xfffbf2e5, 0xff29335c, 0xffa8322d, 0xffe4572e,
+      0xfff3a712, 0xfff5e9d6, 0xff12071f, 0xff3b1170, 0xff8b21b8,
+      0xffe0218a, 0xff1b1b2f, 0xff4c3a87, 0xffb33f86, 0xfff5a65b, 0xfff2e8d5
+  };
   public record Stroke(int color,int pass,List<TrailSegments.Sample> points){}
   private record Cell(int lat,int lon){}
   private record Edge(Cell a,Cell b){}

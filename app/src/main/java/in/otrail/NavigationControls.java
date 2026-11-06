@@ -44,10 +44,12 @@ final class NavigationControls implements AutoCloseable {
   LinearLayout panel() {
     panel = new LinearLayout(activity);
     panel.setOrientation(LinearLayout.VERTICAL);
-    panel.setBackgroundColor(0xffe4efff);
-    title = text("", 15);
-    instruction = text("", 17);
-    summary = text("", 12);
+    panel.setBackgroundColor(AppStyle.SURFACE);
+    title = text("", 12);
+    instruction = text("", 14);
+    summary = text("", 11);
+    title.setSingleLine(true);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    instruction.setMaxLines(2);
     panel.addView(title);
     panel.addView(instruction);
     panel.addView(summary);
@@ -90,6 +92,7 @@ final class NavigationControls implements AutoCloseable {
             activity.startActivity(
                 new Intent(
                     Intent.ACTION_VIEW, Uri.parse("https://routing.openstreetmap.de/about.html"))));
+    credits.setVisibility(View.GONE);
     panel.addView(credits);
     panel.setVisibility(View.GONE);
     return panel;
@@ -103,8 +106,8 @@ final class NavigationControls implements AutoCloseable {
     TextView v = new TextView(activity);
     v.setText(value);
     v.setTextSize(size);
-    v.setTextColor(0xff102d32);
-    v.setPadding(dp(12), dp(3), dp(12), dp(3));
+    AppStyle.text(v);
+    v.setPadding(dp(8), dp(2), dp(8), dp(2));
     return v;
   }
 
@@ -112,7 +115,7 @@ final class NavigationControls implements AutoCloseable {
     Button b = new Button(activity);
     b.setText(label);
     b.setAllCaps(false);
-    b.setTextSize(12);
+    AppStyle.button(b);
     b.setOnClickListener(v -> click.run());
     return b;
   }
@@ -261,7 +264,7 @@ final class NavigationControls implements AutoCloseable {
       Polyline route = new Polyline(map);
       route.setId("navigation:route");
       route.setPoints(points);
-      route.getOutlinePaint().setColor(0xff2864e9);
+      route.getOutlinePaint().setColor(AppStyle.CORAL);
       route.getOutlinePaint().setStrokeWidth(dp(5));
       route.setOnClickListener(
           (line, view, event) -> {

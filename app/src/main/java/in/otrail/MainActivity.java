@@ -27,10 +27,10 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.*;
 
 public final class MainActivity extends Activity {
-  private static final int INK = 0xff102d32,
-      TEAL = 0xff008f83,
-      MUTED = 0xff597277,
-      PAPER = 0xfff3f6f3;
+  private static final int INK = AppStyle.INK,
+      TEAL = AppStyle.ACCENT_TEXT,
+      MUTED = AppStyle.MUTED,
+      PAPER = AppStyle.BACKGROUND;
   private TrailDb db;
   private NavigationControls navigation;
   private UpdateControls updates;
@@ -78,6 +78,7 @@ public final class MainActivity extends Activity {
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
+    fullscreen();
     db = new TrailDb(this);
     roadControls = new RoadControls(this);
     packs = new MapPacks(this, db);
@@ -126,9 +127,10 @@ public final class MainActivity extends Activity {
   private TextView text(String s, int size, int color) {
     TextView v = new TextView(this);
     v.setText(s);
+    AppStyle.text(v);
     v.setTextSize(size);
     v.setTextColor(color);
-    v.setPadding(dp(16), dp(7), dp(16), dp(7));
+    v.setPadding(dp(10), dp(3), dp(10), dp(3));
     return v;
   }
 
@@ -137,7 +139,7 @@ public final class MainActivity extends Activity {
     b.setText(s);
     b.setTextSize(12);
     b.setAllCaps(false);
-    b.setTextColor(INK);
+    AppStyle.button(b, s.equals("Navigate") ? 1 : s.equals("Settings") ? 2 : 0);
     b.setOnClickListener(v -> click.run());
     return b;
   }
@@ -146,7 +148,13 @@ public final class MainActivity extends Activity {
     root = new LinearLayout(this);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setBackgroundColor(PAPER);
-    root.setFitsSystemWindows(true);
+    root.setFitsSystemWindows(false);
+    root.setPadding(dp(4), dp(2), dp(4), dp(5));
+    root.setOnApplyWindowInsetsListener((v, insets) -> {
+      int keyboard = insets.getInsets(WindowInsets.Type.ime()).bottom;
+      v.setPadding(dp(4), dp(2), dp(4), Math.max(dp(5), keyboard));
+      return insets;
+    });
     setContentView(root);
     LinearLayout head = new LinearLayout(this);
     head.setGravity(Gravity.CENTER_VERTICAL);
@@ -157,8 +165,10 @@ public final class MainActivity extends Activity {
     head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
     TextView region = text("INDIA  /  IN", 12, 0xff8de0d3);
     head.addView(region);
+    head.setVisibility(View.GONE);
     root.addView(head);
     TextView sub = text(subtitle, 12, MUTED);
+    sub.setVisibility(View.GONE);
     root.addView(sub);
     body = new LinearLayout(this);
     body.setOrientation(LinearLayout.VERTICAL);
@@ -189,7 +199,7 @@ public final class MainActivity extends Activity {
     mode.setTypeface(null, Typeface.BOLD);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button("Navigate", () -> navigation.search()));
-    row.addView(button("Maps & downloads", this::showDownloads));
+    row.addView(button("Settings", this::showDownloads));
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
     String[] names = {"OSM roads", "Esri satellite", "India offline"};
@@ -197,13 +207,17 @@ public final class MainActivity extends Activity {
     selector.setAdapter(
         new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
     selector.setSelection(provider);
-    tools.addView(selector, new LinearLayout.LayoutParams(0, dp(48), 1));
+    tools.addView(selector, new LinearLayout.LayoutParams(0, dp(40), 1));
     Switch network = new Switch(this);
-    network.setText("Offline only ");
+    network.setText("Offline ");
+    network.setTextSize(12);
+    network.setMinHeight(dp(44));
     network.setChecked(offlineOnly);
     tools.addView(network);
     body.addView(tools);
     roadInfo = text("Road landmarks · cache first", 12, MUTED);
+    roadInfo.setSingleLine(true);
+    roadInfo.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(roadInfo);
     body.addView(navigation.panel());
     map = new MapView(this);
@@ -260,24 +274,29 @@ public final class MainActivity extends Activity {
                   }
                 }));
     TextView tip = text("Hold the map to navigate · Tap stops for arrival & duration", 11, MUTED);
+    tip.setVisibility(View.GONE);
     body.addView(tip);
-    status = text("Ready when you are", 17, INK);
-    status.setTypeface(null, Typeface.BOLD);
+    status = text("Ready when you are", 15, INK);
+    status.setTypeface(android.graphics.Typeface.create("sans-serif-medium", Typeface.NORMAL));
+    status.setSingleLine(true);
+    status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
     stats = text("Always-on GPS · every 5 seconds", 12, MUTED);
+    stats.setMaxLines(2);
     body.addView(stats);
     LinearLayout actions = new LinearLayout(this);
     actions.addView(
-        button("Tracker status", this::trackerStatus), new LinearLayout.LayoutParams(0, dp(52), 1));
+        button("Tracker status", this::trackerStatus), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(
-        button("Old places", this::oldPlaces), new LinearLayout.LayoutParams(0, dp(52), 1));
-    actions.addView(button("Stops", this::showStops), new LinearLayout.LayoutParams(0, dp(52), 1));
+        button("Old places", this::oldPlaces), new LinearLayout.LayoutParams(0, dp(44), 1));
+    actions.addView(button("Stops", this::showStops), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(
         button(history ? "Live" : "History", this::history),
-        new LinearLayout.LayoutParams(0, dp(52), 1));
+        new LinearLayout.LayoutParams(0, dp(44), 1));
     body.addView(actions);
     TextView legend =
         text("● Green ready   ● Blue moving   ● Turquoise stopped   ● Cyan history", 10, MUTED);
+    legend.setVisibility(View.GONE);
     body.addView(legend);
     if (getResources().getConfiguration().orientation
         == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
@@ -296,7 +315,7 @@ public final class MainActivity extends Activity {
       stack.setOrientation(LinearLayout.VERTICAL);
       for (View child : controls) stack.addView(child);
       panel.addView(stack);
-      body.addView(panel, new LinearLayout.LayoutParams(dp(270), -1));
+      body.addView(panel, new LinearLayout.LayoutParams(dp(226), -1));
     }
     lastFixId = -1;
     lastStopSignature = 0;
@@ -454,10 +473,10 @@ public final class MainActivity extends Activity {
     boolean recorded = history || active == -1;
     int color =
         recorded
-            ? 0xff00cce5
+            ? AppStyle.CYAN
             : stale
                 ? 0xff889999
-                : stopped ? 0xff00b5a5 : last.speed() > 1.5 ? 0xff2878ef : 0xff22aa65;
+                : stopped ? AppStyle.TEAL : last.speed() > 1.5 ? AppStyle.BLUE : AppStyle.LIME;
     String state =
         recorded
             ? "History"
@@ -513,7 +532,7 @@ public final class MainActivity extends Activity {
       Marker m = new Marker(map);
       m.setPosition(new GeoPoint(s.lat(), s.lon()));
       m.setAnchor(.5f, .5f);
-      m.setIcon(dot(0xff00b5a5, 14));
+      m.setIcon(dot(AppStyle.TEAL, 14));
       String place =
           s.placeName() == null || s.placeName().isBlank()
               ? "Location not yet identified"
@@ -626,6 +645,11 @@ public final class MainActivity extends Activity {
     });
     p.getOutlinePaint().setColor(color);
     p.getOutlinePaint().setStrokeWidth(dp(4));
+    android.graphics.Paint stroke = p.getOutlinePaint();
+    android.graphics.Paint halo = new android.graphics.Paint(stroke);
+    halo.setColor(0xbb1b1b24); halo.setStrokeWidth(dp(6));
+    p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
+    p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(stroke));
     map.getOverlays().add(p);
   }
 
@@ -714,7 +738,7 @@ public final class MainActivity extends Activity {
           Marker m = new Marker(map);
           m.setPosition(new GeoPoint(l.getLatitude(), l.getLongitude()));
           m.setAnchor(.5f, .5f);
-          m.setIcon(dot(0xff22aa65, 22));
+          m.setIcon(dot(AppStyle.LIME, 22));
           m.setTitle("Current GPS location");
           m.setSnippet("±" + Math.round(l.getAccuracy()) + " m");
           registerMarker("live", m);
@@ -867,7 +891,7 @@ public final class MainActivity extends Activity {
     android.graphics.Bitmap bitmap =
         android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
     android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
-    paint.setColor(0xfff3bf55);
+    paint.setColor(AppStyle.ORANGE);
     canvas.drawRoundRect(0, 0, w, h - dp(7), dp(7), dp(7), paint);
     canvas.drawCircle(w / 2f, h - dp(4), dp(4), paint);
     paint.setColor(INK);
@@ -913,8 +937,12 @@ public final class MainActivity extends Activity {
 
   private void showPalette() {
     LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);
-    for(int i=0;i<TrailPalette.COLORS.length;i++){TextView t=text("━━ Pass "+(i+1),16,TrailPalette.COLORS[i]);rows.addView(t);}
-    rows.addView(text("━━ Estimated continuity",16,TrailPalette.CONTINUITY));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
+    for(int i=0;i<TrailPalette.COLORS.length;i++) {
+      LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(12),dp(3),dp(12),dp(3));
+      View swatch=new View(this);swatch.setBackgroundColor(TrailPalette.COLORS[i]);row.addView(swatch,new LinearLayout.LayoutParams(dp(36),dp(22)));
+      row.addView(text(String.format(Locale.US,"Pass %02d · #%06X",i+1,TrailPalette.COLORS[i]&0xffffff),14,INK));rows.addView(row);
+    }
+    rows.addView(text(String.format(Locale.US,"Continuity · #%06X",TrailPalette.CONTINUITY&0xffffff),14,INK));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
     new AlertDialog.Builder(this).setTitle("Repeated road passes · 31 colors").setView(scroll).setPositiveButton("Close",null).show();
   }
 
@@ -1206,7 +1234,7 @@ public final class MainActivity extends Activity {
     LinearLayout card = new LinearLayout(this);
     card.setOrientation(LinearLayout.VERTICAL);
     card.setPadding(0, dp(9), 0, dp(12));
-    card.setBackground(bg(Color.WHITE, 16));
+    card.setBackground(bg(AppStyle.SURFACE, 12));
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
     params.setMargins(0, dp(10), 0, dp(4));
     downloadCards.addView(card, params);
@@ -1229,7 +1257,7 @@ public final class MainActivity extends Activity {
     TextView state = text("Checking phone storage…", 13, INK);
     card.addView(state);
     ProgressBar progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-    progress.setProgressTintList(android.content.res.ColorStateList.valueOf(TEAL));
+    progress.setProgressTintList(android.content.res.ColorStateList.valueOf(AppStyle.BLUE));
     LinearLayout.LayoutParams bar = new LinearLayout.LayoutParams(-1, dp(8));
     bar.setMargins(dp(16), dp(4), dp(16), dp(4));
     card.addView(progress, bar);
@@ -1454,6 +1482,20 @@ public final class MainActivity extends Activity {
             : secs / 3600 + "h " + secs / 60 % 60 + "m";
   }
 
+  private void fullscreen() {
+    getWindow().setDecorFitsSystemWindows(false);
+    WindowInsetsController controller = getWindow().getInsetsController();
+    if (controller != null) {
+      controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+      controller.hide(WindowInsets.Type.systemBars());
+    }
+  }
+
+  @Override public void onWindowFocusChanged(boolean focused) {
+    super.onWindowFocusChanged(focused);
+    if (focused) fullscreen();
+  }
+
   private void toast(String s) {
     Toast.makeText(this, s, Toast.LENGTH_LONG).show();
   }
@@ -1461,6 +1503,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onResume() {
     super.onResume();
+    fullscreen();
     TrackingStartup.start(this, false);
     StopGeocoder.backfill(this);
     if (map != null) map.onResume();
