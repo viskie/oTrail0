@@ -13,3 +13,32 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
 }
+
+// Keep Android's startup/dialog theme in sync with the editable Java UI configuration.
+def uiConfigSource = layout.projectDirectory.file('src/main/java/in/otrail/UiConfig.java')
+def uiThemeOutput = layout.buildDirectory.dir('generated/uiConfig/res')
+android.sourceSets.main.res.srcDir(uiThemeOutput.get().asFile)
+def generateUiTheme = tasks.register('generateUiTheme') {
+    inputs.file(uiConfigSource)
+    outputs.dir(uiThemeOutput)
+    doLast {
+        def source = uiConfigSource.asFile.text
+        def literal = { String name ->
+            def match = source =~ /\b${name}\s*=\s*(0x[0-9a-fA-F]+|"[^"]*"|[0-9]+)/
+            if (!match.find()) throw new GradleException("UiConfig literal missing: ${name}")
+            match.group(1)
+        }
+        def values = new StringBuilder('<resources>\n')
+        ['BLUE','PURPLE','ACCENT_TEXT','SECONDARY','BACKGROUND','BUTTON','BUTTON_TEXT'].each { name ->
+            values.append("<color name=\"ui_${name.toLowerCase()}\">#${literal(name).substring(2)}</color>\n")
+        }
+        ['BODY_FONT','BUTTON_FONT'].each { name ->
+            values.append("<string name=\"ui_${name.toLowerCase()}\" translatable=\"false\">${literal(name)[1..-2]}</string>\n")
+        }
+        values.append("<dimen name=\"ui_button_size\">${literal('BUTTON_SIZE_SP')}sp</dimen>\n</resources>\n")
+        def output = new File(uiThemeOutput.get().asFile, 'values/ui_config_theme.xml')
+        output.parentFile.mkdirs()
+        output.text = values.toString()
+    }
+}
+tasks.named('preBuild').configure { dependsOn(generateUiTheme) }

@@ -45,9 +45,9 @@ final class NavigationControls implements AutoCloseable {
     panel = new LinearLayout(activity);
     panel.setOrientation(LinearLayout.VERTICAL);
     panel.setBackgroundColor(AppStyle.SURFACE);
-    title = text("", 12);
-    instruction = text("", 14);
-    summary = text("", 11);
+    title = text("", UiConfig.NAV_TITLE_SIZE_SP);
+    instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
+    summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
     title.setSingleLine(true);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     instruction.setMaxLines(2);
     panel.addView(title);
@@ -56,14 +56,14 @@ final class NavigationControls implements AutoCloseable {
     LinearLayout row = new LinearLayout(activity);
     start =
         button(
-            "Start",
+            UiConfig.text("start"),
             () -> {
               NavigationManager.State s = manager.state();
               if ("ACTIVE".equals(s.mode())) {
                 locate.run();
               } else {
                 if (origin.get() == null) {
-                  toast("A fresh GPS fix is required to start");
+                  toast(UiConfig.text("a_fresh_gps_fix_is_required_to_start"));
                   locate.run();
                   return;
                 }
@@ -75,10 +75,10 @@ final class NavigationControls implements AutoCloseable {
               changed.run();
             });
     row.addView(start, new LinearLayout.LayoutParams(0, dp(44), 1));
-    row.addView(button("Turns", this::turns), new LinearLayout.LayoutParams(0, dp(44), 1));
+    row.addView(button(UiConfig.text("turns"), this::turns), new LinearLayout.LayoutParams(0, dp(44), 1));
     row.addView(
         button(
-            "Clear",
+            UiConfig.text("clear"),
             () -> {
               pending = null;
               manager.clear();
@@ -86,7 +86,7 @@ final class NavigationControls implements AutoCloseable {
             }),
         new LinearLayout.LayoutParams(0, dp(44), 1));
     panel.addView(row);
-    TextView credits = text("OSRM / FOSSGIS · © OpenStreetMap contributors", 10);
+    TextView credits = text(UiConfig.text("osrm_fossgis_openstreetmap_contributors"), 10);
     credits.setOnClickListener(
         v ->
             activity.startActivity(
@@ -105,10 +105,10 @@ final class NavigationControls implements AutoCloseable {
   private TextView text(String value, int size) {
     TextView v = new TextView(activity);
     v.setText(value);
-    v.setTextSize(size);
+    v.setTextSize(UiConfig.textSize(size));
     AppStyle.text(v);
     v.setTextColor(AppStyle.textColor(size, size>=14));
-    if(size>=14)v.setTypeface(android.graphics.Typeface.create("sans-serif-condensed",android.graphics.Typeface.BOLD));
+    if(size>=14)v.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,android.graphics.Typeface.BOLD));
     v.setPadding(dp(8), dp(2), dp(8), dp(2));
     return v;
   }
@@ -124,26 +124,26 @@ final class NavigationControls implements AutoCloseable {
 
   void search() {
     if (searching) {
-      toast("Search is already running");
+      toast(UiConfig.text("search_is_already_running"));
       return;
     }
     EditText query = new EditText(activity);
-    query.setHint("Place in India or latitude, longitude");
+    query.setHint(UiConfig.text("place_in_india_or_latitude_longitude"));
     query.setSingleLine(true);
     new AlertDialog.Builder(activity)
-        .setTitle("Where are you going?")
+        .setTitle(UiConfig.text("where_are_you_going"))
         .setView(query)
         .setPositiveButton(
-            "Search",
+            UiConfig.text("search"),
             (d, w) -> {
               String q = query.getText().toString().trim();
               if (manager.offline() && !q.matches("[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+")) {
-                toast("Offline: enter latitude, longitude or hold a point on the map");
+                toast(UiConfig.text("offline_enter_latitude_longitude_or_hold_a_point_on_the_map"));
                 return;
               }
               if (q.isEmpty()) return;
               searching = true;
-              toast("Searching places…");
+              toast(UiConfig.text("searching_places"));
               searches.execute(
                   () -> {
                     try {
@@ -154,7 +154,7 @@ final class NavigationControls implements AutoCloseable {
                             if (activity.isFinishing() || activity.isDestroyed()) return;
                             if (results.isEmpty()) {
                               toast(
-                                  "No matching place in India. Try a nearby town or coordinates.");
+                                  UiConfig.text("no_matching_place_in_india_try_a_nearby_town_or_coordinates"));
                               return;
                             }
                             String[] names =
@@ -162,35 +162,35 @@ final class NavigationControls implements AutoCloseable {
                                     .map(DestinationSearch.Result::name)
                                     .toArray(String[]::new);
                             new AlertDialog.Builder(activity)
-                                .setTitle("Choose destination")
+                                .setTitle(UiConfig.text("choose_destination"))
                                 .setItems(names, (dialog, index) -> plan(results.get(index)))
-                                .setNegativeButton("Cancel", null)
+                                .setNegativeButton(UiConfig.text("cancel"), null)
                                 .show();
                           });
                     } catch (Exception e) {
-                      activity.runOnUiThread(() -> toast("Search unavailable: " + e.getMessage()));
+                      activity.runOnUiThread(() -> toast(UiConfig.text("search_unavailable") + e.getMessage()));
                     } finally {
                       searching = false;
                     }
                   });
             })
-        .setNegativeButton("Cancel", null)
+        .setNegativeButton(UiConfig.text("cancel"), null)
         .show();
   }
 
   void plan(DestinationSearch.Result destination) {
     if (!DestinationSearch.india(destination.point())) {
-      toast("Choose a destination in India");
+      toast(UiConfig.text("choose_a_destination_in_india"));
       return;
     }
     if (manager.offline() && !OfflineRouting.selected(activity)) {
-      toast("Choose BRouter or Valhalla in Maps & downloads to calculate offline routes.");
+      toast(UiConfig.text("choose_brouter_or_valhalla_in_maps_downloads_to_calculate_offlin"));
       return;
     }
     pending = destination;
     Location current = origin.get();
     if (current == null) {
-      toast("Waiting for an accurate GPS fix…");
+      toast(UiConfig.text("waiting_for_an_accurate_gps_fix"));
       locate.run();
     } else begin(current);
     changed.run();
@@ -225,9 +225,9 @@ final class NavigationControls implements AutoCloseable {
         active && (s.fixTime() == 0 || System.currentTimeMillis() - s.fixTime() > 30_000);
     instruction.setText(
         pending != null
-            ? "Waiting for a fresh GPS fix"
+            ? UiConfig.text("waiting_for_a_fresh_gps_fix")
             : stale
-                ? "GPS stale · waiting for location"
+                ? UiConfig.text("gps_stale_waiting_for_location")
                 : g != null && g.offRoute()
                     ? s.note()
                     : g != null && active && !g.arrived()
@@ -238,12 +238,12 @@ final class NavigationControls implements AutoCloseable {
     summary.setText(
         has
             ? distance(remaining)
-                + " remaining · "
+                + UiConfig.text("remaining")
                 + Math.max(1, Math.round(seconds / 60))
-                + " min · no live traffic"
+                + UiConfig.text("min_no_live_traffic")
                 + (g != null && g.offRoute() ? " · " + s.note() : "")
             : s.note());
-    start.setText(active ? "Recenter" : "Start");
+    start.setText(active ? UiConfig.text("recenter") : UiConfig.text("start"));
     start.setEnabled(has && !"ARRIVED".equals(s.mode()) && !"PLANNING".equals(s.mode()));
     draw(map, s);
   }
@@ -266,7 +266,7 @@ final class NavigationControls implements AutoCloseable {
       Polyline route = new Polyline(map);
       route.setId("navigation:route");
       route.setPoints(points);
-      route.getOutlinePaint().setColor(AppStyle.CORAL);
+      route.getOutlinePaint().setColor(UiConfig.NAV_ROUTE_COLOR);
       route.getOutlinePaint().setStrokeWidth(dp(5));
       route.setOnClickListener(
           (line, view, event) -> {
@@ -285,7 +285,7 @@ final class NavigationControls implements AutoCloseable {
       end.setId("navigation:destination");
       end.setPosition(new GeoPoint(s.target().lat(), s.target().lon()));
       end.setTitle(s.name());
-      end.setSnippet("Navigation destination");
+      end.setSnippet(UiConfig.text("navigation_destination"));
       end.setOnMarkerClickListener(
           (marker, view) -> {
             MarkerPopups.openOnly(view, marker);
@@ -314,21 +314,21 @@ final class NavigationControls implements AutoCloseable {
   private void turns() {
     NavigationManager.State s = manager.state();
     if (s.route() == null) {
-      toast("Choose a destination first");
+      toast(UiConfig.text("choose_a_destination_first"));
       return;
     }
     StringBuilder out = new StringBuilder();
     for (RoutePlan.Step step : s.route().steps)
       out.append(distance(step.along()))
-          .append(" from start · ")
+          .append(UiConfig.text("from_start"))
           .append(step.instruction())
           .append("\n\n");
     new AlertDialog.Builder(activity)
         .setTitle(s.name())
         .setMessage(out.toString())
-        .setPositiveButton("Close", null)
+        .setPositiveButton(UiConfig.text("close"), null)
         .setNeutralButton(
-            "Map corrections",
+            UiConfig.text("map_corrections"),
             (d, w) ->
                 activity.startActivity(
                     new Intent(
@@ -338,8 +338,8 @@ final class NavigationControls implements AutoCloseable {
 
   static String distance(double m) {
     return m < 1000
-        ? Math.round(m) + " m"
-        : String.format(Locale.getDefault(), "%.1f km", m / 1000);
+        ? Math.round(m) + UiConfig.text("m_2")
+        : String.format(Locale.getDefault(), UiConfig.text("1f_km"), m / 1000);
   }
 
   private void toast(String message) {

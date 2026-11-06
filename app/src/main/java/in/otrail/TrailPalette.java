@@ -4,16 +4,8 @@ import java.util.*;
 
 /** Thirty-one source-palette pass colors; the user-selected continuity color stays separate. */
 public final class TrailPalette {
-  public static final int CONTINUITY=0xFF00FBFF;
-  // First five: Vibrant Life (color-hex 5338). Remaining 26: Siter retro palettes.
-  public static final int[] COLORS = {
-      0xff17deee, 0xffff7f50, 0xffff4162, 0xffecf284, 0xff10aeb2,
-      0xff3e2a18, 0xff8a5a2b, 0xffc1651e, 0xffd9a441, 0xffefe0bf,
-      0xffc9a227, 0xffefe7c8, 0xff2a4747, 0xff5c8d89, 0xff9bc5be,
-      0xfff4a6a0, 0xfffbf2e5, 0xff29335c, 0xffa8322d, 0xffe4572e,
-      0xfff3a712, 0xfff5e9d6, 0xff12071f, 0xff3b1170, 0xff8b21b8,
-      0xffe0218a, 0xff1b1b2f, 0xff4c3a87, 0xffb33f86, 0xfff5a65b, 0xfff2e8d5
-  };
+  public static final int CONTINUITY=UiConfig.CONTINUITY;
+  public static final int[] COLORS=UiConfig.TRAIL_COLORS;
   public record Stroke(int color,int pass,List<TrailSegments.Sample> points){}
   private record Cell(int x,int y){}
   private record Visit(int pass,long time,double x,double y,double dx,double dy){}

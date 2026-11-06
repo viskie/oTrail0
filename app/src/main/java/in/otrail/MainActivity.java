@@ -128,7 +128,7 @@ public final class MainActivity extends Activity {
     TextView v = new TextView(this);
     v.setText(s);
     AppStyle.text(v);
-    v.setTextSize(size);
+    v.setTextSize(UiConfig.textSize(size));
     v.setTextColor(color == INK || color == MUTED || color == TEAL ? AppStyle.textColor(size, false) : color);
     v.setPadding(dp(10), dp(3), dp(10), dp(3));
     return v;
@@ -160,10 +160,10 @@ public final class MainActivity extends Activity {
     head.setGravity(Gravity.CENTER_VERTICAL);
     head.setPadding(dp(4), dp(8), dp(8), dp(8));
     head.setBackgroundColor(INK);
-    TextView title = text("oTraiL", 27, Color.WHITE);
-    title.setTypeface(null, Typeface.BOLD);
+    TextView title = text(UiConfig.text("otrail"), 27, Color.WHITE);
+    title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView region = text("INDIA  /  IN", 12, 0xff8de0d3);
+    TextView region = text(UiConfig.text("india_in"), 12, UiConfig.COLOR_FF8DE0D3);
     head.addView(region);
     head.setVisibility(View.GONE);
     root.addView(head);
@@ -193,30 +193,30 @@ public final class MainActivity extends Activity {
     visibleMarkers.clear();
     downloads = false;
     cardUpdates.clear();
-    base("YOUR ROAD. YOUR RECORD.  ·  Personal navigation");
+    base(UiConfig.text("your_road_your_record_personal_navigation"));
     LinearLayout row = new LinearLayout(this);
-    mode = text(history ? "HISTORY" : "LIVE TRAIL", 13, TEAL);
-    mode.setTypeface(null, Typeface.BOLD);
+    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 13, TEAL);
+    mode.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     mode.setTextColor(AppStyle.HEADING);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
-    row.addView(button("Navigate", () -> navigation.search()));
-    row.addView(button("Settings", this::showDownloads));
+    row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
+    row.addView(button(UiConfig.text("settings"), this::showDownloads));
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
-    String[] names = {"OSM roads", "Esri satellite", "India offline"};
+    String[] names = {UiConfig.text("osm_roads"), UiConfig.text("esri_satellite"), UiConfig.text("india_offline")};
     Spinner selector = new Spinner(this);
     selector.setAdapter(
         new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
     selector.setSelection(provider);
     tools.addView(selector, new LinearLayout.LayoutParams(0, dp(40), 1));
     Switch network = new Switch(this);
-    network.setText("Offline ");
-    network.setTextSize(12);
+    network.setText(UiConfig.text("offline"));
+    network.setTextSize(UiConfig.BODY_SIZE_SP);
     network.setMinHeight(dp(44));
     network.setChecked(offlineOnly);
     tools.addView(network);
     body.addView(tools);
-    roadInfo = text("Road landmarks · cache first", 12, MUTED);
+    roadInfo = text(UiConfig.text("road_landmarks_cache_first"), 12, MUTED);
     roadInfo.setSingleLine(true);
     roadInfo.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(roadInfo);
@@ -237,8 +237,8 @@ public final class MainActivity extends Activity {
     map.setScrollableAreaLimitDouble(new BoundingBox(38, 98, 6, 68));
     mapFrame = new FrameLayout(this);
     mapFrame.addView(map, new FrameLayout.LayoutParams(-1, -1));
-    Button locateButton=button("Locate",this::locate);
-    locateButton.setContentDescription("Locate me and follow GPS");
+    Button locateButton=button(UiConfig.text("locate"),this::locate);
+    locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
     FrameLayout.LayoutParams locatePosition=new FrameLayout.LayoutParams(dp(84),dp(44),Gravity.BOTTOM|Gravity.END);
     locatePosition.setMargins(dp(8),dp(8),dp(10),dp(12));
     mapFrame.addView(locateButton,locatePosition);
@@ -281,30 +281,30 @@ public final class MainActivity extends Activity {
                     return true;
                   }
                 }));
-    TextView tip = text("Hold the map to navigate · Tap stops for arrival & duration", 11, MUTED);
+    TextView tip = text(UiConfig.text("hold_the_map_to_navigate_tap_stops_for_arrival_duration"), 11, MUTED);
     tip.setVisibility(View.GONE);
     body.addView(tip);
-    status = text("Ready when you are", 15, INK);
-    status.setTypeface(android.graphics.Typeface.create("sans-serif-medium", Typeface.BOLD));
+    status = text(UiConfig.text("ready_when_you_are"), UiConfig.STATUS_SIZE_SP, INK);
+    status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, Typeface.BOLD));
     status.setTextColor(AppStyle.HEADING);
     status.setSingleLine(true);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
-    stats = text("Always-on GPS · every 5 seconds", 12, MUTED);
+    stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, MUTED);
     stats.setMaxLines(2);
     body.addView(stats);
     LinearLayout actions = new LinearLayout(this);
     actions.addView(
-        button("Tracker", this::trackerStatus), new LinearLayout.LayoutParams(0, dp(44), 1));
+        button(UiConfig.text("tracker"), this::trackerStatus), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(
-        button("Places", this::oldPlaces), new LinearLayout.LayoutParams(0, dp(44), 1));
-    actions.addView(button("Stops", this::showStops), new LinearLayout.LayoutParams(0, dp(44), 1));
+        button(UiConfig.text("places"), this::oldPlaces), new LinearLayout.LayoutParams(0, dp(44), 1));
+    actions.addView(button(UiConfig.text("stops"), this::showStops), new LinearLayout.LayoutParams(0, dp(44), 1));
     actions.addView(
-        button(history ? "Live" : "History", this::history),
+        button(history ? UiConfig.text("live") : UiConfig.text("history"), this::history),
         new LinearLayout.LayoutParams(0, dp(44), 1));
     body.addView(actions);
     TextView legend =
-        text("● Green ready   ● Blue moving   ● Turquoise stopped   ● Cyan history", 10, MUTED);
+        text(UiConfig.text("green_ready_blue_moving_turquoise_stopped_cyan_history"), 10, MUTED);
     legend.setVisibility(View.GONE);
     body.addView(legend);
     if (getResources().getConfiguration().orientation
@@ -337,12 +337,16 @@ public final class MainActivity extends Activity {
       if (provider == 2) {
         if (!packs.active().exists()) {
           map.setUseDataConnection(false);
-          toast("Download the India pack in Maps & downloads first");
+          toast(UiConfig.text("download_the_india_pack_in_maps_downloads_first"));
           return;
         }
+        // The bridge renders fixed 256px tiles; MapView already applies screen density.
+        // Applying Mapsforge's device density as well makes city captions enormous.
+        org.mapsforge.map.model.DisplayModel.setDeviceScaleFactor(1f);
+        org.mapsforge.map.model.DisplayModel.textScale=UiConfig.OFFLINE_MAP_TEXT_SCALE;
         MapsForgeTileSource source =
             MapsForgeTileSource.createFromFiles(
-                new File[] {packs.active()}, null, "India-" + packs.active().lastModified());
+                new File[] {packs.active()}, null, "India-render-v2-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE);
         map.setTileProvider(
             new MapsForgeTileProvider(new SimpleRegisterReceiver(this), source, null));
       } else {
@@ -358,7 +362,7 @@ public final class MainActivity extends Activity {
                     new String[] {
                       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"
                     },
-                    "Tiles © Esri · Maxar · Earthstar Geographics and contributors") {
+                    UiConfig.text("tiles_esri_maxar_earthstar_geographics_and_contributors")) {
                   @Override
                   public String getTileURLString(long index) {
                     return getBaseUrl()
@@ -376,7 +380,7 @@ public final class MainActivity extends Activity {
       map.getOverlays().add(new CopyrightOverlay(this));
       map.invalidate();
     } catch (Exception e) {
-      toast("Map unavailable: " + e.getMessage());
+      toast(UiConfig.text("map_unavailable") + e.getMessage());
     }
   }
 
@@ -434,10 +438,10 @@ public final class MainActivity extends Activity {
                   if (map == null || isFinishing() || isDestroyed()) return;
                   try { driveMetrics = metrics; render(active, trip, fixes, stops, segments, places, colored, trailMeters); }
                   catch (RuntimeException e) {
-                    CrashReports.save(this, "Trail render · provider=" + provider + " history=" + history, e);
+                    CrashReports.save(this, "Trail render · provider=" + provider + UiConfig.text("history_2") + history, e);
                     android.util.Log.e("oTraiL", "Trail render failed", e);
-                    io.execute(() -> db.log("History display", "ERROR", android.util.Log.getStackTraceString(e)));
-                    toast("Trail display could not finish; your recorded data is safe");
+                    io.execute(() -> db.log(UiConfig.text("history_display"), "ERROR", android.util.Log.getStackTraceString(e)));
+                    toast(UiConfig.text("trail_display_could_not_finish_your_recorded_data_is_safe"));
                   }
                 });
           } catch (Exception e) {
@@ -469,9 +473,9 @@ public final class MainActivity extends Activity {
       }
       status.setText(
           active == -1
-              ? "Setup needed · grant location access"
-              : "Always recording · waiting for GPS");
-      stats.setText("GPS needs a clear view of the sky · stops logged after 2 min");
+              ? UiConfig.text("setup_needed_grant_location_access")
+              : UiConfig.text("always_recording_waiting_for_gps"));
+      stats.setText(UiConfig.text("gps_needs_a_clear_view_of_the_sky_stops_logged_after_2_min"));
       return;
     }
     TrailDb.Fix last = fixes.get(fixes.size() - 1);
@@ -484,31 +488,31 @@ public final class MainActivity extends Activity {
         recorded
             ? AppStyle.CYAN
             : stale
-                ? 0xff889999
+                ? UiConfig.COLOR_FF889999
                 : stopped ? AppStyle.TEAL : last.speed() > 1.5 ? AppStyle.BLUE : AppStyle.LIME;
     String state =
         recorded
-            ? "History"
+            ? UiConfig.text("history")
             : stale
-                ? "GPS signal stale"
+                ? UiConfig.text("gps_signal_stale")
                 : stopped
-                    ? "Stopped · " + duration(current.observed() - current.arrival())
-                    : last.speed() > 1.5 ? "On the move" : "Recording";
-    String drive = driveMetrics == null ? "" : String.format(Locale.US, " · drive %.2f km", driveMetrics.current().meters()/1000);
-    status.setText(state + String.format(Locale.US, "  ·  %.0f km/h", last.speed() * 3.6) + (!recorded && !stopped ? drive : ""));
+                    ? UiConfig.text("stopped") + duration(current.observed() - current.arrival())
+                    : last.speed() > 1.5 ? UiConfig.text("on_the_move") : UiConfig.text("recording");
+    String drive = driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("drive_2f_km"), driveMetrics.current().meters()/1000);
+    status.setText(state + String.format(Locale.US, UiConfig.text("0f_km_h"), last.speed() * 3.6) + (!recorded && !stopped ? drive : ""));
     roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !stopped && last.speed()>1.5, offlineOnly, history);
     stats.setText(
-        (driveMetrics == null ? "" : String.format(Locale.US, "Total %.2f km · ", driveMetrics.totalMeters()/1000))
-            + (trip < 0 ? "Full trail · " : String.format(Locale.US,"Trail %.2f km · ",trailMeters/1000))
+        (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), driveMetrics.totalMeters()/1000))
+            + (trip < 0 ? UiConfig.text("full_trail") : String.format(Locale.US,UiConfig.text("trail_2f_km"),trailMeters/1000))
             + clock(fixes.get(0).time())
             + " · "
             + fixes.size()
-            + " fixes · "
+            + UiConfig.text("fixes")
             + stops.size()
-            + " stops · ±"
+            + UiConfig.text("stops_2")
             + Math.round(last.accuracy())
-            + " m · "
-            + (stale ? "last fix " + duration(age) + " ago" : clock(last.time())));
+            + UiConfig.text("m")
+            + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time())));
     int stopSignature = stops.hashCode(), heritageSignature = places.hashCode();
     if (lastFixId == last.id()
         && lastState.equals(state)
@@ -544,7 +548,7 @@ public final class MainActivity extends Activity {
       m.setIcon(dot(AppStyle.TEAL, 14));
       String place =
           s.placeName() == null || s.placeName().isBlank()
-              ? "Location not yet identified"
+              ? UiConfig.text("location_not_yet_identified")
               : s.placeName();
       m.setTitle(place);
       StringBuilder details = new StringBuilder();
@@ -556,19 +560,19 @@ public final class MainActivity extends Activity {
       addressLine(details, "Country", s.country());
       addressLine(details, "PIN", s.postalCode());
       details
-          .append("Arrived: ")
+          .append(UiConfig.text("arrived"))
           .append(clock(s.arrival()))
-          .append("\nObserved duration: ")
+          .append(UiConfig.text("observed_duration"))
           .append(duration(s.observed() - s.arrival()))
-          .append(s.departure() == 0 ? "\nLast observation: " : "\nDeparted: ")
+          .append(s.departure() == 0 ? UiConfig.text("last_observation") : UiConfig.text("departed"))
           .append(clock(s.departure() == 0 ? s.observed() : s.departure()));
       details.append(driveDetails(s.id()));
-      details.append(String.format(Locale.US, "\nGPS: %.6f, %.6f", s.lat(), s.lon()));
+      details.append(String.format(Locale.US, UiConfig.text("gps_6f_6f"), s.lat(), s.lon()));
       if (!"RESOLVED".equals(s.geocodeStatus()))
         details
-            .append("\nPlace lookup: ")
+            .append(UiConfig.text("place_lookup"))
             .append(
-                "FAILED".equals(s.geocodeStatus()) ? "unavailable; retry after 24h" : "pending");
+                "FAILED".equals(s.geocodeStatus()) ? UiConfig.text("unavailable_retry_after_24h") : "pending");
       m.setSnippet(android.text.TextUtils.htmlEncode(details.toString()).replace("\n", "<br/>"));
       registerMarker("stop:" + s.id(), m);
     }
@@ -580,7 +584,7 @@ public final class MainActivity extends Activity {
     dot.setSnippet(
         String.format(
             Locale.US,
-            "%.6f, %.6f\n%.1f km/h · ±%.0f m\n%s",
+            UiConfig.text("6f_6f_1f_km_h_0f_m_s"),
             last.lat(),
             last.lon(),
             last.speed() * 3.6,
@@ -631,7 +635,7 @@ public final class MainActivity extends Activity {
           if (key.startsWith("stop:")) {
             new AlertDialog.Builder(this).setTitle(m.getTitle())
                 .setMessage(android.text.Html.fromHtml(m.getSnippet(), android.text.Html.FROM_HTML_MODE_LEGACY))
-                .setPositiveButton("Close", null).show();
+                .setPositiveButton(UiConfig.text("close"), null).show();
             openMarkerKey = null;
           } else MarkerPopups.openOnly(view, m);
           return true;
@@ -656,7 +660,7 @@ public final class MainActivity extends Activity {
     p.getOutlinePaint().setStrokeWidth(dp(4));
     android.graphics.Paint stroke = p.getOutlinePaint();
     android.graphics.Paint halo = new android.graphics.Paint(stroke);
-    halo.setColor(0xbb1b1b24); halo.setStrokeWidth(dp(6));
+    halo.setColor(UiConfig.COLOR_BB1B1B24); halo.setStrokeWidth(dp(6));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(stroke));
     map.getOverlays().add(p);
@@ -672,18 +676,18 @@ public final class MainActivity extends Activity {
 
   private void trackerStatus() {
     new AlertDialog.Builder(this)
-        .setTitle("Always-on recording")
+        .setTitle(UiConfig.text("always_on_recording"))
         .setMessage(
-            "GPS request interval: 5 seconds. Recording runs independently of Live / History.\n\n"
+            UiConfig.text("gps_request_interval_5_seconds_recording_runs_independently_of_l")
                 + (TrackingStartup.rebootReady(this)
-                    ? "Reboot location permission is ready."
-                    : "Setup needed: grant precise location and select Allow all the time so"
-                        + " recording can restart after reboot.")
+                    ? UiConfig.text("reboot_location_permission_is_ready")
+                    : UiConfig.text("setup_needed_grant_precise_location_and_select_allow_all_the_tim")
+                        + UiConfig.text("recording_can_restart_after_reboot"))
                 + "\n\n"
-                + "On POCO: enable Background autostart and set Battery → No restrictions. Android"
-                + " force-stop prevents automatic restart until you reopen oTraiL.")
+                + UiConfig.text("on_poco_enable_background_autostart_and_set_battery_no_restricti")
+                + UiConfig.text("force_stop_prevents_automatic_restart_until_you_reopen_otrail"))
         .setPositiveButton(
-            "Location permissions",
+            UiConfig.text("location_permissions"),
             (d, w) -> {
               if (!TrackingStartup.hasLocation(this))
                 requestPermissions(
@@ -698,7 +702,7 @@ public final class MainActivity extends Activity {
                         android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                         Uri.parse("package:" + getPackageName())));
             })
-        .setNegativeButton("Close", null)
+        .setNegativeButton(UiConfig.text("close"), null)
         .show();
   }
 
@@ -709,7 +713,7 @@ public final class MainActivity extends Activity {
       if (TrackingStartup.hasLocation(this)) {
         TrackingStartup.start(this, false);
         trackerStatus();
-      } else toast("Precise location is required for automatic GPS recording");
+      } else toast(UiConfig.text("precise_location_is_required_for_automatic_gps_recording"));
     }
     if (request == 3 && TrackingStartup.hasLocation(this)) locate();
   }
@@ -735,7 +739,7 @@ public final class MainActivity extends Activity {
       startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
       return;
     }
-    toast("Finding GPS location…");
+    toast(UiConfig.text("finding_gps_location"));
     lm.getCurrentLocation(
         LocationManager.GPS_PROVIDER,
         null,
@@ -748,8 +752,8 @@ public final class MainActivity extends Activity {
           m.setPosition(new GeoPoint(l.getLatitude(), l.getLongitude()));
           m.setAnchor(.5f, .5f);
           m.setIcon(dot(AppStyle.LIME, 22));
-          m.setTitle("Current GPS location");
-          m.setSnippet("±" + Math.round(l.getAccuracy()) + " m");
+          m.setTitle(UiConfig.text("current_gps_location"));
+          m.setSnippet("±" + Math.round(l.getAccuracy()) + UiConfig.text("m_2"));
           registerMarker("live", m);
           map.getController().setZoom(16.0);
           map.getController().setCenter(m.getPosition());
@@ -758,12 +762,12 @@ public final class MainActivity extends Activity {
 
   private void oldPlaces() {
     new AlertDialog.Builder(this)
-        .setTitle("Old places · 200–600 years · 25 km")
+        .setTitle(UiConfig.text("old_places_200_600_years_25_km"))
         .setItems(
             new String[] {
-              "Find / refresh nearby places (OSM)",
-              "Show cached nearby places",
-              "Hide historic labels"
+              UiConfig.text("find_refresh_nearby_places_osm"),
+              UiConfig.text("show_cached_nearby_places"),
+              UiConfig.text("hide_historic_labels")
             },
             (d, i) -> {
               if (i == 2) {
@@ -792,7 +796,7 @@ public final class MainActivity extends Activity {
                             TrailDb.Fix f = fixes.get(fixes.size() - 1);
                             nearbyCenter = new GeoPoint(f.lat(), f.lon());
                           } else {
-                            toast("Locate yourself first to find nearby places");
+                            toast(UiConfig.text("locate_yourself_first_to_find_nearby_places"));
                             locate();
                             return;
                           }
@@ -805,34 +809,34 @@ public final class MainActivity extends Activity {
                         });
                   });
             })
-        .setNegativeButton("Close", null)
+        .setNegativeButton(UiConfig.text("close"), null)
         .show();
   }
 
   private void fetchHistoricPlaces() {
     if (historicLoading) {
-      toast("Historic-place search is already running");
+      toast(UiConfig.text("historic_place_search_is_already_running"));
       return;
     }
     if (offlineOnly) {
-      toast("Offline only: showing cached places. Turn it off to refresh.");
+      toast(UiConfig.text("offline_only_showing_cached_places_turn_it_off_to_refresh"));
       refresh();
       return;
     }
     GeoPoint center = nearbyCenter;
     if (center == null) return;
     historicLoading = true;
-    toast("Finding dated historic places within 25 km…");
+    toast(UiConfig.text("finding_dated_historic_places_within_25_km"));
     heritageIo.execute(
         () -> {
           String message;
           try (TrailDb cache = new TrailDb(getApplicationContext())) {
             int count = HistoricPlaces.fetch(cache, center.getLatitude(), center.getLongitude());
-            message = count + " dated places found · showing up to 50 nearest";
+            message = count + UiConfig.text("dated_places_found_showing_up_to_50_nearest");
             cache.log(
-                "Historic places", "SUCCESS", count + " source-dated places cached within 25 km");
+                UiConfig.text("historic_places"), "SUCCESS", count + UiConfig.text("source_dated_places_cached_within_25_km"));
           } catch (Exception e) {
-            message = "Lookup unavailable; cached places kept. " + e.getMessage();
+            message = UiConfig.text("lookup_unavailable_cached_places_kept") + e.getMessage();
           }
           String result = message;
           runOnUiThread(
@@ -871,12 +875,12 @@ public final class MainActivity extends Activity {
               ? "" + (year - p.earliest())
               : (year - p.latest()) + "–" + (year - p.earliest());
       String details =
-          "Source date: "
+          UiConfig.text("source_date")
               + p.date()
               + "\n"
-              + (p.approximate() ? "Approximate age: " : "Age from source date: ")
+              + (p.approximate() ? UiConfig.text("approximate_age") : UiConfig.text("age_from_source_date"))
               + age
-              + " years\n© OpenStreetMap contributors · not independently verified\nCached: "
+              + UiConfig.text("years_openstreetmap_contributors_not_independently_verified_cach")
               + clock(p.fetched())
               + "\n";
       String html =
@@ -894,23 +898,23 @@ public final class MainActivity extends Activity {
     String label = name.length() > 28 ? name.substring(0, 27) + "…" : name;
     android.graphics.Paint paint =
         new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-    paint.setTextSize(dp(11));
-    paint.setTypeface(Typeface.DEFAULT_BOLD);
+    paint.setTextSize(getResources().getDisplayMetrics().scaledDensity * UiConfig.MAP_LABEL_SIZE_SP);
+    paint.setTypeface(Typeface.create(UiConfig.MAP_LABEL_FONT, UiConfig.MAP_LABEL_STYLE));
     int w = (int) paint.measureText(label) + dp(20), h = dp(35);
     android.graphics.Bitmap bitmap =
         android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888);
     android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
-    paint.setColor(AppStyle.ORANGE);
+    paint.setColor(UiConfig.MAP_LABEL_BACKGROUND);
     canvas.drawRoundRect(0, 0, w, h - dp(7), dp(7), dp(7), paint);
     canvas.drawCircle(w / 2f, h - dp(4), dp(4), paint);
-    paint.setColor(INK);
+    paint.setColor(UiConfig.MAP_LABEL_TEXT);
     canvas.drawText(label, dp(10), dp(18), paint);
     return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
   }
 
   private String driveDetails(long id) {
     DriveMetrics.Leg leg=driveMetrics==null?null:driveMetrics.stops().get(id);
-    return leg==null?"":String.format(Locale.US,"\nSince previous stop: %.2f km\nAverage since departure: %.1f km/h%s",leg.meters()/1000,leg.averageKmh(),leg.missingMs()>60000?"\nGPS gaps present; recorded distance only":"");
+    return leg==null?"":String.format(Locale.US,UiConfig.text("since_previous_stop_2f_km_average_since_departure_1f_km_h_s"),leg.meters()/1000,leg.averageKmh(),leg.missingMs()>60000?UiConfig.text("gps_gaps_present_recorded_distance_only"):"");
   }
 
   private void showStops() {
@@ -923,24 +927,24 @@ public final class MainActivity extends Activity {
         String[] labels = new String[stops.size()];
         for(int i=0;i<stops.size();i++) {
           TrailDb.Stop s=stops.get(i);
-          labels[i]=clock(s.arrival())+" · "+duration(s.observed()-s.arrival())+" · "+(s.placeName()==null?"Stop #"+s.id():s.placeName());
+          labels[i]=clock(s.arrival())+" · "+duration(s.observed()-s.arrival())+" · "+(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName());
         }
         runOnUiThread(() -> {
           if(isFinishing() || isDestroyed())return;
-          new AlertDialog.Builder(this).setTitle("Recorded stops · "+stops.size())
+          new AlertDialog.Builder(this).setTitle(UiConfig.text("recorded_stops")+stops.size())
             .setItems(labels,(d,index)->{
               TrailDb.Stop s=stops.get(index);
               driveMetrics = metrics;
-              String details="Arrived: "+clock(s.arrival())+"\nObserved duration: "+duration(s.observed()-s.arrival())
-                +"\n"+(s.departure()==0?"Last observation: "+clock(s.observed()):"Departed: "+clock(s.departure()))
-                +"\n"+String.format(Locale.US,"GPS: %.6f, %.6f",s.lat(),s.lon());
+              String details=UiConfig.text("arrived")+clock(s.arrival())+UiConfig.text("observed_duration")+duration(s.observed()-s.arrival())
+                +"\n"+(s.departure()==0?UiConfig.text("last_observation_2")+clock(s.observed()):UiConfig.text("departed_2")+clock(s.departure()))
+                +"\n"+String.format(Locale.US,UiConfig.text("gps_6f_6f_2"),s.lat(),s.lon());
               details += driveDetails(s.id());
               for(String value:new String[]{s.locality(),s.road(),s.district(),s.state(),s.country(),s.postalCode()})
                 if(value!=null&&!value.isBlank())details+="\n"+value;
-              new AlertDialog.Builder(this).setTitle(s.placeName()==null?"Stop #"+s.id():s.placeName()).setMessage(details).setPositiveButton("Close",null).show();
-            }).setPositiveButton("Close",null).show();
+              new AlertDialog.Builder(this).setTitle(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName()).setMessage(details).setPositiveButton(UiConfig.text("close"),null).show();
+            }).setPositiveButton(UiConfig.text("close"),null).show();
         });
-      }catch(Exception e){CrashReports.save(this,"Stop list",e);runOnUiThread(()->toast("Cannot read stop list: "+e.getMessage()));}
+      }catch(Exception e){CrashReports.save(this,UiConfig.text("stop_list"),e);runOnUiThread(()->toast(UiConfig.text("cannot_read_stop_list")+e.getMessage()));}
     });
   }
 
@@ -949,10 +953,10 @@ public final class MainActivity extends Activity {
     for(int i=0;i<TrailPalette.COLORS.length;i++) {
       LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(12),dp(3),dp(12),dp(3));
       View swatch=new View(this);swatch.setBackgroundColor(TrailPalette.COLORS[i]);row.addView(swatch,new LinearLayout.LayoutParams(dp(36),dp(22)));
-      row.addView(text(String.format(Locale.US,"Pass %02d · #%06X",i+1,TrailPalette.COLORS[i]&0xffffff),14,INK));rows.addView(row);
+      row.addView(text(String.format(Locale.US,UiConfig.text("pass_02d_06x"),i+1,TrailPalette.COLORS[i]&0xffffff),14,INK));rows.addView(row);
     }
-    rows.addView(text(String.format(Locale.US,"Continuity · #%06X",TrailPalette.CONTINUITY&0xffffff),14,INK));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
-    new AlertDialog.Builder(this).setTitle("Repeated road passes · 31 colors").setView(scroll).setPositiveButton("Close",null).show();
+    rows.addView(text(String.format(Locale.US,UiConfig.text("continuity_06x"),TrailPalette.CONTINUITY&0xffffff),14,INK));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
+    new AlertDialog.Builder(this).setTitle(UiConfig.text("repeated_road_passes_31_colors")).setView(scroll).setPositiveButton(UiConfig.text("close"),null).show();
   }
 
   private void history() {
@@ -962,25 +966,25 @@ public final class MainActivity extends Activity {
       showMap();
       return;
     }
-    toast("Loading journey list…");
+    toast(UiConfig.text("loading_journey_list"));
     io.execute(() -> {
       try {
         List<TrailDb.TripSummary> trips = db.tripSummaries();
         String[] names = new String[trips.size() + 1];
-        names[0] = "Entire collected trail";
+        names[0] = UiConfig.text("entire_collected_trail");
         for (int i = 0; i < trips.size(); i++) {
           TrailDb.TripSummary t = trips.get(i);
-          names[i + 1] = "Trail #" + t.id() + (t.count() == 0 ? " · waiting for GPS"
-              : " · " + clock(t.first()) + " · " + t.count() + " fixes");
+          names[i + 1] = UiConfig.text("trail") + t.id() + (t.count() == 0 ? UiConfig.text("waiting_for_gps")
+              : " · " + clock(t.first()) + " · " + t.count() + UiConfig.text("fixes_2"));
         }
         runOnUiThread(() -> {
           if (isFinishing() || isDestroyed() || downloads) return;
-          new AlertDialog.Builder(this).setTitle("Your journeys").setItems(names, (d, i) -> {
+          new AlertDialog.Builder(this).setTitle(UiConfig.text("your_journeys")).setItems(names, (d, i) -> {
             selectedTrip = i == 0 ? -1 : trips.get(i - 1).id();
             history = true; follow = true; showMap();
-          }).setNegativeButton("Close", null).show();
+          }).setNegativeButton(UiConfig.text("close"), null).show();
         });
-      } catch (Exception e) { runOnUiThread(() -> toast("History unavailable: " + e.getMessage())); }
+      } catch (Exception e) { runOnUiThread(() -> toast(UiConfig.text("history_unavailable") + e.getMessage())); }
     });
   }
 
@@ -1006,24 +1010,24 @@ public final class MainActivity extends Activity {
   private void destination(GeoPoint p) {
     new AlertDialog.Builder(this)
         .setTitle(
-            String.format(Locale.US, "Destination %.5f, %.5f", p.getLatitude(), p.getLongitude()))
+            String.format(Locale.US, UiConfig.text("destination_5f_5f"), p.getLatitude(), p.getLongitude()))
         .setPositiveButton(
-            "Preview in oTraiL",
+            UiConfig.text("preview_in_otrail"),
             (d, w) ->
                 navigation.plan(
                     new DestinationSearch.Result(
-                        "Map destination", new RoutePlan.Point(p.getLatitude(), p.getLongitude()))))
-        .setNeutralButton("Other apps", (d, w) -> externalDestination(p))
-        .setNegativeButton("Cancel", null)
+                        UiConfig.text("map_destination"), new RoutePlan.Point(p.getLatitude(), p.getLongitude()))))
+        .setNeutralButton(UiConfig.text("other_apps"), (d, w) -> externalDestination(p))
+        .setNegativeButton(UiConfig.text("cancel"), null)
         .show();
   }
 
   private void externalDestination(GeoPoint p) {
     new AlertDialog.Builder(this)
         .setTitle(
-            String.format(Locale.US, "Navigate to %.5f, %.5f", p.getLatitude(), p.getLongitude()))
+            String.format(Locale.US, UiConfig.text("navigate_to_5f_5f"), p.getLatitude(), p.getLongitude()))
         .setItems(
-            new String[] {"Google Maps", "OsmAnd", "Other maps"},
+            new String[] {UiConfig.text("google_maps"), "OsmAnd", UiConfig.text("other_maps")},
             (d, i) -> {
               String coords = p.getLatitude() + "," + p.getLongitude();
               Intent intent =
@@ -1036,10 +1040,10 @@ public final class MainActivity extends Activity {
               try {
                 startActivity(intent);
               } catch (ActivityNotFoundException e) {
-                toast("This navigation app is not installed");
+                toast(UiConfig.text("this_navigation_app_is_not_installed"));
               }
             })
-        .setNegativeButton("Cancel", null)
+        .setNegativeButton(UiConfig.text("cancel"), null)
         .show();
   }
 
@@ -1054,8 +1058,8 @@ public final class MainActivity extends Activity {
         ((android.view.ViewGroup)old.getParent()).removeView(old);
       old.onDetach();
     }
-    base("MAPS & DOWNLOADS  ·  India only");
-    Button back = button("← Back to map", this::showMap);
+    base(UiConfig.text("maps_downloads_india_only"));
+    Button back = button(UiConfig.text("back_to_map"), this::showMap);
     body.addView(back);
     ScrollView scroll = new ScrollView(this);
     downloadCards = new LinearLayout(this);
@@ -1063,78 +1067,78 @@ public final class MainActivity extends Activity {
     downloadCards.setPadding(dp(12), 0, dp(12), dp(12));
     scroll.addView(downloadCards);
     body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-    TextView title = text("Take India with you.", 25, INK);
-    title.setTypeface(null, Typeface.BOLD);
+    TextView title = text(UiConfig.text("take_india_with_you"), 25, INK);
+    title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     downloadCards.addView(title);
     downloadCards.addView(
         text(
-            "Map data downloads straight to phone storage. Wi-Fi or cellular. Completed datasets"
-                + " stay in Downloads/oTraiL across reinstall; import the retained .map file"
-                + " afterwards. Sizes are estimates until the server reports the total.",
+            UiConfig.text("map_data_downloads_straight_to_phone_storage_wi_fi_or_cellular_c")
+                + UiConfig.text("stay_in_downloads_otrail_across_reinstall_import_the_retained_ma")
+                + UiConfig.text("afterwards_sizes_are_estimates_until_the_server_reports_the_tota"),
             13,
             MUTED));
     cardUpdates.clear();
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
     if (routingControls == null) routingControls = new RoutingControls(this);
     routingControls.addTo(downloadCards, cardUpdates);
-    downloadCards.addView(button("App updates · daily / check now", () -> updates.show()));
-    downloadCards.addView(button("Last app crash · view / copy", () -> CrashReports.show(this)));
-    downloadCards.addView(button("Trail palette · 31 pass colors", this::showPalette));
+    downloadCards.addView(button(UiConfig.text("app_updates_daily_check_now"), () -> updates.show()));
+    downloadCards.addView(button(UiConfig.text("last_app_crash_view_copy"), () -> CrashReports.show(this)));
+    downloadCards.addView(button(UiConfig.text("trail_palette_31_pass_colors"), this::showPalette));
     downloadCards.addView(
         button(
-            "Online routing server",
+            UiConfig.text("online_routing_server"),
             () -> {
               EditText endpoint = new EditText(this);
               endpoint.setText(NavigationManager.get(this).server());
               new AlertDialog.Builder(this)
-                  .setTitle("HTTPS OSRM driving endpoint")
+                  .setTitle(UiConfig.text("https_osrm_driving_endpoint"))
                   .setView(endpoint)
                   .setPositiveButton(
-                      "Save",
+                      UiConfig.text("save"),
                       (d, w) -> {
                         try {
                           NavigationManager.get(this).server(endpoint.getText().toString());
-                          toast("Routing endpoint saved");
+                          toast(UiConfig.text("routing_endpoint_saved"));
                         } catch (Exception e) {
                           toast(e.getMessage());
                         }
                       })
-                  .setNegativeButton("Cancel", null)
+                  .setNegativeButton(UiConfig.text("cancel"), null)
                   .show();
             }));
     downloadCards.addView(
         button(
-            "Identify historical stop locations",
+            UiConfig.text("identify_historical_stop_locations"),
             () -> {
               StopGeocoder.backfill(this);
-              toast("Historical place lookup queued · failed lookups retry after 24 hours");
+              toast(UiConfig.text("historical_place_lookup_queued_failed_lookups_retry_after_24_hou"));
             }));
     infoCard(
-        "Always-on trail recording",
-        TrackingStartup.rebootReady(this) ? "REBOOT PERMISSION READY" : "REBOOT SETUP NEEDED",
-        "GPS request: every 5 seconds. Recording starts automatically after permission is granted"
-            + " and restarts after boot/update when background location is allowed.");
-    downloadCards.addView(button("Tracker permissions & reboot setup", this::trackerStatus));
+        UiConfig.text("always_on_trail_recording"),
+        TrackingStartup.rebootReady(this) ? UiConfig.text("reboot_permission_ready") : UiConfig.text("reboot_setup_needed"),
+        UiConfig.text("gps_request_every_5_seconds_recording_starts_automatically_after")
+            + UiConfig.text("and_restarts_after_boot_update_when_background_location_is_allow"));
+    downloadCards.addView(button(UiConfig.text("tracker_permissions_reboot_setup"), this::trackerStatus));
     infoCard(
-        "Trail backup · Google Drive or phone folder",
-        "PERSISTENT BACKUP",
+        UiConfig.text("trail_backup_google_drive_or_phone_folder"),
+        UiConfig.text("persistent_backup"),
         new TrailBackup(this).status());
     downloadCards.addView(
         button(
-            "Choose backup location · Google Drive / Files",
+            UiConfig.text("choose_backup_location_google_drive_files"),
             () ->
                 new AlertDialog.Builder(this)
-                    .setTitle("Choose your backup location")
+                    .setTitle(UiConfig.text("choose_your_backup_location"))
                     .setMessage(
-                        "In the Save picker, select Google Drive, open the folder you want and save"
-                            + " otrail-backup.json. You can also use a persistent Documents folder"
-                            + " on this phone. Enable Drive in the picker's side menu if available."
-                            + " Automatic writes happen every 15 minutes; Drive manages network"
-                            + " sync. After reinstall, use Restore to reopen the saved backup, then"
-                            + " select the backup target again. A fresh backup target should be a"
-                            + " new file.")
+                        UiConfig.text("in_the_save_picker_select_google_drive_open_the_folder_you_want_")
+                            + UiConfig.text("otrail_backup_json_you_can_also_use_a_persistent_documents_folde")
+                            + UiConfig.text("on_this_phone_enable_drive_in_the_picker_s_side_menu_if_availabl")
+                            + UiConfig.text("automatic_writes_happen_every_15_minutes_drive_manages_network")
+                            + UiConfig.text("sync_after_reinstall_use_restore_to_reopen_the_saved_backup_then")
+                            + UiConfig.text("select_the_backup_target_again_a_fresh_backup_target_should_be_a")
+                            + UiConfig.text("new_file"))
                     .setPositiveButton(
-                        "Choose location",
+                        UiConfig.text("choose_location"),
                         (d, w) -> {
                           Intent i =
                               new Intent(Intent.ACTION_CREATE_DOCUMENT)
@@ -1147,12 +1151,12 @@ public final class MainActivity extends Activity {
                                           | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
                           startActivityForResult(i, 22);
                         })
-                    .setNegativeButton("Close", null)
+                    .setNegativeButton(UiConfig.text("close"), null)
                     .show()));
-    downloadCards.addView(button("Back up trail now", () -> backupNow()));
+    downloadCards.addView(button(UiConfig.text("back_up_trail_now"), () -> backupNow()));
     downloadCards.addView(
         button(
-            "Restore trail from Google Drive / Files",
+            UiConfig.text("restore_trail_from_google_drive_files"),
             () -> {
               Intent i =
                   new Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -1162,24 +1166,24 @@ public final class MainActivity extends Activity {
             }));
 
     infoCard(
-        "OpenStreetMap · roads",
-        "ONLINE + VIEWED-TILE CACHE",
-        "Road basemap with the same trails and stop details. © OpenStreetMap contributors. Public"
-            + " tiles do not permit bulk/offline pack downloads.");
+        UiConfig.text("openstreetmap_roads"),
+        UiConfig.text("online_viewed_tile_cache"),
+        UiConfig.text("road_basemap_with_the_same_trails_and_stop_details_openstreetmap")
+            + UiConfig.text("tiles_do_not_permit_bulk_offline_pack_downloads"));
     infoCard(
-        "Esri · satellite",
-        "ONLINE ONLY",
-        "Satellite context with your trail overlay. Tiles © Esri, Maxar, Earthstar Geographics and"
-            + " contributors. Bulk offline download is not enabled.");
+        UiConfig.text("esri_satellite_2"),
+        UiConfig.text("online_only"),
+        UiConfig.text("satellite_context_with_your_trail_overlay_tiles_esri_maxar_earth")
+            + UiConfig.text("contributors_bulk_offline_download_is_not_enabled"));
     infoCard(
-        "In-app driving navigation",
-        "TEXT DIRECTIONS · NO VOICE",
-        "Use Navigate to search or hold a point on the map. Preview and start a driving route in"
-            + " oTraiL. OSRM / FOSSGIS provides online routes; rerouting needs internet. No live"
-            + " traffic or voice. Other apps remain optional.");
+        UiConfig.text("in_app_driving_navigation"),
+        UiConfig.text("text_directions_no_voice"),
+        UiConfig.text("use_navigate_to_search_or_hold_a_point_on_the_map_preview_and_st")
+            + UiConfig.text("otrail_osrm_fossgis_provides_online_routes_rerouting_needs_inter")
+            + UiConfig.text("traffic_or_voice_other_apps_remain_optional"));
     downloadCards.addView(
         button(
-            "Import an India .map file",
+            UiConfig.text("import_an_india_map_file"),
             () -> {
               Intent i =
                   new Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -1189,7 +1193,7 @@ public final class MainActivity extends Activity {
             }));
     downloadCards.addView(
         button(
-            "Export all GPS logs · GeoJSON",
+            UiConfig.text("export_all_gps_logs_geojson"),
             () -> {
               Intent i =
                   new Intent(Intent.ACTION_CREATE_DOCUMENT)
@@ -1200,32 +1204,32 @@ public final class MainActivity extends Activity {
             }));
     downloadCards.addView(
         button(
-            "Manual update history",
+            UiConfig.text("manual_update_history"),
             () ->
                 new AlertDialog.Builder(this)
-                    .setTitle("Update log")
+                    .setTitle(UiConfig.text("update_log"))
                     .setMessage(db.logs())
-                    .setPositiveButton("Close", null)
+                    .setPositiveButton(UiConfig.text("close"), null)
                     .show()));
     downloadCards.addView(
         button(
-            "Location & battery settings",
+            UiConfig.text("location_battery_settings"),
             () ->
                 new AlertDialog.Builder(this)
-                    .setTitle("Keep recording on your POCO")
+                    .setTitle(UiConfig.text("keep_recording_on_your_poco"))
                     .setMessage(
-                        "Recording starts automatically with precise location permission. For"
-                            + " reboot recovery, allow location all the time, enable Background"
-                            + " autostart in HyperOS, and set Battery → No restrictions. Force-stop"
-                            + " requires reopening the app.")
+                        UiConfig.text("recording_starts_automatically_with_precise_location_permission_")
+                            + UiConfig.text("reboot_recovery_allow_location_all_the_time_enable_background")
+                            + UiConfig.text("autostart_in_hyperos_and_set_battery_no_restrictions_force_stop")
+                            + UiConfig.text("requires_reopening_the_app"))
                     .setPositiveButton(
-                        "App settings",
+                        UiConfig.text("app_settings"),
                         (d, w) ->
                             startActivity(
                                 new Intent(
                                     android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                                     Uri.parse("package:" + getPackageName()))))
-                    .setNegativeButton("Close", null)
+                    .setNegativeButton(UiConfig.text("close"), null)
                     .show()));
     for (Runnable r : cardUpdates) r.run();
   }
@@ -1234,7 +1238,7 @@ public final class MainActivity extends Activity {
     LinearLayout card = card();
     card.addView(text(tag, 10, TEAL));
     TextView title = text(name, 18, INK);
-    title.setTypeface(null, Typeface.BOLD);
+    title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     card.addView(title);
     card.addView(text(detail, 12, MUTED));
   }
@@ -1255,31 +1259,31 @@ public final class MainActivity extends Activity {
     card.addView(
         text(
             p.key().equals("mapsforge")
-                ? "OFFLINE MAP  /  INDIA"
-                : "OPTIONAL SOURCE DATA  /  INDIA",
+                ? UiConfig.text("offline_map_india")
+                : UiConfig.text("optional_source_data_india"),
             10,
             TEAL));
     TextView name = text(p.name(), 19, INK);
-    name.setTypeface(null, Typeface.BOLD);
+    name.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     card.addView(name);
     card.addView(text(p.description(), 12, MUTED));
-    TextView state = text("Checking phone storage…", 13, INK);
+    TextView state = text(UiConfig.text("checking_phone_storage"), 13, INK);
     card.addView(state);
     ProgressBar progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
     progress.setProgressTintList(android.content.res.ColorStateList.valueOf(AppStyle.BLUE));
     LinearLayout.LayoutParams bar = new LinearLayout.LayoutParams(-1, dp(8));
     bar.setMargins(dp(16), dp(4), dp(16), dp(4));
     card.addView(progress, bar);
-    TextView bytes = text("Estimated " + MapPacks.size(p.estimatedBytes()), 12, MUTED);
+    TextView bytes = text(UiConfig.text("estimated") + MapPacks.size(p.estimatedBytes()), 12, MUTED);
     card.addView(bytes);
     LinearLayout actions = new LinearLayout(this);
     Button action =
         button(
-            "Download",
+            UiConfig.text("download"),
             () -> {
               try {
                 packs.download(p);
-                toast("Queued on phone · Wi-Fi or cellular");
+                toast(UiConfig.text("queued_on_phone_wi_fi_or_cellular"));
                 for (Runnable r : cardUpdates) r.run();
               } catch (Exception e) {
                 toast(e.getMessage());
@@ -1287,7 +1291,7 @@ public final class MainActivity extends Activity {
             });
     Button cancel =
         button(
-            "Cancel",
+            UiConfig.text("cancel"),
             () -> {
               packs.cancel(p);
               for (Runnable r : cardUpdates) r.run();
@@ -1322,12 +1326,12 @@ public final class MainActivity extends Activity {
                                   ? " · "
                                       + Math.min(100, s.bytes() * 100 / Math.max(1, s.total()))
                                       + "%"
-                                  : " · phone storage"));
+                                  : UiConfig.text("phone_storage")));
                       action.setEnabled(!s.pending());
                       action.setText(
                           s.installed()
-                              ? "Update manually"
-                              : s.status().startsWith("Failed") ? "Retry download" : "Download");
+                              ? UiConfig.text("update_manually")
+                              : s.status().startsWith("Failed") ? UiConfig.text("retry_download") : "Download");
                       cancel.setEnabled(s.pending());
                     });
               });
@@ -1336,21 +1340,21 @@ public final class MainActivity extends Activity {
 
   private void backupNow() {
     if (!new TrailBackup(this).configured()) {
-      toast("Choose a backup location first");
+      toast(UiConfig.text("choose_a_backup_location_first"));
       return;
     }
-    toast("Saving trail backup…");
+    toast(UiConfig.text("saving_trail_backup"));
     io.execute(
         () -> {
           try {
             new TrailBackup(this).save(db, true);
             runOnUiThread(
                 () -> {
-                  toast("Backup written · Drive handles upload/sync");
+                  toast(UiConfig.text("backup_written_drive_handles_upload_sync"));
                   if (downloads) showDownloads();
                 });
           } catch (Exception e) {
-            runOnUiThread(() -> toast("Backup failed: " + e.getMessage()));
+            runOnUiThread(() -> toast(UiConfig.text("backup_failed") + e.getMessage()));
           }
         });
   }
@@ -1370,12 +1374,12 @@ public final class MainActivity extends Activity {
         new TrailBackup(this).configure(uri, data.getFlags());
         backupNow();
       } catch (Exception e) {
-        toast("Cannot retain backup access: " + e.getMessage());
+        toast(UiConfig.text("cannot_retain_backup_access") + e.getMessage());
       }
       return;
     }
     if (request == 23) {
-      toast("Restoring trail snapshot…");
+      toast(UiConfig.text("restoring_trail_snapshot"));
       io.execute(
           () -> {
             try {
@@ -1389,17 +1393,17 @@ public final class MainActivity extends Activity {
                     lastStopSignature = 0;
                     StopGeocoder.backfill(this);
                     toast(
-                        "Trail history restored. Re-select the backup target to resume automatic"
-                            + " backups.");
+                        UiConfig.text("trail_history_restored_re_select_the_backup_target_to_resume_aut")
+                            + UiConfig.text("backups"));
                     if (downloads) showDownloads();
                   });
             } catch (Exception e) {
-              runOnUiThread(() -> toast("Restore failed: " + e.getMessage()));
+              runOnUiThread(() -> toast(UiConfig.text("restore_failed") + e.getMessage()));
             }
           });
       return;
     }
-    toast(request == 20 ? "Importing and validating India map…" : "Exporting GPS logs…");
+    toast(request == 20 ? UiConfig.text("importing_and_validating_india_map") : UiConfig.text("exporting_gps_logs"));
     io.execute(
         () -> {
           try {
@@ -1417,11 +1421,11 @@ public final class MainActivity extends Activity {
             }
             runOnUiThread(
                 () -> {
-                  toast(request == 20 ? "India pack imported" : "GeoJSON export saved");
+                  toast(request == 20 ? UiConfig.text("india_pack_imported") : UiConfig.text("geojson_export_saved"));
                   if (downloads) for (Runnable r : cardUpdates) r.run();
                 });
           } catch (Exception e) {
-            db.log("File operation", "FAILED", e.toString());
+            db.log(UiConfig.text("file_operation"), "FAILED", e.toString());
             runOnUiThread(() -> toast(e.getMessage()));
           }
         });
@@ -1487,8 +1491,8 @@ public final class MainActivity extends Activity {
     return secs < 60
         ? secs + "s"
         : secs < 3600
-            ? secs / 60 + "m " + secs % 60 + "s"
-            : secs / 3600 + "h " + secs / 60 % 60 + "m";
+            ? secs / 60 + UiConfig.text("m_3") + secs % 60 + "s"
+            : secs / 3600 + UiConfig.text("h") + secs / 60 % 60 + "m";
   }
 
   private void fullscreen() {

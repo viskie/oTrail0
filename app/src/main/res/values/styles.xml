@@ -1,17 +1,17 @@
 <resources>
     <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:fontFamily">sans-serif-condensed</item>
-        <item name="android:colorAccent">#0078FF</item>
-        <item name="android:colorControlActivated">#BD00FF</item>
+        <item name="android:fontFamily">@string/ui_body_font</item>
+        <item name="android:colorAccent">@color/ui_blue</item>
+        <item name="android:colorControlActivated">@color/ui_purple</item>
         <item name="android:colorControlHighlight">#55E3FF00</item>
-        <item name="android:textColorPrimary">#004FA8</item>
-        <item name="android:textColorSecondary">#895200</item>
-        <item name="android:colorBackground">#D4D4D8</item>
-        <item name="android:windowBackground">#D4D4D8</item>
+        <item name="android:textColorPrimary">@color/ui_accent_text</item>
+        <item name="android:textColorSecondary">@color/ui_secondary</item>
+        <item name="android:colorBackground">@color/ui_background</item>
+        <item name="android:windowBackground">@color/ui_background</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:statusBarColor">#D4D4D8</item>
-        <item name="android:navigationBarColor">#D4D4D8</item>
+        <item name="android:statusBarColor">@color/ui_background</item>
+        <item name="android:navigationBarColor">@color/ui_background</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:buttonStyle">@style/TrailButton</item>
         <item name="android:buttonBarPositiveButtonStyle">@style/TrailButton</item>
@@ -20,11 +20,11 @@
         <item name="android:windowSoftInputMode">adjustResize</item>
     </style>
     <style name="TrailButton" parent="android:style/Widget.Material.Button">
-        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:fontFamily">@string/ui_button_font</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:textSize">12sp</item>
-        <item name="android:textColor">#29335C</item>
-        <item name="android:backgroundTint">#8B21B8</item>
+        <item name="android:textSize">@dimen/ui_button_size</item>
+        <item name="android:textColor">@color/ui_button_text</item>
+        <item name="android:backgroundTint">@color/ui_button</item>
         <item name="android:minHeight">44dp</item>
         <item name="android:paddingTop">0dp</item>
         <item name="android:paddingBottom">0dp</item>
