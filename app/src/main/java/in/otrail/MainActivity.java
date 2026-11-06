@@ -78,7 +78,6 @@ public final class MainActivity extends Activity {
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
-    fullscreen();
     db = new TrailDb(this);
     roadControls = new RoadControls(this);
     packs = new MapPacks(this, db);
@@ -1484,7 +1483,7 @@ public final class MainActivity extends Activity {
 
   private void fullscreen() {
     getWindow().setDecorFitsSystemWindows(false);
-    WindowInsetsController controller = getWindow().getInsetsController();
+    WindowInsetsController controller = getWindow().getDecorView().getWindowInsetsController();
     if (controller != null) {
       controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
       controller.hide(WindowInsets.Type.systemBars());
