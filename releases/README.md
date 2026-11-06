@@ -81,3 +81,7 @@ Grey fullscreen UI, purple buttons with magenta text, floating Locate, improved 
 ## 0.3.2 — 2026-11-06
 
 Conservative GPS departure confirmation, stop recovery after stable reception and restart, audited duplicate-stop reconciliation, uncertain-signal status and anchored live dot. Shared journal pool and read-only backups. Configurable native text, dialogs, selectors, popups and offline map labels; manual color choices retained. Raw GPS rows and stop IDs preserved. 52 JVM checks, lint and 24 phone checks pass. Same certificate; upgrade in place. See docs/0.3.2-gps-quality-ui.md and docs/edit-ui-config.md.
+
+## 0.3.3 — 2026-11-06
+
+GPS uncertainty handling and stable-signal stop recovery, including drifted duplicate open stops. Raw GPS, saved stop IDs and labels retained with repair audit logs. Weak-signal status, anchored dot and unreliable-speed suppression. INK now controls native text; offline road/city labels have configurable colors. 52 JVM checks, lint and 24 phone checks pass. Installed and data integrity verified on POCO. Same signing certificate; install in place. See docs/0.3.3-stop-reconciliation.md.
