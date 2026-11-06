@@ -30,3 +30,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 Do not uninstall or clear storage. Signing keys must match the installed app.
+
+Offline city/town names (e.g. Bilaspur): `CITY_LABEL_FONT`, `CITY_LABEL_STYLE`, `CITY_LABEL_COLOR`, `CITY_LABEL_OUTLINE_COLOR`, `CITY_LABEL_SIZE_SCALE`, `CITY_LABEL_OUTLINE_WIDTH`. Font family values: `default`, `sans_serif`, `serif`, `monospace`. Style values: `normal`, `bold`, `italic`, `bold_italic`. Size scale preserves the underlying zoom visibility rules. Changes automatically use a new tile cache identity. These controls apply to India offline; online raster labels remain provider-controlled.
+
+Dark text: `INK` controls native selectors, switches, inputs, dialog/list text, stop popups and attribution. Main text helpers now honor their explicitly supplied color (`INK`, `MUTED`, etc.). `ACCENT_TEXT` still controls body accents; `HEADING` controls status/headings. Offline road text uses `MAP_ROAD_LABEL_COLOR`, other POI captions use `MAP_OTHER_LABEL_COLOR` (both default to `INK`); their font uses `MAP_TEXT_FONT` and outlines use `MAP_TEXT_OUTLINE_COLOR`. Cities use the independent `CITY_LABEL_*` settings. Provider raster tiles remain unchanged.

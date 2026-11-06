@@ -130,7 +130,7 @@ final class NavigationControls implements AutoCloseable {
     EditText query = new EditText(activity);
     query.setHint(UiConfig.text("place_in_india_or_latitude_longitude"));
     query.setSingleLine(true);
-    new AlertDialog.Builder(activity)
+    new AppDialogs(activity)
         .setTitle(UiConfig.text("where_are_you_going"))
         .setView(query)
         .setPositiveButton(
@@ -161,7 +161,7 @@ final class NavigationControls implements AutoCloseable {
                                 results.stream()
                                     .map(DestinationSearch.Result::name)
                                     .toArray(String[]::new);
-                            new AlertDialog.Builder(activity)
+                            new AppDialogs(activity)
                                 .setTitle(UiConfig.text("choose_destination"))
                                 .setItems(names, (dialog, index) -> plan(results.get(index)))
                                 .setNegativeButton(UiConfig.text("cancel"), null)
@@ -323,7 +323,7 @@ final class NavigationControls implements AutoCloseable {
           .append(UiConfig.text("from_start"))
           .append(step.instruction())
           .append("\n\n");
-    new AlertDialog.Builder(activity)
+    new AppDialogs(activity)
         .setTitle(s.name())
         .setMessage(out.toString())
         .setPositiveButton(UiConfig.text("close"), null)

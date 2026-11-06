@@ -9,15 +9,15 @@ import java.util.Map;
 public class UiConfig {
   protected UiConfig() {}
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
-  public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xff7600a0,SECONDARY=0xff895200;
-  public static final int BUTTON=0xff8b21b8,BUTTON_TEXT=0xffff00ff;
-  public static final int BACKGROUND=0xffd4d4d8,SURFACE=0xffe7e7eb,INK=0xff1b1b24,MUTED=0xff51515e;
+  public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffff4162,SECONDARY=0xffFF00FF;
+  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffbd00ff;
+  public static final int BACKGROUND=0xffd4d4d8,SURFACE=0xffe7e7eb,INK=0xff1b1b24,MUTED=0xffff7f50;
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2;
-  public static final int BUTTON_BORDER=0xff29335c, BUTTON_RIPPLE=0x66e3ff00,
+  public static final int BUTTON_BORDER=0xff17deee, BUTTON_RIPPLE=0xff17deee,
       BUTTON_DISABLED_TEXT=0x99ff00ff;
   public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="sans-serif-medium",
       STATUS_FONT="sans-serif-medium", MAP_LABEL_FONT="sans-serif";
-  public static final int BUTTON_SIZE_SP=12, BODY_SIZE_SP=12, STATUS_SIZE_SP=15,
+  public static final int BUTTON_SIZE_SP=9, BODY_SIZE_SP=9, STATUS_SIZE_SP=13,
       NAV_TITLE_SIZE_SP=12, NAV_INSTRUCTION_SIZE_SP=14, NAV_SUMMARY_SIZE_SP=11,
       MAP_LABEL_SIZE_SP=11, MAP_LABEL_STYLE=android.graphics.Typeface.BOLD; // 0 normal, 1 bold, 2 italic
   public static final float TEXT_SCALE=1f;
@@ -25,6 +25,16 @@ public class UiConfig {
       SUBHEADING_SIZE_SP=14, HEADING_SIZE_SP=18, CARD_TITLE_SIZE_SP=19,
       SETTINGS_TITLE_SIZE_SP=25, APP_TITLE_SIZE_SP=27;
   public static final float OFFLINE_MAP_TEXT_SCALE=1f;
+  // Offline basemap names such as Bilaspur (cities, towns, villages and suburbs).
+  // Mapsforge families: default, sans_serif, serif, monospace.
+  // Styles: normal, bold, italic, bold_italic. Size multiplier preserves zoom rules.
+  public static final String CITY_LABEL_FONT="sans_serif", CITY_LABEL_STYLE="bold";
+  public static final int CITY_LABEL_COLOR=0xffFF00FF, CITY_LABEL_OUTLINE_COLOR=0xffFF00FF;
+  public static final float CITY_LABEL_SIZE_SCALE=1f, CITY_LABEL_OUTLINE_WIDTH=1f;
+  // Remaining offline basemap lettering (roads and POIs); INK controls default dark text.
+  public static final int MAP_ROAD_LABEL_COLOR=INK, MAP_OTHER_LABEL_COLOR=INK,
+      MAP_TEXT_OUTLINE_COLOR=0xffffffff;
+  public static final String MAP_TEXT_FONT="sans_serif";
   public static float textSize(int originalSp) {
     int configured=switch(originalSp) {
       case 10 -> CAPTION_SIZE_SP; case 11 -> SECONDARY_SIZE_SP; case 12 -> BODY_SIZE_SP;
@@ -40,7 +50,7 @@ public class UiConfig {
   public static final int CONTINUITY=0xFF00FBFF;
   // First five: Vibrant Life (color-hex 5338). Remaining 26: Siter retro palettes.
   public static final int[] TRAIL_COLORS = {
-      0xff17deee, 0xffff7f50, 0xffff4162, 0xffecf284, 0xff10aeb2,
+      0xff10aeb2, 0xffff4162, 0xffff9a00, 0xffecf284, 0xffFF00FF,
       0xff3e2a18, 0xff8a5a2b, 0xffc1651e, 0xffd9a441, 0xffefe0bf,
       0xffc9a227, 0xffefe7c8, 0xff2a4747, 0xff5c8d89, 0xff9bc5be,
       0xfff4a6a0, 0xfffbf2e5, 0xff29335c, 0xffa8322d, 0xffe4572e,
@@ -48,9 +58,18 @@ public class UiConfig {
       0xffe0218a, 0xff1b1b2f, 0xff4c3a87, 0xffb33f86, 0xfff5a65b, 0xfff2e8d5
   };
 
-  public static final int COLOR_FF8DE0D3=0xff8de0d3;
-  public static final int COLOR_FF889999=0xff889999;
-  public static final int COLOR_BB1B1B24=0xbb1b1b24;
+  // Text color for the India region label in the app header.
+  public static final int REGION_LABEL_TEXT=0xff8de0d3;
+  // Location dot when the last GPS reading is more than 30 seconds old.
+  public static final int STALE_GPS_DOT=0xffe3ff00;
+  // Location/stop marker colors, independent of the general UI palette.
+  public static final int READY_GPS_DOT=0xff01ff1f, MOVING_GPS_DOT=0xffff4162,
+      STOPPED_GPS_DOT=0xff004208, HISTORY_GPS_DOT=0xffff0080, SAVED_STOP_DOT=0xffff0080;
+  // Border shared wby location and saved-stop dots (width in dp).
+  public static final int DOT_OUTLINE_COLOR=0xffffffff;
+  public static final int DOT_OUTLINE_WIDTH_DP=3;
+  // Dark translucent border behind trail lines to keep them visible on maps.
+  public static final int TRAIL_OUTLINE=0xff17deee;
 
   /** Empty follows the phone language. Set e.g. "en" or "hi" to pin UI copy.
    * Add translated keys below; missing translations fall back to ENGLISH.
@@ -59,13 +78,16 @@ public class UiConfig {
   public static final String UI_LANGUAGE="";
   public static final Map<String, Map<String,String>> TRANSLATIONS=Map.of();
   public static final Map<String,String> ENGLISH=Map.ofEntries(
+      Map.entry("gps_uncertain", "GPS uncertain"),
+      Map.entry("speed_unknown", " · — km/h"),
+      Map.entry("stop_signal_uncertain", "Weak GPS · stop retained"),
       Map.entry("0f_km_h", "  ·  %.0f km/h"),
       Map.entry("1f_km", "%.1f km"),
       Map.entry("6f_6f_1f_km_h_0f_m_s", "%.6f, %.6f\n%.1f km/h · ±%.0f m\n%s"),
       Map.entry("a_fresh_gps_fix_is_required_to_start", "A fresh GPS fix is required to start"),
       Map.entry("access_and_opening_hours_are_not_verified", "\nAccess and opening hours are not verified."),
       Map.entry("afterwards_sizes_are_estimates_until_the_server_reports_the_tota", " afterwards. Sizes are estimates until the server reports the total."),
-      Map.entry("age_from_source_date", "Age from source date: "),
+      Map.entry("age_from_source_date", "Age from epoch: "),
       Map.entry("ago", " ago"),
       Map.entry("always_on_gps_every_5_seconds", "Always-on GPS · every 5 seconds"),
       Map.entry("always_on_recording", "Always-on recording"),

@@ -129,7 +129,7 @@ public final class MainActivity extends Activity {
     v.setText(s);
     AppStyle.text(v);
     v.setTextSize(UiConfig.textSize(size));
-    v.setTextColor(color == INK || color == MUTED || color == TEAL ? AppStyle.textColor(size, false) : color);
+    v.setTextColor(color);
     v.setPadding(dp(10), dp(3), dp(10), dp(3));
     return v;
   }
@@ -163,7 +163,7 @@ public final class MainActivity extends Activity {
     TextView title = text(UiConfig.text("otrail"), 27, Color.WHITE);
     title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView region = text(UiConfig.text("india_in"), 12, UiConfig.COLOR_FF8DE0D3);
+    TextView region = text(UiConfig.text("india_in"), 12, UiConfig.REGION_LABEL_TEXT);
     head.addView(region);
     head.setVisibility(View.GONE);
     root.addView(head);
@@ -206,12 +206,13 @@ public final class MainActivity extends Activity {
     String[] names = {UiConfig.text("osm_roads"), UiConfig.text("esri_satellite"), UiConfig.text("india_offline")};
     Spinner selector = new Spinner(this);
     selector.setAdapter(
-        new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
+        AppStyle.choices(this, java.util.Arrays.asList(names)));
     selector.setSelection(provider);
     tools.addView(selector, new LinearLayout.LayoutParams(0, dp(40), 1));
     Switch network = new Switch(this);
     network.setText(UiConfig.text("offline"));
     network.setTextSize(UiConfig.BODY_SIZE_SP);
+    AppStyle.nativeTextTree(network);
     network.setMinHeight(dp(44));
     network.setChecked(offlineOnly);
     tools.addView(network);
@@ -287,7 +288,7 @@ public final class MainActivity extends Activity {
     status = text(UiConfig.text("ready_when_you_are"), UiConfig.STATUS_SIZE_SP, INK);
     status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, Typeface.BOLD));
     status.setTextColor(AppStyle.HEADING);
-    status.setSingleLine(true);
+    status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, MUTED);
@@ -346,7 +347,7 @@ public final class MainActivity extends Activity {
         org.mapsforge.map.model.DisplayModel.textScale=UiConfig.OFFLINE_MAP_TEXT_SCALE;
         MapsForgeTileSource source =
             MapsForgeTileSource.createFromFiles(
-                new File[] {packs.active()}, null, "India-render-v2-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE);
+                new File[] {packs.active()}, new OfflineMapTheme(), "India-render-v3-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE + "-city-" + OfflineMapTheme.cacheKey());
         map.setTileProvider(
             new MapsForgeTileProvider(new SimpleRegisterReceiver(this), source, null));
       } else {
@@ -377,7 +378,9 @@ public final class MainActivity extends Activity {
       }
       map.setUseDataConnection(!offlineOnly && provider != 2);
       map.getOverlays().removeIf(o -> o instanceof CopyrightOverlay);
-      map.getOverlays().add(new CopyrightOverlay(this));
+      CopyrightOverlay attribution=new CopyrightOverlay(this);
+      attribution.setTextColor(UiConfig.INK);
+      map.getOverlays().add(attribution);
       map.invalidate();
     } catch (Exception e) {
       toast(UiConfig.text("map_unavailable") + e.getMessage());
@@ -481,26 +484,28 @@ public final class MainActivity extends Activity {
     TrailDb.Fix last = fixes.get(fixes.size() - 1);
     long age = System.currentTimeMillis() - last.time();
     boolean stale = age > 30000;
-    TrailDb.Stop current = stops.isEmpty() ? null : stops.get(stops.size() - 1);
-    boolean stopped = current != null && current.departure() == 0;
-    boolean recorded = history || active == -1;
-    int color =
-        recorded
-            ? AppStyle.CYAN
-            : stale
-                ? UiConfig.COLOR_FF889999
-                : stopped ? AppStyle.TEAL : last.speed() > 1.5 ? AppStyle.BLUE : AppStyle.LIME;
-    String state =
-        recorded
-            ? UiConfig.text("history")
-            : stale
-                ? UiConfig.text("gps_signal_stale")
-                : stopped
-                    ? UiConfig.text("stopped") + duration(current.observed() - current.arrival())
-                    : last.speed() > 1.5 ? UiConfig.text("on_the_move") : UiConfig.text("recording");
-    String drive = driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("drive_2f_km"), driveMetrics.current().meters()/1000);
-    status.setText(state + String.format(Locale.US, UiConfig.text("0f_km_h"), last.speed() * 3.6) + (!recorded && !stopped ? drive : ""));
-    roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !stopped && last.speed()>1.5, offlineOnly, history);
+    android.content.SharedPreferences signal=getSharedPreferences("tracking_signal",0);
+    boolean liveSignal=!history&&signal.getLong("fix_ms",0)==last.time();
+    long heldArrival=liveSignal?signal.getLong("stop_arrival_ms",0):0;
+    long heldId=liveSignal?signal.getLong("stop_id",-1):-1;
+    TrailDb.Stop current=stops.isEmpty()?null:stops.get(stops.size()-1);
+    if(heldId>0)for(TrailDb.Stop stop:stops)if(stop.id()==heldId){current=stop;break;}
+    boolean stopped=heldArrival>0||current!=null&&current.departure()==0;
+    boolean uncertain=liveSignal&&signal.getBoolean("uncertain",false)||last.accuracy()>30;
+    boolean recorded=history||active==-1;
+    int color=recorded?UiConfig.HISTORY_GPS_DOT:stale||uncertain?UiConfig.STALE_GPS_DOT
+        :stopped?UiConfig.STOPPED_GPS_DOT:last.speed()>1.5?UiConfig.MOVING_GPS_DOT:UiConfig.READY_GPS_DOT;
+    long arrived=heldArrival>0?heldArrival:current==null?0:current.arrival();
+    String state=recorded?UiConfig.text("history")
+        :stopped?UiConfig.text("stopped")+duration(Math.max(0,System.currentTimeMillis()-arrived))
+        :stale?UiConfig.text("gps_signal_stale")
+        :uncertain?UiConfig.text("gps_uncertain")
+        :last.speed()>1.5?UiConfig.text("on_the_move"):UiConfig.text("recording");
+    String drive=driveMetrics==null?"":String.format(Locale.US,UiConfig.text("drive_2f_km"),driveMetrics.current().meters()/1000);
+    String speed=stale||uncertain?UiConfig.text("speed_unknown"):String.format(Locale.US,UiConfig.text("0f_km_h"),(stopped?0:last.speed()*3.6));
+    String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
+    status.setText(state+speed+(!recorded&&!stopped?drive:"")+quality);
+    roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !uncertain && !stopped && last.speed()>1.5, offlineOnly, history);
     stats.setText(
         (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), driveMetrics.totalMeters()/1000))
             + (trip < 0 ? UiConfig.text("full_trail") : String.format(Locale.US,UiConfig.text("trail_2f_km"),trailMeters/1000))
@@ -545,7 +550,7 @@ public final class MainActivity extends Activity {
       Marker m = new Marker(map);
       m.setPosition(new GeoPoint(s.lat(), s.lon()));
       m.setAnchor(.5f, .5f);
-      m.setIcon(dot(AppStyle.TEAL, 14));
+      m.setIcon(dot(UiConfig.SAVED_STOP_DOT, 14));
       String place =
           s.placeName() == null || s.placeName().isBlank()
               ? UiConfig.text("location_not_yet_identified")
@@ -577,7 +582,7 @@ public final class MainActivity extends Activity {
       registerMarker("stop:" + s.id(), m);
     }
     Marker dot = new Marker(map);
-    dot.setPosition(new GeoPoint(last.lat(), last.lon()));
+    dot.setPosition(stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon()));
     dot.setAnchor(.5f, .5f);
     dot.setIcon(dot(color, 22));
     dot.setTitle(state);
@@ -593,7 +598,7 @@ public final class MainActivity extends Activity {
     registerMarker("live", dot);
     drawHistoricPlaces();
     Marker reopen = visibleMarkers.get(openMarkerKey);
-    if (reopen != null) reopen.showInfoWindow();
+    if (reopen != null) MarkerPopups.openOnly(map,reopen);
     if (NavigationManager.get(this).state().route() != null && !history) fitTrail = false;
     if (fitTrail) {
       fitTrail = false;
@@ -633,7 +638,7 @@ public final class MainActivity extends Activity {
         (m, view) -> {
           openMarkerKey = key;
           if (key.startsWith("stop:")) {
-            new AlertDialog.Builder(this).setTitle(m.getTitle())
+            new AppDialogs(this).setTitle(m.getTitle())
                 .setMessage(android.text.Html.fromHtml(m.getSnippet(), android.text.Html.FROM_HTML_MODE_LEGACY))
                 .setPositiveButton(UiConfig.text("close"), null).show();
             openMarkerKey = null;
@@ -660,7 +665,7 @@ public final class MainActivity extends Activity {
     p.getOutlinePaint().setStrokeWidth(dp(4));
     android.graphics.Paint stroke = p.getOutlinePaint();
     android.graphics.Paint halo = new android.graphics.Paint(stroke);
-    halo.setColor(UiConfig.COLOR_BB1B1B24); halo.setStrokeWidth(dp(6));
+    halo.setColor(UiConfig.TRAIL_OUTLINE); halo.setStrokeWidth(dp(6));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(stroke));
     map.getOverlays().add(p);
@@ -669,13 +674,13 @@ public final class MainActivity extends Activity {
   private LayerDrawable dot(int color, int size) {
     GradientDrawable inner = bg(color, 99);
     inner.setShape(GradientDrawable.OVAL);
-    inner.setStroke(dp(3), Color.WHITE);
+    inner.setStroke(dp(UiConfig.DOT_OUTLINE_WIDTH_DP), UiConfig.DOT_OUTLINE_COLOR);
     inner.setSize(dp(size), dp(size));
     return new LayerDrawable(new android.graphics.drawable.Drawable[] {inner});
   }
 
   private void trackerStatus() {
-    new AlertDialog.Builder(this)
+    new AppDialogs(this)
         .setTitle(UiConfig.text("always_on_recording"))
         .setMessage(
             UiConfig.text("gps_request_interval_5_seconds_recording_runs_independently_of_l")
@@ -751,7 +756,7 @@ public final class MainActivity extends Activity {
           Marker m = new Marker(map);
           m.setPosition(new GeoPoint(l.getLatitude(), l.getLongitude()));
           m.setAnchor(.5f, .5f);
-          m.setIcon(dot(AppStyle.LIME, 22));
+          m.setIcon(dot(UiConfig.READY_GPS_DOT, 22));
           m.setTitle(UiConfig.text("current_gps_location"));
           m.setSnippet("±" + Math.round(l.getAccuracy()) + UiConfig.text("m_2"));
           registerMarker("live", m);
@@ -761,7 +766,7 @@ public final class MainActivity extends Activity {
   }
 
   private void oldPlaces() {
-    new AlertDialog.Builder(this)
+    new AppDialogs(this)
         .setTitle(UiConfig.text("old_places_200_600_years_25_km"))
         .setItems(
             new String[] {
@@ -931,7 +936,7 @@ public final class MainActivity extends Activity {
         }
         runOnUiThread(() -> {
           if(isFinishing() || isDestroyed())return;
-          new AlertDialog.Builder(this).setTitle(UiConfig.text("recorded_stops")+stops.size())
+          new AppDialogs(this).setTitle(UiConfig.text("recorded_stops")+stops.size())
             .setItems(labels,(d,index)->{
               TrailDb.Stop s=stops.get(index);
               driveMetrics = metrics;
@@ -941,7 +946,7 @@ public final class MainActivity extends Activity {
               details += driveDetails(s.id());
               for(String value:new String[]{s.locality(),s.road(),s.district(),s.state(),s.country(),s.postalCode()})
                 if(value!=null&&!value.isBlank())details+="\n"+value;
-              new AlertDialog.Builder(this).setTitle(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName()).setMessage(details).setPositiveButton(UiConfig.text("close"),null).show();
+              new AppDialogs(this).setTitle(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName()).setMessage(details).setPositiveButton(UiConfig.text("close"),null).show();
             }).setPositiveButton(UiConfig.text("close"),null).show();
         });
       }catch(Exception e){CrashReports.save(this,UiConfig.text("stop_list"),e);runOnUiThread(()->toast(UiConfig.text("cannot_read_stop_list")+e.getMessage()));}
@@ -956,7 +961,7 @@ public final class MainActivity extends Activity {
       row.addView(text(String.format(Locale.US,UiConfig.text("pass_02d_06x"),i+1,TrailPalette.COLORS[i]&0xffffff),14,INK));rows.addView(row);
     }
     rows.addView(text(String.format(Locale.US,UiConfig.text("continuity_06x"),TrailPalette.CONTINUITY&0xffffff),14,INK));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
-    new AlertDialog.Builder(this).setTitle(UiConfig.text("repeated_road_passes_31_colors")).setView(scroll).setPositiveButton(UiConfig.text("close"),null).show();
+    new AppDialogs(this).setTitle(UiConfig.text("repeated_road_passes_31_colors")).setView(scroll).setPositiveButton(UiConfig.text("close"),null).show();
   }
 
   private void history() {
@@ -979,7 +984,7 @@ public final class MainActivity extends Activity {
         }
         runOnUiThread(() -> {
           if (isFinishing() || isDestroyed() || downloads) return;
-          new AlertDialog.Builder(this).setTitle(UiConfig.text("your_journeys")).setItems(names, (d, i) -> {
+          new AppDialogs(this).setTitle(UiConfig.text("your_journeys")).setItems(names, (d, i) -> {
             selectedTrip = i == 0 ? -1 : trips.get(i - 1).id();
             history = true; follow = true; showMap();
           }).setNegativeButton(UiConfig.text("close"), null).show();
@@ -1008,7 +1013,7 @@ public final class MainActivity extends Activity {
   }
 
   private void destination(GeoPoint p) {
-    new AlertDialog.Builder(this)
+    new AppDialogs(this)
         .setTitle(
             String.format(Locale.US, UiConfig.text("destination_5f_5f"), p.getLatitude(), p.getLongitude()))
         .setPositiveButton(
@@ -1023,7 +1028,7 @@ public final class MainActivity extends Activity {
   }
 
   private void externalDestination(GeoPoint p) {
-    new AlertDialog.Builder(this)
+    new AppDialogs(this)
         .setTitle(
             String.format(Locale.US, UiConfig.text("navigate_to_5f_5f"), p.getLatitude(), p.getLongitude()))
         .setItems(
@@ -1090,7 +1095,7 @@ public final class MainActivity extends Activity {
             () -> {
               EditText endpoint = new EditText(this);
               endpoint.setText(NavigationManager.get(this).server());
-              new AlertDialog.Builder(this)
+              new AppDialogs(this)
                   .setTitle(UiConfig.text("https_osrm_driving_endpoint"))
                   .setView(endpoint)
                   .setPositiveButton(
@@ -1127,7 +1132,7 @@ public final class MainActivity extends Activity {
         button(
             UiConfig.text("choose_backup_location_google_drive_files"),
             () ->
-                new AlertDialog.Builder(this)
+                new AppDialogs(this)
                     .setTitle(UiConfig.text("choose_your_backup_location"))
                     .setMessage(
                         UiConfig.text("in_the_save_picker_select_google_drive_open_the_folder_you_want_")
@@ -1206,7 +1211,7 @@ public final class MainActivity extends Activity {
         button(
             UiConfig.text("manual_update_history"),
             () ->
-                new AlertDialog.Builder(this)
+                new AppDialogs(this)
                     .setTitle(UiConfig.text("update_log"))
                     .setMessage(db.logs())
                     .setPositiveButton(UiConfig.text("close"), null)
@@ -1215,7 +1220,7 @@ public final class MainActivity extends Activity {
         button(
             UiConfig.text("location_battery_settings"),
             () ->
-                new AlertDialog.Builder(this)
+                new AppDialogs(this)
                     .setTitle(UiConfig.text("keep_recording_on_your_poco"))
                     .setMessage(
                         UiConfig.text("recording_starts_automatically_with_precise_location_permission_")

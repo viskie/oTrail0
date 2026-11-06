@@ -19,7 +19,7 @@ public final class CrashReports extends Application {
   }
   static void save(Context c,String stage,Throwable error) {
     try(FileOutputStream out=new FileOutputStream(new File(c.getFilesDir(),"last-crash.txt"))) {
-      out.write(("oTraiL 0.3.1"+" · "+new java.util.Date()+"\n"+stage+"\n"+android.util.Log.getStackTraceString(error)).getBytes(StandardCharsets.UTF_8));out.getFD().sync();
+      out.write(("oTraiL 0.3.2"+" · "+new java.util.Date()+"\n"+stage+"\n"+android.util.Log.getStackTraceString(error)).getBytes(StandardCharsets.UTF_8));out.getFD().sync();
     }catch(Throwable ignored){}
   }
   static String read(Context c) {
@@ -39,7 +39,7 @@ public final class CrashReports extends Application {
     String report=read(a);
     android.widget.TextView t=new android.widget.TextView(a);t.setText(report);t.setTextIsSelectable(true);t.setPadding(24,16,24,16);
     android.widget.ScrollView sc=new android.widget.ScrollView(a);sc.addView(t);
-    new AlertDialog.Builder(a).setTitle("Last app crash").setView(sc).setPositiveButton("Close",null).setNeutralButton("Copy report",(d,w)->{
+    new AppDialogs(a).setTitle("Last app crash").setView(sc).setPositiveButton("Close",null).setNeutralButton("Copy report",(d,w)->{
       ((android.content.ClipboardManager)a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("oTraiL crash",report));
     }).show();
   }

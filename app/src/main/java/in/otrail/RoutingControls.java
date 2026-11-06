@@ -62,7 +62,7 @@ public final class RoutingControls {
     android.content.SharedPreferences p=a.getSharedPreferences("routing-packs",0);
     EditText url=new EditText(a);url.setHint(UiConfig.text("https_url_to_india_graph_tar"));url.setText(p.getString("valhalla.url",""));fields.addView(url);
     EditText checksum=new EditText(a);checksum.setHint(UiConfig.text("sha_256_from_pack_publisher_optional"));checksum.setText(p.getString("valhalla.checksum",""));fields.addView(checksum);
-    new AlertDialog.Builder(a).setTitle(UiConfig.text("valhalla_graph_download")).setView(fields).setNegativeButton(UiConfig.text("cancel"),null).setPositiveButton(UiConfig.text("save"),(d,w)->{
+    new AppDialogs(a).setTitle(UiConfig.text("valhalla_graph_download")).setView(fields).setNegativeButton(UiConfig.text("cancel"),null).setPositiveButton(UiConfig.text("save"),(d,w)->{
       p.edit().putString("valhalla.url",url.getText().toString().trim()).putString("valhalla.checksum",checksum.getText().toString().trim()).apply();
     }).show();
   }
@@ -72,7 +72,7 @@ public final class RoutingControls {
     message(UiConfig.text("validating_routing_graph"));files.execute(()->{try{packs.importFile(key,uri);a.runOnUiThread(()->message(UiConfig.text("routing_graph_ready_offline")));}catch(Exception e){a.runOnUiThread(()->message(UiConfig.text("graph_import_failed")+e.getMessage()));}});
   }
   private TextView label(LinearLayout box,String text,int size){TextView t=new TextView(a);t.setText(text);AppStyle.text(t);t.setTextSize(UiConfig.textSize(size));t.setTextColor(AppStyle.textColor(size,size>=18));t.setPadding(0,8,0,8);box.addView(t);return t;}
-  private Spinner spinner(LinearLayout box,List<String> names){Spinner s=new Spinner(a);s.setAdapter(new ArrayAdapter<>(a,android.R.layout.simple_spinner_dropdown_item,names));box.addView(s);return s;}
+  private Spinner spinner(LinearLayout box,List<String> names){Spinner s=new Spinner(a);s.setAdapter(AppStyle.choices(a,names));box.addView(s);return s;}
   private ProgressBar progress(LinearLayout box){ProgressBar p=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);p.setMax(100);box.addView(p,new LinearLayout.LayoutParams(-1,16));return p;}
   private void button(LinearLayout box,String text,Runnable run){Button b=new Button(a);b.setText(text);AppStyle.button(b);b.setOnClickListener(v->run.run());box.addView(b);}
   private void message(String text){Toast.makeText(a,text,Toast.LENGTH_LONG).show();}

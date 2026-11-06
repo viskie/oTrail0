@@ -13,7 +13,7 @@ final class UpdateControls {
   }
 
   void show() {
-    new AlertDialog.Builder(activity)
+    new AppDialogs(activity)
         .setTitle("oTraiL updates")
         .setMessage(
             AppUpdater.status(activity)
@@ -49,14 +49,14 @@ final class UpdateControls {
                 () -> {
                   if (activity.isDestroyed() || activity.isFinishing()) return;
                   if (manifest == null) {
-                    new AlertDialog.Builder(activity)
+                    new AppDialogs(activity)
                         .setTitle("App updates")
                         .setMessage(message)
                         .setPositiveButton("Close", null)
                         .show();
                     return;
                   }
-                  new AlertDialog.Builder(activity)
+                  new AppDialogs(activity)
                       .setTitle("Update to " + manifest.versionName())
                       .setMessage(
                           manifest.notes()
@@ -94,14 +94,14 @@ final class UpdateControls {
                   if (activity.isDestroyed()) return;
                   progress.dismiss();
                   if (error != null) {
-                    new AlertDialog.Builder(activity)
+                    new AppDialogs(activity)
                         .setTitle("Update not installed")
                         .setMessage(error)
                         .setPositiveButton("Close", null)
                         .show();
                     return;
                   }
-                  new AlertDialog.Builder(activity)
+                  new AppDialogs(activity)
                       .setTitle("Update verified")
                       .setMessage(
                           "Android will ask you to approve installation. If prompted, allow oTraiL"

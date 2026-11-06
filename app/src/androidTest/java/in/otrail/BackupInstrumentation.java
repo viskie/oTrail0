@@ -227,6 +227,8 @@ public final class BackupInstrumentation extends Instrumentation {
       check("road cache survives reopen without network", this::roadCache);
       check("shared journal pool under concurrent writes", this::concurrentJournal);
       check("backup snapshot does not block GPS writer", this::backupDuringRecording);
+      check("uncertain GPS retains stop and raw observations", this::uncertainStop);
+      check("native text honors configured dark text", this::nativeTextStyle);
       check("fullscreen activity cold launch", this::fullscreenStartup);
       result.putString(
           "stream",
@@ -299,6 +301,43 @@ public final class BackupInstrumentation extends Instrumentation {
     }
   }
 
+  private void uncertainStop() throws Exception {
+    context.deleteDatabase("trails.db");
+    try(TrailDb db=new TrailDb(context)) {
+      long stop=seedStop(db),trip=db.activeTrip();int before=db.fixes(-1).size();
+      StopDetector detector=new StopDetector();db.restoreDetector(trip,detector);
+      long arrival=db.stopById(stop).arrival(),observed=db.stopById(stop).observed();
+      Location poor=fix(1140000,20.01,77,30);poor.setAccuracy(80);db.record(trip,poor,detector);
+      require(db.stopById(stop).departure()==0,"poor accuracy closed stop");
+      require(db.stopById(stop).observed()==observed,"uncertain fix advanced confirmed observation");
+      poor=fix(1145000,20.01,77,30);poor.setAccuracy(15);db.record(trip,poor,detector);
+      ContentValues duplicate=new ContentValues();duplicate.put("trip_id",trip);duplicate.put("arrival_ms",1145000L);
+      duplicate.put("observed_ms",1145000L);duplicate.put("latitude",20);duplicate.put("longitude",77);duplicate.put("place_name","Retained user label");
+      long duplicateId=db.getWritableDatabase().insertOrThrow("stops",null,duplicate);
+      for(int n=0;n<3;n++)db.record(trip,fix(1150000+n*5000,20,77,0),detector);
+      require(db.stopById(stop).arrival()==arrival,"stable return reset original arrival");
+      require(db.stopById(stop).observed()==1160000,"stable return not observed");
+      require(db.stops(-1).size()==2,"duplicate repair removed saved stop IDs");
+      require(db.stopById(duplicateId).departure()==1145000L,"duplicate stop remained open");
+      require("Retained user label".equals(db.stopById(duplicateId).placeName()),"duplicate repair removed saved label");
+      require(db.fixes(-1).size()==before+5,"quality filtering removed raw GPS");
+    }
+  }
+  private void nativeTextStyle() {
+    java.util.concurrent.atomic.AtomicReference<Throwable> failure=new java.util.concurrent.atomic.AtomicReference<>();
+    runOnMainSync(()->{try{
+      android.widget.Switch toggle=new android.widget.Switch(getTargetContext());AppStyle.nativeTextTree(toggle);
+      require(toggle.getCurrentTextColor()==UiConfig.INK,"switch retained native black");
+      android.widget.Spinner selector=new android.widget.Spinner(getTargetContext());
+      android.widget.ArrayAdapter<String> choices=AppStyle.choices(getTargetContext(),List.of("India offline"));
+      android.widget.TextView label=(android.widget.TextView)choices.getView(0,null,selector);
+      require(label.getCurrentTextColor()==UiConfig.INK,"selector ignored configured text color");
+      android.widget.EditText input=new android.widget.EditText(getTargetContext());AppStyle.nativeTextTree(input);
+      require(input.getCurrentTextColor()==UiConfig.INK,"input ignored configured text color");
+    }catch(Throwable error){failure.set(error);}});
+    if(failure.get()!=null)throw new AssertionError("Native text configuration",failure.get());
+  }
+
   private void fullscreenStartup() throws Exception {
     Activity activity=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
     waitForIdleSync();
@@ -353,12 +392,14 @@ public final class BackupInstrumentation extends Instrumentation {
       require(detector.arrival()==5000,"lost earlier stationary observations");
       Location resumed=new Location("test");resumed.setTime(3600000);resumed.setLatitude(20);resumed.setLongitude(77);resumed.setAccuracy(8);resumed.setSpeed(0);
       db.record(trip,resumed,detector);
-      require(db.stopById(stop).arrival()==5000 && db.stopById(stop).departure()==0,"stop did not resume");
+      require(db.stopById(stop).departure()!=0,"repaired before stable return");
+      for(int n=1;n<=2;n++){resumed.setTime(3600000+n*5000);db.record(trip,resumed,detector);}
+      require(db.stopById(stop).arrival()==5000&&db.stopById(stop).departure()==0,"stable return did not restore original stop");
       require(db.stops(-1).size()==1,"restart duplicated stop");
-      resumed.setTime(3605000);resumed.setLatitude(20.01);resumed.setSpeed(5);db.record(trip,resumed,detector);
-      require(db.stopById(stop).departure()==3600000,"departure not preserved");
+      for(int n=0;n<=4;n++){resumed.setTime(3615000+n*5000);resumed.setLatitude(20.001+n*.0002);resumed.setSpeed(5);db.record(trip,resumed,detector);}
+      require(db.stopById(stop).departure()==3610000,"departure not preserved");
       StopDetector moved=new StopDetector();db.restoreDetector(trip,moved);require(!moved.isStopped(),"resurrected departed stop");
-      require(db.fixes(-1).size()==28,"recovery changed GPS rows");
+      require(db.fixes(-1).size()==34,"recovery changed GPS rows");
     }
   }
 

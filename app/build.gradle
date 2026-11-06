@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 11; versionName '0.3.1'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 12; versionName '0.3.2'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
@@ -29,7 +29,7 @@ def generateUiTheme = tasks.register('generateUiTheme') {
             match.group(1)
         }
         def values = new StringBuilder('<resources>\n')
-        ['BLUE','PURPLE','ACCENT_TEXT','SECONDARY','BACKGROUND','BUTTON','BUTTON_TEXT'].each { name ->
+        ['BLUE','PURPLE','ACCENT_TEXT','SECONDARY','BACKGROUND','BUTTON','BUTTON_TEXT','INK','MUTED'].each { name ->
             values.append("<color name=\"ui_${name.toLowerCase()}\">#${literal(name).substring(2)}</color>\n")
         }
         ['BODY_FONT','BUTTON_FONT'].each { name ->

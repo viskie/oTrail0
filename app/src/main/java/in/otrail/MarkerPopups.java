@@ -11,5 +11,7 @@ final class MarkerPopups {
   static void openOnly(MapView map, Marker marker) {
     InfoWindow.closeAllInfoWindowsOn(map);
     marker.showInfoWindow();
+    if(marker.getInfoWindow()!=null&&marker.getInfoWindow().getView()!=null)
+      AppStyle.nativeTextTree(marker.getInfoWindow().getView());
   }
 }

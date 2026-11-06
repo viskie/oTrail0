@@ -191,35 +191,33 @@ public final class TrailDb implements AutoCloseable {
   }
 
   public synchronized void restoreDetector(long trip, StopDetector detector) {
-    Fix last = latestFix();
-    if (last == null || last.accuracy() > 50 || last.speed() > 1.5f) return;
-    long stationarySince = last.time();
-    // Walk actual observations backwards, across collector sessions and restored trips.
-    // An observed departure is a hard boundary; an unobserved gap is not a new arrival.
-    try (Cursor fixes = getReadableDatabase().rawQuery(
-        "SELECT time_ms,latitude,longitude,accuracy_m,speed_mps FROM fixes ORDER BY time_ms DESC,id DESC", null)) {
-      while (fixes.moveToNext()) {
-        if (fixes.getFloat(3) > 50) continue;
-        if (fixes.getFloat(4) > 1.5f || StopDetector.distance(last.lat(), last.lon(), fixes.getDouble(1), fixes.getDouble(2)) > StopDetector.RADIUS_METERS + 2 * Math.max(last.accuracy(), fixes.getFloat(3))) break;
-        stationarySince = fixes.getLong(0);
-      }
-    }
-    try (Cursor c = getReadableDatabase().rawQuery(
-        "SELECT id,arrival_ms,observed_ms,latitude,longitude FROM stops WHERE departure_ms IS NULL OR departure_ms=observed_ms ORDER BY observed_ms DESC LIMIT 1", null)) {
-      if (c.moveToFirst() && stationarySince <= c.getLong(2)
-          && StopDetector.distance(last.lat(), last.lon(), c.getDouble(3), c.getDouble(4)) <= StopDetector.RADIUS_METERS + 2 * last.accuracy()) {
-        long arrival = Math.min(c.getLong(1), stationarySince);
-        detector.restore(arrival, last.time(), last.lat(), last.lon(), true);
-        detector.persistedStopId = c.getLong(0);
-        if (arrival < c.getLong(1)) {
-          getWritableDatabase().execSQL("UPDATE stops SET arrival_ms=? WHERE id=?",new Object[]{arrival,c.getLong(0)});
-          log("Stop continuity", "RECOVERED", "Stop " + c.getLong(0) + " original arrival " + c.getLong(1) + "; reconstructed stationary arrival " + arrival + "; GPS observations retained");
+    Fix latest=latestFix();detector.reset();
+    if(latest==null)return;
+    long since=latest.time()-6*60*60*1000L;
+    // Re-evaluate saved observations after a restart, including previously rejected GPS excursions.
+    try(Cursor c=getReadableDatabase().rawQuery(
+        "SELECT time_ms,latitude,longitude,accuracy_m,speed_mps FROM fixes WHERE time_ms>=? ORDER BY time_ms,id",new String[]{Long.toString(since)})) {
+      if(c.moveToFirst()) {
+        long first=c.getLong(0);
+        for(Stop stop:stops(-1))if(stop.arrival()<=first&&stop.observed()>=first
+            &&StopDetector.distance(stop.lat(),stop.lon(),c.getDouble(1),c.getDouble(2))<=RADIUS_FOR_RECOVERY) {
+          detector.restore(stop.arrival(),first-1,stop.lat(),stop.lon(),true);break;
         }
-        return;
+        do {detector.accept(c.getLong(0),c.getDouble(1),c.getDouble(2),c.getFloat(3),c.getFloat(4));}while(c.moveToNext());
       }
     }
-    if (last.trip() == trip) detector.restore(stationarySince, last.time(), last.lat(), last.lon(), false);
+    if(detector.isStopped()) {
+      long nearest=Long.MAX_VALUE;
+      for(Stop stop:stops(-1)) {
+        long delta=Math.abs(stop.arrival()-detector.arrival());
+        if(stop.arrival()<=detector.arrival()+120_000&&stop.observed()>=detector.arrival()
+            &&StopDetector.distance(stop.lat(),stop.lon(),detector.latitude(),detector.longitude())<=RADIUS_FOR_RECOVERY&&delta<nearest) {
+          detector.persistedStopId=stop.id();nearest=delta;
+        }
+      }
+    }
   }
+  private static final double RADIUS_FOR_RECOVERY=60;
 
   public synchronized long record(long trip, Location l, StopDetector detector) {
     long newStopId = -1;
@@ -248,24 +246,42 @@ public final class TrailDb implements AutoCloseable {
         d.execSQL(
             "UPDATE stops SET departure_ms=? WHERE id=? OR (trip_id=? AND departure_ms IS NULL)",
             new Object[] {e.departure(), detector.persistedStopId, trip});
-      if (e != null && e.opened()) {
+      if ((e != null && e.opened()) || (detector.isStopped() && detector.persistedStopId<0 && detector.stableSignal())) {
         ContentValues s = new ContentValues();
         s.put("trip_id", trip);
-        s.put("arrival_ms", e.arrival());
+        s.put("arrival_ms", detector.arrival());
         s.put("observed_ms", l.getTime());
-        s.put("latitude", e.lat());
-        s.put("longitude", e.lon());
+        s.put("latitude", detector.latitude());
+        s.put("longitude", detector.longitude());
         newStopId = d.insertOrThrow("stops", null, s);
         detector.persistedStopId = newStopId;
       }
-      if (detector.isStopped())
-        d.execSQL(
-            "UPDATE stops SET observed_ms=?,departure_ms=NULL WHERE id=? OR (trip_id=? AND departure_ms IS NULL)",
-            new Object[] {l.getTime(), detector.persistedStopId, trip});
+      if(detector.isStopped()&&detector.persistedStopId>0&&detector.stableSignal()) {
+        try(Cursor old=d.rawQuery("SELECT arrival_ms,departure_ms FROM stops WHERE id=?",new String[]{Long.toString(detector.persistedStopId)})) {
+          if(old.moveToFirst()&&(!old.isNull(1)||old.getLong(0)>detector.arrival()))
+            log("Stop continuity","RECOVERED","stop="+detector.persistedStopId+"; previous_arrival_ms="+old.getLong(0)+"; previous_departure_ms="+(old.isNull(1)?"null":old.getLong(1))+"; stable return confirms original arrival_ms="+detector.arrival()+"; raw GPS retained");
+        }
+        d.execSQL("UPDATE stops SET arrival_ms=MIN(arrival_ms,?),observed_ms=?,departure_ms=NULL WHERE id=?",
+            new Object[]{detector.arrival(),detector.observationTime(),detector.persistedStopId});
+        // Older collectors may have opened a second row during the same uncertain dwell.
+        // Retain its ID/content; only the recovered canonical stop remains open.
+        try(Cursor other=d.rawQuery("SELECT id,latitude,longitude,observed_ms FROM stops WHERE departure_ms IS NULL AND id!=? AND arrival_ms>=?",
+            new String[]{Long.toString(detector.persistedStopId),Long.toString(detector.arrival())})) {
+          while(other.moveToNext())if(StopDetector.distance(detector.latitude(),detector.longitude(),other.getDouble(1),other.getDouble(2))<=RADIUS_FOR_RECOVERY) {
+            d.execSQL("UPDATE stops SET departure_ms=observed_ms WHERE id=?",new Object[]{other.getLong(0)});
+            log("Stop continuity","SUPERSEDED","stop="+other.getLong(0)+"; retained record and observed_ms="+other.getLong(3)+"; continuing canonical stop="+detector.persistedStopId);
+          }
+        }
+      }
       d.setTransactionSuccessful();
     } finally {
       d.endTransaction();
     }
+    context.getSharedPreferences("tracking_signal",0).edit()
+        .putBoolean("uncertain",detector.isUncertain()).putLong("fix_ms",l.getTime())
+        .putLong("last_reliable_ms",detector.observationTime())
+        .putLong("stop_arrival_ms",detector.isStopped()?detector.arrival():0)
+        .putLong("stop_id",detector.persistedStopId).apply();
     return newStopId;
   }
 

@@ -109,7 +109,7 @@ public final class TrackingService extends Service implements LocationListener {
     }
     long newStopId = db.record(trip, l, detector);
     try {
-      NavigationManager.get(this).update(l);
+      if(!detector.isUncertain())NavigationManager.get(this).update(l);
     } catch (RuntimeException e) {
       db.log("Navigation", "ERROR", e.toString());
     }

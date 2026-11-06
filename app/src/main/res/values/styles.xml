@@ -4,8 +4,10 @@
         <item name="android:colorAccent">@color/ui_blue</item>
         <item name="android:colorControlActivated">@color/ui_purple</item>
         <item name="android:colorControlHighlight">#55E3FF00</item>
-        <item name="android:textColorPrimary">@color/ui_accent_text</item>
-        <item name="android:textColorSecondary">@color/ui_secondary</item>
+        <item name="android:textColorPrimary">@color/ui_ink</item>
+        <item name="android:textColorSecondary">@color/ui_muted</item>
+        <item name="android:textColor">@color/ui_ink</item>
+        <item name="android:textColorHint">@color/ui_muted</item>
         <item name="android:colorBackground">@color/ui_background</item>
         <item name="android:windowBackground">@color/ui_background</item>
         <item name="android:windowLightStatusBar">true</item>
