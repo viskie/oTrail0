@@ -1,8 +1,8 @@
 {
-  "versionCode": 9,
-  "versionName": "0.2.7",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.2.7-debug.apk",
-  "sha256": "86417d25105d2a1bd0d8045447db7ee440ef3c23432c9c77505dd014ccd1f0d7",
-  "sizeBytes": 41797372,
-  "notes": "Fix confirmed map repository crash on screen changes. Independent stop detail dialogs and Stops list. Preserve confirmed stops through GPS boundary jitter. Tested full/individual history across OSM, Esri and India offline on POCO. Install over existing app; database schema and signing key retained."
+  "versionCode": 10,
+  "versionName": "0.3.0",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.0-debug.apk",
+  "sha256": "cc7804d5d67ecf5c8bd6bf0097c658d2f9d990e52a4d1acb9215466a5eb452f1",
+  "sizeBytes": 41894172,
+  "notes": "31 repeated-pass colors with green continuity reserved. Total/current-drive kilometres and historical stop leg distance/average speed. Cache-first tapped road references and same-road landmarks including places of worship. Existing source journal retained; new derived metrics table. Install over existing app. 45 JVM tests and lint pass; phone verification pending."
 }
