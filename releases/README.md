@@ -73,3 +73,7 @@ Fixes map repository destruction when switching/reparenting views, the confirmed
 ## 0.3.0 — 2026-11-06
 
 31 fixed repeated-pass trail colors with green reserved for inferred continuity; total/selected-trail/current-drive kilometres; historical per-stop leg distance and elapsed average speed; cache-first tapped road references/names and moving-mode roadside landmarks/places of worship from OpenStreetMap. Adds a derived metrics table without replacing source data. Signed in-place upgrade. 45 JVM tests and lint pass; app and instrumentation build. New device/online-source checks remain pending because no phone is connected. Details: docs/0.3.0-trail-metrics-road-context.md.
+
+## 0.3.1 — 2026-11-06
+
+Grey fullscreen UI, purple buttons with magenta text, floating Locate, improved overlapping trail colors. Editable UiConfig.java for fonts, sizes, colors and UI language/copy. Corrects oversized offline city labels. 47 JVM checks and lint pass; installed and checked on POCO. Existing recorded data retained. Source configuration/build instructions: docs/edit-ui-config.md. Native startup/dialog resources are generated from the same configuration. Same signing certificate; upgrade in place. No map datasets bundled.

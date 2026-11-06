@@ -1,8 +1,8 @@
 {
-  "versionCode": 10,
-  "versionName": "0.3.0",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.0-debug.apk",
-  "sha256": "cc7804d5d67ecf5c8bd6bf0097c658d2f9d990e52a4d1acb9215466a5eb452f1",
-  "sizeBytes": 41894172,
-  "notes": "31 repeated-pass colors with green continuity reserved. Total/current-drive kilometres and historical stop leg distance/average speed. Cache-first tapped road references and same-road landmarks including places of worship. Existing source journal retained; new derived metrics table. Install over existing app. 45 JVM tests and lint pass; phone verification pending."
+  "versionCode": 11,
+  "versionName": "0.3.1",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.1-debug.apk",
+  "sha256": "7442c613d3f8ea83affebd33d79b039844fd7114e72956ebccfe9de3bc959e7a",
+  "sizeBytes": 41920976,
+  "notes": "Grey fullscreen UI, purple buttons with magenta text, floating Locate, improved overlapping trail colors. Editable UiConfig.java for fonts, sizes, colors and UI language/copy. Corrects oversized offline city labels. 47 JVM checks and lint pass; installed and checked on POCO. Existing recorded data retained."
 }
