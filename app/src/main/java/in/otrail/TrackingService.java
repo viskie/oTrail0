@@ -55,6 +55,9 @@ public final class TrackingService extends Service implements LocationListener {
     if (trip == -1) {
       trip = db.begin();
       StopGeocoder.backfill(this);
+      backupWorker.scheduleWithFixedDelay(() -> {
+        try { db.driveMetrics(); } catch (Exception e) { db.log("Drive metrics", "ERROR", e.toString()); }
+      }, 10, 60, java.util.concurrent.TimeUnit.SECONDS);
       backupWorker.scheduleWithFixedDelay(
           () -> StopGeocoder.backfill(this), 1, 1, java.util.concurrent.TimeUnit.HOURS);
       backupWorker.scheduleWithFixedDelay(

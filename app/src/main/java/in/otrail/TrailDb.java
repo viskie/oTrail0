@@ -12,7 +12,7 @@ public final class TrailDb extends SQLiteOpenHelper {
   private final Context context;
 
   public TrailDb(Context c) {
-    super(c, "trails.db", null, 2);
+    super(c, "trails.db", null, 3);
     context = c.getApplicationContext();
     setWriteAheadLoggingEnabled(true);
   }
@@ -45,6 +45,7 @@ public final class TrailDb extends SQLiteOpenHelper {
         "CREATE TABLE sync_logs(id INTEGER PRIMARY KEY, time_ms INTEGER NOT NULL, provider TEXT NOT"
             + " NULL, status TEXT NOT NULL, detail TEXT NOT NULL)");
     HistoricPlaces.createSchema(d);
+    createMetrics(d);
   }
 
   private static final String[] ADDRESS_FIELDS = {
@@ -86,6 +87,32 @@ public final class TrailDb extends SQLiteOpenHelper {
               + " stops; added address fields and display caches");
       d.insertOrThrow("sync_logs", null, audit);
     }
+    if (oldVersion < 3) createMetrics(d);
+  }
+
+  private static void createMetrics(SQLiteDatabase d) {
+    d.execSQL("CREATE TABLE IF NOT EXISTS stop_drive_metrics(stop_id INTEGER PRIMARY KEY REFERENCES stops(id) ON DELETE CASCADE,start_ms INTEGER NOT NULL,end_ms INTEGER NOT NULL,distance_m REAL NOT NULL,observed_ms INTEGER NOT NULL,missing_ms INTEGER NOT NULL,average_kmh REAL NOT NULL)");
+  }
+  private long metricsSignature=Long.MIN_VALUE;
+  private DriveMetrics.Result metricsCache;
+  public synchronized DriveMetrics.Result driveMetrics() {
+    Fix latest=latestFix();List<Stop> stops=stops(-1);
+    long signature=latest==null?0:latest.id();
+    for(Stop s:stops)signature=31*signature+Objects.hash(s.id(),s.arrival(),s.departure(),s.observed());
+    if(metricsCache!=null&&signature==metricsSignature)return metricsCache;
+    List<Fix> fixes=fixes(-1);
+    List<DriveMetrics.Point> points=new ArrayList<>();for(Fix f:fixes)points.add(new DriveMetrics.Point(f.time(),f.lat(),f.lon(),f.accuracy(),f.speed()));
+    List<DriveMetrics.Stop> dwell=new ArrayList<>();for(Stop s:stops)dwell.add(new DriveMetrics.Stop(s.id(),s.arrival(),s.departure(),s.observed()));
+    DriveMetrics.Result result=DriveMetrics.calculate(points,dwell);
+    SQLiteDatabase d=getWritableDatabase();d.beginTransaction();
+    try {
+      for(DriveMetrics.Leg leg:result.stops().values()) {
+        ContentValues v=new ContentValues();v.put("stop_id",leg.stopId());v.put("start_ms",leg.start());v.put("end_ms",leg.end());v.put("distance_m",leg.meters());v.put("observed_ms",leg.observedMs());v.put("missing_ms",leg.missingMs());v.put("average_kmh",leg.averageKmh());
+        d.insertWithOnConflict("stop_drive_metrics",null,v,SQLiteDatabase.CONFLICT_REPLACE);
+      }
+      d.setTransactionSuccessful();
+    }finally{d.endTransaction();}
+    metricsSignature=signature;metricsCache=result;return result;
   }
 
   private static long tableCount(SQLiteDatabase d, String table) {
@@ -468,6 +495,7 @@ public final class TrailDb extends SQLiteOpenHelper {
         first = false;
       }
     }
+    DriveMetrics.Result metrics=driveMetrics();
     for (long trip : trips())
       for (Stop s : stops(trip)) {
         JSONObject p =
@@ -479,6 +507,8 @@ public final class TrailDb extends SQLiteOpenHelper {
                 .put("departure_ms", s.departure() == 0 ? JSONObject.NULL : s.departure())
                 .put("observed_ms", s.observed())
                 .put("duration_ms", s.observed() - s.arrival());
+        DriveMetrics.Leg leg=metrics.stops().get(s.id());
+        if(leg!=null)p.put("drive_since_previous_stop_m",leg.meters()).put("drive_average_kmh",leg.averageKmh()).put("drive_start_ms",leg.start()).put("drive_missing_ms",leg.missingMs());
         p.put("place_name", jsonValue(s.placeName()))
             .put("locality", jsonValue(s.locality()))
             .put("district", jsonValue(s.district()))

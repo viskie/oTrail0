@@ -31,6 +31,7 @@ final class NavigationControls implements AutoCloseable {
   private final List<Overlay> overlays = new ArrayList<>();
   private DestinationSearch.Result pending;
   private boolean searching;
+  java.util.function.Consumer<GeoPoint> roadTap;
 
   NavigationControls(Activity a, Supplier<Location> origin, Runnable locate, Runnable changed) {
     activity = a;
@@ -264,7 +265,7 @@ final class NavigationControls implements AutoCloseable {
       route.getOutlinePaint().setStrokeWidth(dp(5));
       route.setOnClickListener(
           (line, view, event) -> {
-            turns();
+            if (roadTap != null) roadTap.accept(event); else turns();
             return true;
           });
       int index = map.getOverlays().size();

@@ -69,3 +69,7 @@ APK snapshots are committed here, not published as GitHub Releases. Debug signin
 ## 0.2.7 — 2026-11-05
 
 Fixes map repository destruction when switching/reparenting views, the confirmed cause of trail/navigation crashes in phone logs. Stop detail dialogs and a main-screen Stops list provide independent access to saved details. Confirmed stops tolerate GPS accuracy and require sustained departure evidence. Adds a private last-crash report with copy action. Database schema and signature retained. See docs/0.2.7-crash-stop-hotfix.md for device validation and backup notes.
+
+## 0.3.0 — 2026-11-06
+
+31 fixed repeated-pass trail colors with green reserved for inferred continuity; total/selected-trail/current-drive kilometres; historical per-stop leg distance and elapsed average speed; cache-first tapped road references/names and moving-mode roadside landmarks/places of worship from OpenStreetMap. Adds a derived metrics table without replacing source data. Signed in-place upgrade. 45 JVM tests and lint pass; app and instrumentation build. New device/online-source checks remain pending because no phone is connected. Details: docs/0.3.0-trail-metrics-road-context.md.

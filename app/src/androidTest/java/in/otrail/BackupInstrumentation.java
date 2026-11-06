@@ -52,7 +52,7 @@ public final class BackupInstrumentation extends Instrumentation {
           "non-destructive v1 migration",
           () -> {
             try (TrailDb db = new TrailDb(context)) {
-              require(db.getReadableDatabase().getVersion() == 2, "schema version");
+              require(db.getReadableDatabase().getVersion() == 3, "schema version");
               require(db.trips().equals(List.of(7L)), "trip ID changed");
               require(db.fixes(7).get(0).id() == 11, "fix ID changed");
               TrailDb.Stop s = db.stops(7).get(0);
@@ -223,6 +223,8 @@ public final class BackupInstrumentation extends Instrumentation {
       check("map reparent keeps repository and stop details", this::mapReparent);
       check("cached navigation preserves journal", this::navigationIntegrity);
       check("restart recovers earliest stationary arrival", this::stopContinuity);
+      check("v2 metrics migration preserves normalized journal", this::metricsMigration);
+      check("road cache survives reopen without network", this::roadCache);
       result.putString(
           "stream",
           "PASS: "
@@ -236,6 +238,29 @@ public final class BackupInstrumentation extends Instrumentation {
     } finally {
       context.deleteDatabase("trails.db");
     }
+  }
+
+  private void metricsMigration() throws Exception {
+    String before;
+    try(TrailDb db=new TrailDb(context)) {
+      StringWriter w=new StringWriter();db.writeBackup(w);before=w.toString();
+      db.getWritableDatabase().execSQL("DROP TABLE stop_drive_metrics");db.getWritableDatabase().setVersion(2);
+    }
+    try(TrailDb db=new TrailDb(context)) {
+      require(db.getWritableDatabase().getVersion()==3,"v2 migration missing");
+      DriveMetrics.Result metrics=db.driveMetrics();require(metrics.totalMeters()>=0,"invalid historical km");
+      try(Cursor c=db.getReadableDatabase().rawQuery("SELECT COUNT(*) FROM stop_drive_metrics",null)){c.moveToFirst();require(c.getInt(0)==db.stops(-1).size(),"stop metrics not backfilled");}
+      StringWriter w=new StringWriter();db.writeBackup(w);require(before.equals(w.toString()),"metrics changed normalized source journal");
+    }
+  }
+  private void roadCache() throws Exception {
+    context.deleteDatabase("road-cache.db");
+    JSONObject road=new JSONObject().put("type","way").put("id",123)
+      .put("tags",new JSONObject().put("highway","primary").put("ref","NH-09"))
+      .put("geometry",new JSONArray().put(new JSONObject().put("lat",20).put("lon",77)).put(new JSONObject().put("lat",20).put("lon",77.02)));
+    try(RoadContext cache=new RoadContext(context)){cache.cache(20,77.01,new JSONObject().put("elements",new JSONArray().put(road)),System.currentTimeMillis());}
+    try(RoadContext cache=new RoadContext(context)){require("NH-09".equals(cache.cached(20,77.01,Double.NaN).road()),"cached road lost across reopen");}
+    context.deleteDatabase("road-cache.db");
   }
 
   private void stopContinuity() throws Exception {

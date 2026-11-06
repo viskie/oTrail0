@@ -44,6 +44,9 @@ public final class MainActivity extends Activity {
   private final ExecutorService io = Executors.newSingleThreadExecutor();
   private final ExecutorService heritageIo = Executors.newSingleThreadExecutor();
   private RoutingControls routingControls;
+  private RoadControls roadControls;
+  private TextView roadInfo;
+  private DriveMetrics.Result driveMetrics;
   private final ArrayList<Runnable> cardUpdates = new ArrayList<>();
   private boolean downloads, history, offlineOnly, follow = true, busy;
   private long selectedTrip = -1, lastFixId = -1;
@@ -76,9 +79,11 @@ public final class MainActivity extends Activity {
   public void onCreate(Bundle b) {
     super.onCreate(b);
     db = new TrailDb(this);
+    roadControls = new RoadControls(this);
     packs = new MapPacks(this, db);
     navigation =
         new NavigationControls(this, this::navigationOrigin, this::locate, this::navigationChanged);
+    navigation.roadTap = point -> roadControls.tapped(point.getLatitude(), point.getLongitude(), offlineOnly);
     updates = new UpdateControls(this);
     AppUpdater.schedule(this);
     io.execute(
@@ -198,9 +203,12 @@ public final class MainActivity extends Activity {
     network.setChecked(offlineOnly);
     tools.addView(network);
     body.addView(tools);
+    roadInfo = text("Road landmarks · cache first", 12, MUTED);
+    body.addView(roadInfo);
     body.addView(navigation.panel());
     map = new MapView(this);
     map.setDestroyMode(false); // Lifecycle is owned here; avoid a second teardown on window detach.
+    roadControls.attach(roadInfo, map);
     map.setMultiTouchControls(true);
     map.setOnTouchListener(
         (v, event) -> {
@@ -242,6 +250,7 @@ public final class MainActivity extends Activity {
                   public boolean singleTapConfirmedHelper(GeoPoint p) {
                     org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
                     openMarkerKey = null;
+                    roadControls.tapped(p.getLatitude(), p.getLongitude(), offlineOnly);
                     return false;
                   }
 
@@ -359,6 +368,17 @@ public final class MainActivity extends Activity {
             for (TrailDb.Fix f : fixes)
               samples.add(new TrailSegments.Sample(f.id(), f.trip(), f.time(), f.lat(), f.lon()));
             List<TrailSegments.Segment> segments = TrailSegments.build(samples, 6000);
+            List<TrailPalette.Stroke> colored = TrailPalette.build(segments);
+            DriveMetrics.Result metrics = db.driveMetrics();
+            double viewMeters = metrics.totalMeters();
+            if (trip >= 0) {
+              List<DriveMetrics.Point> viewPoints=new ArrayList<>();
+              for(TrailDb.Fix f:fixes)viewPoints.add(new DriveMetrics.Point(f.time(),f.lat(),f.lon(),f.accuracy(),f.speed()));
+              List<DriveMetrics.Stop> viewStops=new ArrayList<>();
+              for(TrailDb.Stop stop:stops)viewStops.add(new DriveMetrics.Stop(stop.id(),stop.arrival(),stop.departure(),stop.observed()));
+              viewMeters=DriveMetrics.calculate(viewPoints,viewStops).totalMeters();
+            }
+            final double trailMeters=viewMeters;
             long gapSignature = 1;
             for (TrailSegments.Segment edge : segments)
               if (edge.inferred())
@@ -384,7 +404,7 @@ public final class MainActivity extends Activity {
                   if (downloads || history != viewHistory || viewHistory && selectedTrip != chosen)
                     return;
                   if (map == null || isFinishing() || isDestroyed()) return;
-                  try { render(active, trip, fixes, stops, segments, places); }
+                  try { driveMetrics = metrics; render(active, trip, fixes, stops, segments, places, colored, trailMeters); }
                   catch (RuntimeException e) {
                     CrashReports.save(this, "Trail render · provider=" + provider + " history=" + history, e);
                     android.util.Log.e("oTraiL", "Trail render failed", e);
@@ -408,7 +428,9 @@ public final class MainActivity extends Activity {
       List<TrailDb.Fix> fixes,
       List<TrailDb.Stop> stops,
       List<TrailSegments.Segment> segments,
-      List<HistoricPlaces.Place> places) {
+      List<HistoricPlaces.Place> places,
+      List<TrailPalette.Stroke> colored,
+      double trailMeters) {
     historicPlaces = places;
     if (fixes.isEmpty()) {
       if (lastHeritageSignature != places.hashCode()) {
@@ -444,9 +466,12 @@ public final class MainActivity extends Activity {
                 : stopped
                     ? "Stopped · " + duration(current.observed() - current.arrival())
                     : last.speed() > 1.5 ? "On the move" : "Recording";
-    status.setText(state + String.format(Locale.US, "  ·  %.0f km/h", last.speed() * 3.6));
+    String drive = driveMetrics == null ? "" : String.format(Locale.US, " · drive %.2f km", driveMetrics.current().meters()/1000);
+    status.setText(state + String.format(Locale.US, "  ·  %.0f km/h", last.speed() * 3.6) + (!recorded && !stopped ? drive : ""));
+    roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !stopped && last.speed()>1.5, offlineOnly, history);
     stats.setText(
-        (trip < 0 ? "Full trail · " : "")
+        (driveMetrics == null ? "" : String.format(Locale.US, "Total %.2f km · ", driveMetrics.totalMeters()/1000))
+            + (trip < 0 ? "Full trail · " : String.format(Locale.US,"Trail %.2f km · ",trailMeters/1000))
             + clock(fixes.get(0).time())
             + " · "
             + fixes.size()
@@ -475,14 +500,14 @@ public final class MainActivity extends Activity {
                 (o instanceof Marker || o instanceof Polyline)
                     && (!(o instanceof Marker)
                         || ((Marker) o).getId() == null
-                        || !((Marker) o).getId().startsWith("navigation:"))
+                        || (!((Marker) o).getId().startsWith("navigation:") && !((Marker) o).getId().startsWith("roadpoi:")))
                     && (!(o instanceof Polyline)
                         || ((Polyline) o).getId() == null
                         || !((Polyline) o).getId().startsWith("navigation:")));
-    for (TrailSegments.Segment segment : segments) {
+    for (TrailPalette.Stroke stroke : colored) {
       ArrayList<GeoPoint> points = new ArrayList<>();
-      for (TrailSegments.Sample p : segment.points()) points.add(new GeoPoint(p.lat(), p.lon()));
-      line(points, segment.inferred() ? 0xff24b55a : recorded ? 0xff00adc5 : TEAL);
+      for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
+      line(points, stroke.color());
     }
     for (TrailDb.Stop s : stops) {
       Marker m = new Marker(map);
@@ -509,6 +534,7 @@ public final class MainActivity extends Activity {
           .append(duration(s.observed() - s.arrival()))
           .append(s.departure() == 0 ? "\nLast observation: " : "\nDeparted: ")
           .append(clock(s.departure() == 0 ? s.observed() : s.departure()));
+      details.append(driveDetails(s.id()));
       details.append(String.format(Locale.US, "\nGPS: %.6f, %.6f", s.lat(), s.lon()));
       if (!"RESOLVED".equals(s.geocodeStatus()))
         details
@@ -594,6 +620,10 @@ public final class MainActivity extends Activity {
     if (pts.size() < 2) return;
     Polyline p = new Polyline(map);
     p.setPoints(pts);
+    p.setOnClickListener((poly, view, point) -> {
+      roadControls.tapped(point.getLatitude(), point.getLongitude(), offlineOnly);
+      return true;
+    });
     p.getOutlinePaint().setColor(color);
     p.getOutlinePaint().setStrokeWidth(dp(4));
     map.getOverlays().add(p);
@@ -845,11 +875,17 @@ public final class MainActivity extends Activity {
     return new android.graphics.drawable.BitmapDrawable(getResources(), bitmap);
   }
 
+  private String driveDetails(long id) {
+    DriveMetrics.Leg leg=driveMetrics==null?null:driveMetrics.stops().get(id);
+    return leg==null?"":String.format(Locale.US,"\nSince previous stop: %.2f km\nAverage since departure: %.1f km/h%s",leg.meters()/1000,leg.averageKmh(),leg.missingMs()>60000?"\nGPS gaps present; recorded distance only":"");
+  }
+
   private void showStops() {
     final long chosen = history ? selectedTrip : -1;
     io.execute(() -> {
       try {
         List<TrailDb.Stop> stops = db.stops(chosen);
+        DriveMetrics.Result metrics = db.driveMetrics();
         Collections.reverse(stops);
         String[] labels = new String[stops.size()];
         for(int i=0;i<stops.size();i++) {
@@ -861,9 +897,11 @@ public final class MainActivity extends Activity {
           new AlertDialog.Builder(this).setTitle("Recorded stops · "+stops.size())
             .setItems(labels,(d,index)->{
               TrailDb.Stop s=stops.get(index);
+              driveMetrics = metrics;
               String details="Arrived: "+clock(s.arrival())+"\nObserved duration: "+duration(s.observed()-s.arrival())
                 +"\n"+(s.departure()==0?"Last observation: "+clock(s.observed()):"Departed: "+clock(s.departure()))
                 +"\n"+String.format(Locale.US,"GPS: %.6f, %.6f",s.lat(),s.lon());
+              details += driveDetails(s.id());
               for(String value:new String[]{s.locality(),s.road(),s.district(),s.state(),s.country(),s.postalCode()})
                 if(value!=null&&!value.isBlank())details+="\n"+value;
               new AlertDialog.Builder(this).setTitle(s.placeName()==null?"Stop #"+s.id():s.placeName()).setMessage(details).setPositiveButton("Close",null).show();
@@ -871,6 +909,13 @@ public final class MainActivity extends Activity {
         });
       }catch(Exception e){CrashReports.save(this,"Stop list",e);runOnUiThread(()->toast("Cannot read stop list: "+e.getMessage()));}
     });
+  }
+
+  private void showPalette() {
+    LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);
+    for(int i=0;i<TrailPalette.COLORS.length;i++){TextView t=text("━━ Pass "+(i+1),16,TrailPalette.COLORS[i]);rows.addView(t);}
+    rows.addView(text("━━ Estimated continuity",16,TrailPalette.CONTINUITY));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
+    new AlertDialog.Builder(this).setTitle("Repeated road passes · 31 colors").setView(scroll).setPositiveButton("Close",null).show();
   }
 
   private void history() {
@@ -997,6 +1042,7 @@ public final class MainActivity extends Activity {
     routingControls.addTo(downloadCards, cardUpdates);
     downloadCards.addView(button("App updates · daily / check now", () -> updates.show()));
     downloadCards.addView(button("Last app crash · view / copy", () -> CrashReports.show(this)));
+    downloadCards.addView(button("Trail palette · 31 pass colors", this::showPalette));
     downloadCards.addView(
         button(
             "Online routing server",
@@ -1445,6 +1491,7 @@ public final class MainActivity extends Activity {
     io.shutdown();
     heritageIo.shutdownNow();
     navigation.close();
+    roadControls.close();
     if (routingControls != null) routingControls.close();
     super.onDestroy();
   }
