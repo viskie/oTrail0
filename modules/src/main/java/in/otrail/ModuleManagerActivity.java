@@ -31,7 +31,7 @@ public final class ModuleManagerActivity extends Activity {
         LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);AppStyle.decoratePanel(card,UiConfig.CYAN);
         boolean active=store.active(r.id()).equals(r.version());
         card.addView(label(r.name()+" · "+r.version()+(active?" · ACTIVE":store.installed(r)?" · Installed":" · Available"),18));
-        card.addView(label(String.format(Locale.US,"%.2f MB · host ≥ %d · API %d\n%s",r.size()/1048576.0,r.minApp(),r.api(),r.notes()),12));
+        card.addView(label(String.format(Locale.US,"%.2f MB · host ≥ %d · Android API ≥ %d · module API %d\n%s",r.size()/1048576.0,r.minApp(),r.minSdk(),r.api(),r.notes()),12));
         if(!store.installed(r))card.addView(button("Download & install module",()->password(r)));
         else{
           card.addView(button(active?"Open module":"Activate this version",()->{if(active)open(r);else activate(r);}));

@@ -41,7 +41,7 @@ final class ModuleStore {
     for(int i=0;i<list.length();i++){
       JSONObject item=list.getJSONObject(i);
       if((selected.isEmpty()&&i==0)||selected.equals(item.getString("id"))){
-        if(item.getInt("api")!=1||AppUpdater.installed(context)<item.getInt("minApp"))throw new IOException("Toolchain requires a compatible host update");return item;
+        if(item.getInt("api")!=1||AppUpdater.installed(context)<item.getInt("minApp")||android.os.Build.VERSION.SDK_INT<item.optInt("minSdk",30))throw new IOException("Toolchain requires a compatible host update");return item;
       }
     }
     throw new IOException("Refresh and select a compatible toolchain first");
@@ -82,7 +82,7 @@ final class ModuleStore {
     }finally{c.disconnect();part.delete();}
   }
   private void checkCompatibility(SignedModuleCatalog.Release r) throws Exception {
-    if(r.api()!=ModuleV1.API_VERSION||AppUpdater.installed(context)<r.minApp())throw new IOException("This module requires a newer compatible oTraiL host");
+    if(r.api()!=ModuleV1.API_VERSION||AppUpdater.installed(context)<r.minApp()||android.os.Build.VERSION.SDK_INT<r.minSdk())throw new IOException("This module requires a newer compatible oTraiL host");
   }
   private void verify(SignedModuleCatalog.Release r,File file) throws Exception {
     if(file.length()!=r.size())throw new SecurityException("Module size mismatch");

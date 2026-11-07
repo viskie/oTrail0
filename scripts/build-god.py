@@ -62,6 +62,9 @@ def prepare():
  with zipfile.ZipFile(JAVA/'jmods/java.compiler.jmod') as source,zipfile.ZipFile(api,'w',zipfile.ZIP_DEFLATED) as out:
   for name in source.namelist():
    if name.startswith('classes/javax/') and name.endswith('.class'):out.writestr(name[len('classes/'):],source.read(name))
+ stubs=BUILD/'bootstrap-stubs';stubs.mkdir(exist_ok=True)
+ run([JAVA/'bin/javac','--patch-module','java.base='+str(ROOT/'modules/mod1/compiler-stubs'),'-source','17','-target','17','-d',stubs,*list((ROOT/'modules/mod1/compiler-stubs').rglob('*.java'))])
+ jar(BUILD/'compiler-stubs.jar',stubs)
  runtime=[]
  for line in (ROOT/'app/build/god-runtime-paths.txt').read_text().splitlines():
   path=pathlib.Path(line)
@@ -103,7 +106,7 @@ def prepare():
  zipfiles(BUILD/'publisher.jar',{p.name:p for p in publisher.glob('*.dex')})
  zipfiles(RELEASES/'god-compiler-1.0.0.zip',{'compiler.jar':BUILD/'compiler.jar',**{'LICENSES/'+p.name:p for p in licenses.iterdir()}})
  zipfiles(RELEASES/'god-publisher-1.0.0.zip',{'publisher.jar':BUILD/'publisher.jar',**{'LICENSES/'+p.name:p for p in licenses.iterdir()}})
- zipfiles(RELEASES/'god-dependencies-0.4.0.zip',{'classpath.jar':merged,'dependency-dex.zip':BUILD/'dependency-dex.zip',**{'LICENSES/'+p.name:p for p in licenses.iterdir()}})
+ zipfiles(RELEASES/'god-dependencies-0.4.0.zip',{'classpath.jar':merged,'compiler-stubs.jar':BUILD/'compiler-stubs.jar','dependency-dex.zip':BUILD/'dependency-dex.zip',**{'LICENSES/'+p.name:p for p in licenses.iterdir()}})
  # SDK stays at its official distribution URL, not bundled into the app or module.
  xml=ET.fromstring(urllib.request.urlopen('https://dl.google.com/android/repository/repository2-3.xml',timeout=60).read())
  archive=None
@@ -112,7 +115,7 @@ def prepare():
  if archive is None:raise RuntimeError('Android 37 SDK not found in Google catalog')
  url='https://dl.google.com/android/repository/'+archive.findtext('url');platform=download(url,BUILD/'google-platform.zip')
  with zipfile.ZipFile(platform) as z:entry=next(n for n in z.namelist() if n.endswith('/android.jar'))
- toolFiles={'compiler.jar':sha(BUILD/'compiler.jar'),'publisher.jar':sha(BUILD/'publisher.jar'),'android.jar':sha(SDK/'platforms/android-37.0/android.jar'),'classpath.jar':sha(merged),'dependency-dex.zip':sha(BUILD/'dependency-dex.zip')}
+ toolFiles={'compiler.jar':sha(BUILD/'compiler.jar'),'publisher.jar':sha(BUILD/'publisher.jar'),'android.jar':sha(SDK/'platforms/android-37.0/android.jar'),'classpath.jar':sha(merged),'compiler-stubs.jar':sha(BUILD/'compiler-stubs.jar'),'dependency-dex.zip':sha(BUILD/'dependency-dex.zip')}
  state={'toolFiles':toolFiles,'sdk':{'file':'google-platform-37.zip','url':url,'sha256':sha(platform),'sizeBytes':platform.stat().st_size,'extractFiles':{entry:'android.jar'}}}
  (BUILD/'prepared.json').write_text(json.dumps(state,indent=2));print('Tool packs prepared',flush=True)
 
@@ -144,9 +147,9 @@ def package():
  checks=state['toolFiles'];checks['template.apk']=sha(apk)
  request=urllib.request.Request('https://api.github.com/meta',headers={'User-Agent':'oTraiL-GOD-build'})
  hosts=json.load(urllib.request.urlopen(request,timeout=30))['ssh_keys']
- metadata=dict(id='god-java-0.4.0-v1',name='GOD in-app Java toolchain',version='1.0.0',api=1,minApp=23,sourceVersion='0.4.0',baselineSha256=baseline,signingCertificate='227e8f5912c78bab9cc3a016290aebf0b21b07aedaa520328cfea5ac0fcec051',sources=[dict(version='0.4.0',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts)
+ metadata=dict(id='god-java-0.4.0-v1',name='GOD in-app Java toolchain',version='1.0.0',api=1,minApp=23,minSdk=35,sourceVersion='0.4.0',baselineSha256=baseline,signingCertificate='227e8f5912c78bab9cc3a016290aebf0b21b07aedaa520328cfea5ac0fcec051',sources=[dict(version='0.4.0',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts)
  moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar'],[CLASSES])
- manifest=dict(id='mod1',name='GOD',version='1.0.0',api=1,minApp=23,entry='in.otrail.extensions.mod1.SourceStudio')
+ manifest=dict(id='mod1',name='GOD',version='1.0.0',api=1,minApp=23,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
  module=RELEASES/'GOD-1.0.0.oTrail0'
  with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')

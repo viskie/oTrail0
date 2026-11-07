@@ -9,7 +9,7 @@ import org.json.*;
 /** Signed catalog is the trust root for every downloadable executable version. */
 public final class SignedModuleCatalog {
   public static final String PREFIX="https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/";
-  public record Release(String id,String name,String version,int api,int minApp,String entry,String url,String sha256,long size,String notes,String installSalt,String installHash) {}
+  public record Release(String id,String name,String version,int api,int minApp,int minSdk,String entry,String url,String sha256,long size,String notes,String installSalt,String installHash) {}
   public static JSONObject verified(String envelope,String publicKey) throws Exception {
     if(envelope.length()>1_000_000)throw new SecurityException("Catalog too large");
     JSONObject signed=new JSONObject(envelope);
@@ -32,7 +32,7 @@ public final class SignedModuleCatalog {
           ||!url.startsWith(PREFIX)||url.contains("..")||!url.endsWith(".oTrail0")||uri.getQuery()!=null||uri.getFragment()!=null
           ||!sha.matches("[a-f0-9]{64}")||size<100||size>20_000_000||!entry.matches("in\\.otrail\\.extensions\\.[A-Za-z0-9_.]+"))throw new SecurityException("Invalid module version");
       if(Base64.getDecoder().decode(v.getString("installSalt")).length<16||Base64.getDecoder().decode(v.getString("installHash")).length!=32)throw new SecurityException("Invalid password verifier");
-      out.add(new Release(id,v.getString("name"),version,v.getInt("api"),v.getInt("minApp"),entry,url,sha,size,v.optString("notes",""),v.getString("installSalt"),v.getString("installHash")));
+      out.add(new Release(id,v.getString("name"),version,v.getInt("api"),v.getInt("minApp"),v.optInt("minSdk",30),entry,url,sha,size,v.optString("notes",""),v.getString("installSalt"),v.getString("installHash")));
     }
     return List.copyOf(out);
   }

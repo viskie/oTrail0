@@ -11,6 +11,14 @@ import java.util.zip.ZipFile;
 import org.json.*;
 
 final class StudioTasks {
+  static void merge(File source,File destination)throws IOException {
+    if(source.isDirectory()){
+      if(!destination.isDirectory()&&!destination.mkdirs())throw new IOException("Cannot create tool directory");
+      File[] children=source.listFiles();if(children==null)throw new IOException("Cannot read tool directory");
+      for(File child:children)merge(child,new File(destination,child.getName()));
+      if(!source.delete())throw new IOException("Cannot remove tool staging directory");
+    }else Files.move(source.toPath(),destination.toPath(),StandardCopyOption.REPLACE_EXISTING);
+  }
   static JSONObject metadata(File pkg)throws Exception{try(ZipFile zip=new ZipFile(pkg);InputStream in=zip.getInputStream(zip.getEntry("studio.json"))){return new JSONObject(new String(StudioFiles.read(in,100000),StandardCharsets.UTF_8));}}
   static File download(JSONObject spec,File target,ModuleV1.Progress progress,String phase,int base,int span)throws Exception{
     String url=spec.getString("url");long size=spec.getLong("sizeBytes");
@@ -45,7 +53,7 @@ final class StudioTasks {
               try(InputStream in=archive.getInputStream(archive.getEntry(entry));OutputStream out=new FileOutputStream(output)){byte[] b=new byte[32768];int n;long count=0;while((n=in.read(b))!=-1){if((count+=n)>100000000)throw new IOException("SDK file too large");out.write(b,0,n);}}
             }
           }
-        }else if(spec.optBoolean("archive")){File stage=new File(data,"tool-stage");StudioFiles.remove(stage);StudioFiles.unzip(zip,stage);File[] files=stage.listFiles();if(files!=null)for(File f:files){File dest=new File(target,f.getName());Files.move(f.toPath(),dest.toPath(),StandardCopyOption.REPLACE_EXISTING);}StudioFiles.remove(stage);}else Files.copy(zip.toPath(),new File(target,spec.getString("target")).toPath(),StandardCopyOption.REPLACE_EXISTING);
+        }else if(spec.optBoolean("archive")){File stage=new File(data,"tool-stage");StudioFiles.remove(stage);StudioFiles.unzip(zip,stage);File[] files=stage.listFiles();if(files!=null)for(File f:files){File dest=new File(target,f.getName());merge(f,dest);}StudioFiles.remove(stage);}else Files.copy(zip.toPath(),new File(target,spec.getString("target")).toPath(),StandardCopyOption.REPLACE_EXISTING);
       }
       JSONObject checks=meta.getJSONObject("toolFiles");for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(target,name)).equals(checks.getString(name)))throw new IOException("Tool verification failed: "+name);}
       StudioFiles.write(new File(target,"ready.json"),checks.toString().getBytes(StandardCharsets.UTF_8));progress.update("Tools ready",100,"Compiler, SDK classpath, dependency DEX and APK template verified. Compilation is entirely offline.");

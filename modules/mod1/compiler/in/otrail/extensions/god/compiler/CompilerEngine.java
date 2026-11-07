@@ -43,15 +43,29 @@ public final class CompilerEngine implements CompilerV1 {
     check(progress);File work=new File(data,"compile-work");remove(work);work.mkdirs();File classes=new File(work,"classes");classes.mkdirs();
     List<File> sources=new ArrayList<>();JSONArray roots=baseline.getJSONArray("sourceRoots");for(int i=0;i<roots.length();i++)walk(new File(workspace,roots.getString(i)),sources,".java");
     if(sources.isEmpty())throw new IOException("No Java source files found");
-    List<String> args=new ArrayList<>(Arrays.asList("-source","17","-target","17","-proc:none","-encoding","UTF-8","-g","-nowarn","-bootclasspath",new File(tools,"android.jar").getPath(),"-classpath",new File(tools,"classpath.jar").getPath(),"-d",classes.getPath()));for(File f:sources)args.add(f.getPath());
-    progress.update("Compile Java",15,log.toString()+sources.size()+" source files\n");StringWriter diagnostics=new StringWriter();
-    boolean success=BatchCompiler.compile(args.toArray(new String[0]),new PrintWriter(diagnostics),new PrintWriter(diagnostics),new CompilationProgress(){
+    progress.update("Compile Java",15,log.toString()+sources.size()+" source files\n");
+    org.eclipse.jdt.internal.compiler.env.ICompilationUnit[] units=new org.eclipse.jdt.internal.compiler.env.ICompilationUnit[sources.size()];String[] filenames=new String[sources.size()];
+    for(int i=0;i<sources.size();i++){File file=sources.get(i);filenames[i]=file.getPath();units[i]=new org.eclipse.jdt.internal.compiler.batch.CompilationUnit(new String(bytes(file),StandardCharsets.UTF_8).toCharArray(),file.getPath(),"UTF-8");}
+    org.eclipse.jdt.internal.compiler.batch.FileSystem environment=new org.eclipse.jdt.internal.compiler.batch.FileSystem(new String[]{new File(tools,"android.jar").getPath(),new File(tools,"classpath.jar").getPath(),new File(tools,"compiler-stubs.jar").getPath()},filenames,"UTF-8");
+    Map<String,String> options=new HashMap<>();
+    options.put(org.eclipse.jdt.internal.compiler.impl.CompilerOptions.OPTION_Source,"17");options.put(org.eclipse.jdt.internal.compiler.impl.CompilerOptions.OPTION_Compliance,"17");options.put(org.eclipse.jdt.internal.compiler.impl.CompilerOptions.OPTION_TargetPlatform,"17");
+    options.put(org.eclipse.jdt.internal.compiler.impl.CompilerOptions.OPTION_Process_Annotations,org.eclipse.jdt.internal.compiler.impl.CompilerOptions.DISABLED);
+    options.put(org.eclipse.jdt.internal.compiler.impl.CompilerOptions.OPTION_LineNumberAttribute,org.eclipse.jdt.internal.compiler.impl.CompilerOptions.GENERATE);
+    options.put(org.eclipse.jdt.internal.compiler.impl.CompilerOptions.OPTION_SourceFileAttribute,org.eclipse.jdt.internal.compiler.impl.CompilerOptions.GENERATE);
+    final boolean[] failed={false};final IOException[] outputError={null};
+    org.eclipse.jdt.internal.compiler.ICompilerRequestor requestor=result->{
+      if(result.hasErrors()){failed[0]=true;for(org.eclipse.jdt.core.compiler.CategorizedProblem problem:result.getProblems())if(problem.isError())log.append(new String(problem.getOriginatingFileName())).append(':').append(problem.getSourceLineNumber()).append(": ").append(problem.getMessage()).append('\n');}
+      else for(org.eclipse.jdt.internal.compiler.ClassFile file:result.getClassFiles())try{File target=new File(classes,new String(file.fileName())+".class");target.getParentFile().mkdirs();try(OutputStream out=new FileOutputStream(target)){out.write(file.getBytes());}}catch(IOException error){outputError[0]=error;}
+    };
+    org.eclipse.jdt.internal.compiler.Compiler compiler=new org.eclipse.jdt.internal.compiler.Compiler(environment,org.eclipse.jdt.internal.compiler.DefaultErrorHandlingPolicies.proceedWithAllProblems(),new org.eclipse.jdt.internal.compiler.impl.CompilerOptions(options),requestor,new org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory(Locale.US),new PrintWriter(new StringWriter()),new CompilationProgress(){
       public void begin(int total){}public void done(){}public boolean isCanceled(){return progress.cancelled();}public void setTaskName(String task){}public void worked(int amount,int remaining){}
-    });log.append(diagnostics);if(!success)throw new IOException(log.toString());
+    });
+    try{compiler.compile(units);}finally{environment.cleanup();}
+    if(outputError[0]!=null)throw outputError[0];if(failed[0])throw new IOException(log.toString());
     check(progress);File jar=new File(work,"app-classes.jar");List<File> classFiles=new ArrayList<>();walk(classes,classFiles,".class");
     try(JarOutputStream out=new JarOutputStream(new FileOutputStream(jar))){for(File f:classFiles){out.putNextEntry(new JarEntry(classes.toURI().relativize(f.toURI()).getPath()));try(InputStream in=new FileInputStream(f)){copy(in,out);}out.closeEntry();}}
     File dex=new File(work,"dex");dex.mkdirs();progress.update("Build Android DEX",50,log.toString());
-    D8.run(D8Command.builder().setMode(CompilationMode.DEBUG).setMinApiLevel(30).addLibraryFiles(new File(tools,"android.jar").toPath()).addProgramFiles(jar.toPath(),new File(tools,"dependency-dex.zip").toPath()).setOutput(dex.toPath(),OutputMode.DexIndexed).build());
+    D8.run(D8Command.builder().setMode(CompilationMode.DEBUG).setMinApiLevel(30).addLibraryFiles(new File(tools,"android.jar").toPath(),new File(tools,"compiler-stubs.jar").toPath()).addProgramFiles(jar.toPath(),new File(tools,"dependency-dex.zip").toPath()).setOutput(dex.toPath(),OutputMode.DexIndexed).build());
     check(progress);progress.update("Package aligned APK",75,log.toString());File unsigned=new File(work,"unsigned.apk");
     try(ZipFile template=new ZipFile(new File(tools,"template.apk"));CountingStream count=new CountingStream(new FileOutputStream(unsigned));ZipOutputStream out=new ZipOutputStream(count)){
       Enumeration<? extends ZipEntry> entries=template.entries();while(entries.hasMoreElements()){

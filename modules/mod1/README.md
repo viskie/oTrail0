@@ -4,7 +4,7 @@ All screens and work execute inside oTraiL. No Termux, external application, she
 
 ## Use
 
-1. Update oTraiL to 0.4.0 or later. Android still requires confirmation to install the main APK update.
+1. On Android 15 or later, update oTraiL to 0.4.0 or later. Android still requires confirmation to install the main APK update.
 2. Settings → Extension modules → Refresh versions → GOD → Download & install. Enter the installation password supplied by the owner, then Activate.
 3. Tools → Refresh / choose toolchain. Review licenses and download the compatible toolchain. Downloads show sizes/progress and support Wi-Fi/cellular.
 4. Project → Download source → Browse files. The editor has file tabs, undo/redo, search, keyword highlighting, save/save-all and recoverable drafts.

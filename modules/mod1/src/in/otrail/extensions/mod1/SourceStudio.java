@@ -99,6 +99,7 @@ public final class SourceStudio implements ModuleV1 {
     panel.addView(button("Generate GitHub SSH key",()->work(()->{GitKeys.generate(host.privateDirectory());ui(()->status.setText("Phone-specific SSH key ready; private key stays in Android Keystore"));})));
     panel.addView(button("Download SSH public key",()->work(()->{exportFile=GitKeys.generate(host.privateDirectory());exportMime="text/plain";ui(()->activity.startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType(exportMime).putExtra(Intent.EXTRA_TITLE,"GOD-github.pub"),EXPORT));})));
     panel.addView(button("Configure GitHub / test uploaded key",this::githubConfig));
+    try{JSONObject github=StudioFiles.json(new File(host.privateDirectory(),"github.json"));panel.addView(label("GitHub: "+github.optString("repository")+" · "+(github.optBoolean("verified")?"Key checked":"Not checked"),12));}catch(Exception ignored){}
     panel.addView(label("Add the exported public key to your GitHub account or repository deploy keys (enable write access for publishing). Then configure and test here. Publishing commits named APKs under releases/; no GitHub Releases workflow. Initial Git synchronization can be large because this repository contains historical APK files.",12));
     panel.addView(label("Workspace: "+state.optString("project","not selected")+"\nFree: "+String.format(Locale.US,"%.2f GB",host.privateDirectory().getUsableSpace()/1073741824.0)+"\nTools downloaded: "+state.optBoolean("toolsReady")+" · APK signing key: "+state.optBoolean("signingConfigured"),12));
   }
