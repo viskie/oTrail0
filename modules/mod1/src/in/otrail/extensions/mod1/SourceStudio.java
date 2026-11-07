@@ -31,6 +31,7 @@ public final class SourceStudio implements ModuleV1 {
   private final ExecutorService io=Executors.newSingleThreadExecutor();private final Handler handler=new Handler(Looper.getMainLooper());
   private final LinkedHashMap<String,Buffer> buffers=new LinkedHashMap<>();
   private String current="",draftProject="",tab="Project";private JSONObject metadata,state=new JSONObject();
+  private final Runnable draftSave=()->saveDrafts();
   private boolean running,closed,polling,suppress;private File exportFile;private String exportMime;
   private static final int EXPORT=710,KEYSTORE=711;
   private static final int BG=0xff10101b,TEXT=0xff40e0d0;
@@ -148,7 +149,7 @@ public final class SourceStudio implements ModuleV1 {
     Buffer b=buffers.get(current);editor.setText(b==null?"":b.text);editor.setEnabled(b!=null);content.addView(editor,new LinearLayout.LayoutParams(-1,0,1));highlight();
     editor.addTextChangedListener(new SimpleWatcher(){
       public void beforeTextChanged(CharSequence s,int start,int count,int after){Buffer buffer=buffers.get(current);if(buffer==null||suppress)return;long now=System.currentTimeMillis();if(now-buffer.undoTime>700){buffer.undo.push(s.toString());while(buffer.undo.size()>20)buffer.undo.removeLast();buffer.undoTime=now;}buffer.redo.clear();}
-      public void afterTextChanged(Editable text){Buffer buffer=buffers.get(current);if(buffer==null)return;buffer.text=text.toString();if(buffer.button!=null)buffer.button.setText(shortName(current)+(buffer.dirty()?" *":""));highlight();}
+      public void afterTextChanged(Editable text){Buffer buffer=buffers.get(current);if(buffer==null)return;buffer.text=text.toString();if(buffer.button!=null)buffer.button.setText(shortName(current)+(buffer.dirty()?" *":""));highlight();handler.removeCallbacks(draftSave);handler.postDelayed(draftSave,300);}
     });
   }
   private String shortName(String path){return path.substring(path.lastIndexOf('/')+1);}
@@ -165,7 +166,7 @@ public final class SourceStudio implements ModuleV1 {
   private void saveAllNetwork()throws Exception{List<String> paths;synchronized(buffers){paths=new ArrayList<>(buffers.keySet());}for(String path:paths)saveOne(path);}
   private void openError(){String output=state.optString("log");Matcher m=Pattern.compile("([^\\s:]+\\.java):(\\d+):").matcher(output);if(m.find()){String path=m.group(1);int index=path.indexOf("/app/");if(index>=0)path=path.substring(index+1);else{index=path.indexOf("/modules/");if(index>=0)path=path.substring(index+1);}openFile(path);}else status.setText("No Java error location in current log");}
   private void saveDrafts(){if(host==null)return;try{JSONObject root=new JSONObject();JSONArray files=new JSONArray();synchronized(buffers){for(Map.Entry<String,Buffer> e:buffers.entrySet())files.put(obj("path",e.getKey(),"text",e.getValue().text,"saved",e.getValue().saved));}root.put("files",files).put("current",current).put("project",draftProject);android.util.AtomicFile atomic=new android.util.AtomicFile(new File(host.privateDirectory(),"drafts.json"));FileOutputStream out=atomic.startWrite();try{out.write(root.toString().getBytes(StandardCharsets.UTF_8));atomic.finishWrite(out);}catch(Exception e){atomic.failWrite(out);throw e;}}catch(Exception e){error(e);}}
-  private void restoreDrafts(){try{File file=new File(host.privateDirectory(),"drafts.json");if(!file.isFile())return;JSONObject data;try(InputStream in=new FileInputStream(file)){data=new JSONObject(new String(read(in,10000000),StandardCharsets.UTF_8));}JSONArray files=data.getJSONArray("files");for(int i=0;i<files.length();i++){JSONObject f=files.getJSONObject(i);Buffer b=new Buffer();b.text=f.getString("text");b.saved=f.getString("saved");buffers.put(f.getString("path"),b);}current=data.optString("current","");draftProject=data.optString("project","");}catch(Exception e){error(e);}}
+  private void restoreDrafts()throws Exception{File file=new File(host.privateDirectory(),"drafts.json");if(!file.isFile()&&!new File(file.getPath()+".bak").isFile())return;JSONObject data;try(InputStream in=new android.util.AtomicFile(file).openRead()){data=new JSONObject(new String(read(in,64000000),StandardCharsets.UTF_8));}JSONArray files=data.getJSONArray("files");for(int i=0;i<files.length();i++){JSONObject f=files.getJSONObject(i);Buffer b=new Buffer();b.text=f.getString("text");b.saved=f.getString("saved");buffers.put(f.getString("path"),b);}current=data.optString("current","");draftProject=data.optString("project","");}
   private JSONObject call(JSONObject request)throws Exception{
     String action=request.getString("action");File data=host.privateDirectory();
     if(action.equals("status")){
@@ -210,7 +211,7 @@ public final class SourceStudio implements ModuleV1 {
   }
   private byte[] read(InputStream in,int limit)throws IOException{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[16384];int n;while((n=in.read(b))!=-1){if(out.size()+n>limit)throw new IOException("File too large");out.write(b,0,n);}return out.toByteArray();}
   @Override public void resume(){running=true;handler.removeCallbacks(poll);handler.post(poll);}
-  @Override public void pause(){running=false;handler.removeCallbacks(poll);saveDrafts();}
+  @Override public void pause(){running=false;handler.removeCallbacks(poll);handler.removeCallbacks(draftSave);saveDrafts();}
   @Override public void close(){pause();closed=true;io.shutdownNow();}
   private static class SimpleWatcher implements TextWatcher{public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int before,int count){}public void afterTextChanged(Editable e){}}
 }
