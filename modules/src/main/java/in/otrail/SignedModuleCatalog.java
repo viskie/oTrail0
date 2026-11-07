@@ -31,8 +31,8 @@ public final class SignedModuleCatalog {
       if(!id.matches("[a-z][a-z0-9-]{0,63}")||!version.matches("[0-9]+\\.[0-9]+\\.[0-9]+")||!seen.add(id+"/"+version)
           ||!url.startsWith(PREFIX)||url.contains("..")||!url.endsWith(".oTrail0")||uri.getQuery()!=null||uri.getFragment()!=null
           ||!sha.matches("[a-f0-9]{64}")||size<100||size>20_000_000||!entry.matches("in\\.otrail\\.extensions\\.[A-Za-z0-9_.]+"))throw new SecurityException("Invalid module version");
-      if(Base64.getDecoder().decode(v.getString("installSalt")).length<16||Base64.getDecoder().decode(v.getString("installHash")).length!=32)throw new SecurityException("Invalid password verifier");
-      out.add(new Release(id,v.getString("name"),version,v.getInt("api"),v.getInt("minApp"),v.optInt("minSdk",30),entry,url,sha,size,v.optString("notes",""),v.getString("installSalt"),v.getString("installHash")));
+      if(v.has("installHash")&&(Base64.getDecoder().decode(v.getString("installSalt")).length<16||Base64.getDecoder().decode(v.getString("installHash")).length!=32))throw new SecurityException("Invalid password verifier");
+      out.add(new Release(id,v.getString("name"),version,v.getInt("api"),v.getInt("minApp"),v.optInt("minSdk",30),entry,url,sha,size,v.optString("notes",""),v.optString("installSalt",""),v.optString("installHash","")));
     }
     return List.copyOf(out);
   }

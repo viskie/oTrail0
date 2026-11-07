@@ -52,7 +52,7 @@ public final class BackupInstrumentation extends Instrumentation {
           "non-destructive v1 migration",
           () -> {
             try (TrailDb db = new TrailDb(context)) {
-              require(db.getReadableDatabase().getVersion() == 3, "schema version");
+              require(db.getReadableDatabase().getVersion() == 4, "schema version");
               require(db.trips().equals(List.of(7L)), "trip ID changed");
               require(db.fixes(7).get(0).id() == 11, "fix ID changed");
               TrailDb.Stop s = db.stops(7).get(0);
@@ -355,7 +355,7 @@ public final class BackupInstrumentation extends Instrumentation {
       db.getWritableDatabase().execSQL("DROP TABLE stop_drive_metrics");db.getWritableDatabase().setVersion(2);
     }
     try(TrailDb db=new TrailDb(context)) {
-      require(db.getWritableDatabase().getVersion()==3,"v2 migration missing");
+      require(db.getWritableDatabase().getVersion()==4,"v2 migration missing");
       DriveMetrics.Result metrics=db.driveMetrics();require(metrics.totalMeters()>=0,"invalid historical km");
       try(Cursor c=db.getReadableDatabase().rawQuery("SELECT COUNT(*) FROM stop_drive_metrics",null)){c.moveToFirst();require(c.getInt(0)==db.stops(-1).size(),"stop metrics not backfilled");}
       StringWriter w=new StringWriter();db.writeBackup(w);

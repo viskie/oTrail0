@@ -23,6 +23,11 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
     CrashReports.save(this,"Downloaded module",e);Toast.makeText(this,"Module stopped: "+e.getMessage(),Toast.LENGTH_LONG).show();
     if(release!=null){try{store.rollback(release.id());}catch(Exception ignored){store.deactivate(release.id());}}finish();
   }
+  private void photoAccess(){if(release==null||!release.id().equals("mod2"))throw new SecurityException("CAM photo capability required");}
+  @Override public String photoContext(long time)throws Exception{photoAccess();try(TrailDb db=new TrailDb(this)){return PhotoIndex.context(db,time).toString();}}
+  @Override public void savePhoto(String json)throws Exception{photoAccess();try(TrailDb db=new TrailDb(this)){PhotoIndex.save(db,json);}}
+  @Override public String photos(long stop)throws Exception{photoAccess();try(TrailDb db=new TrailDb(this)){return PhotoIndex.list(db,stop);}}
+  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){super.onRequestPermissionsResult(request,permissions,grants);if(module!=null)try{module.permissionResult(request,permissions,grants);}catch(RuntimeException e){failed(e);}}
   @Override public File packageFile(){return store.file(release);}
   @Override public File privateDirectory(){File f=new File(getFilesDir(),"modules/data/"+release.id());f.mkdirs();return f;}
   @Override public String taskStatus(){return ModuleTaskService.readStatus(this,release.id());}

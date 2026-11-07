@@ -42,6 +42,7 @@ public final class ModuleManagerActivity extends Activity {
     });
   }catch(Exception e){error(e);}});}
   private void password(SignedModuleCatalog.Release r){
+    if(r.installHash().isEmpty()){download(r,new char[0]);return;}
     EditText input=new EditText(this);input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
     new AppDialogs(this).setTitle("Install "+r.name()).setMessage("Enter this module's installation password.").setView(input)
       .setPositiveButton("Install",(d,w)->{char[] password=input.getText().toString().toCharArray();input.setText("");download(r,password);})

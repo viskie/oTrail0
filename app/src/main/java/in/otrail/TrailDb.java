@@ -20,7 +20,7 @@ public final class TrailDb implements AutoCloseable {
     final SQLiteOpenHelper helper;
     int users;
     Shared(Context context,TrailDb schema) {
-      helper=new SQLiteOpenHelper(context,"trails.db",null,3) {
+      helper=new SQLiteOpenHelper(context,"trails.db",null,4) {
         @Override public void onConfigure(SQLiteDatabase db){schema.onConfigure(db);}
         @Override public void onCreate(SQLiteDatabase db){schema.onCreate(db);}
         @Override public void onUpgrade(SQLiteDatabase db,int oldVersion,int newVersion){schema.onUpgrade(db,oldVersion,newVersion);}
@@ -82,6 +82,7 @@ public final class TrailDb implements AutoCloseable {
             + " NULL, status TEXT NOT NULL, detail TEXT NOT NULL)");
     HistoricPlaces.createSchema(d);
     createMetrics(d);
+    PhotoIndex.schema(d);
   }
 
   private static final String[] ADDRESS_FIELDS = {
@@ -123,6 +124,7 @@ public final class TrailDb implements AutoCloseable {
       d.insertOrThrow("sync_logs", null, audit);
     }
     if (oldVersion < 3) createMetrics(d);
+    if (oldVersion < 4) PhotoIndex.schema(d);
   }
 
   private static void createMetrics(SQLiteDatabase d) {

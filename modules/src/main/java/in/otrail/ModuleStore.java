@@ -48,11 +48,16 @@ final class ModuleStore {
   }
   File file(SignedModuleCatalog.Release r){return new File(context.getFilesDir(),"modules/packages/"+r.id()+"/"+r.version()+"/module.oTrail0");}
   boolean installed(SignedModuleCatalog.Release r){return file(r).isFile();}
-  String active(String id){return context.getSharedPreferences("downloaded_modules",0).getString("active."+id,"");}
-  void deactivate(String id){context.getSharedPreferences("downloaded_modules",0).edit().remove("active."+id).apply();}
+  private File marker(String id){if(id==null||!id.matches("[a-z][a-z0-9-]{0,63}"))throw new IllegalArgumentException("Invalid module ID");return new File(context.getFilesDir(),"modules/active-"+id);}
+  String active(String id){File f=marker(id);if(f.isFile())try{return new String(Files.readAllBytes(f.toPath()),java.nio.charset.StandardCharsets.UTF_8).trim();}catch(IOException ignored){}return context.getSharedPreferences("downloaded_modules",0).getString("active."+id,"");}
+  boolean available(String id){try{for(SignedModuleCatalog.Release r:catalog(false))if(r.id().equals(id)&&installed(r))return true;}catch(Exception ignored){}return false;}
+  boolean enabled(String id){return !active(id).isEmpty()&&available(id);}
+  void deactivate(String id){try{marker(id).getParentFile().mkdirs();Files.write(marker(id).toPath(),new byte[]{32});}catch(IOException ignored){}context.getSharedPreferences("downloaded_modules",0).edit().remove("active."+id).apply();}
   void activate(SignedModuleCatalog.Release r) throws Exception {
     ModuleV1 trial=load(r);trial.close();
-    context.getSharedPreferences("downloaded_modules",0).edit().putString("previous."+r.id(),active(r.id())).putString("active."+r.id(),r.version()).commit();
+    String previous=active(r.id());
+    android.util.AtomicFile atom=new android.util.AtomicFile(marker(r.id()));FileOutputStream stream=atom.startWrite();try{stream.write(r.version().getBytes(java.nio.charset.StandardCharsets.UTF_8));atom.finishWrite(stream);}catch(Exception e){atom.failWrite(stream);throw e;}
+    context.getSharedPreferences("downloaded_modules",0).edit().putString("previous."+r.id(),previous).putString("active."+r.id(),r.version()).commit();
   }
   void rollback(String id) throws Exception {
     String previous=context.getSharedPreferences("downloaded_modules",0).getString("previous."+id,"");
@@ -61,9 +66,11 @@ final class ModuleStore {
   }
   void install(SignedModuleCatalog.Release r,char[] password,Progress progress) throws Exception {
     try {
+      if(!r.installHash().isEmpty()){
       javax.crypto.spec.PBEKeySpec spec=new javax.crypto.spec.PBEKeySpec(password,java.util.Base64.getDecoder().decode(r.installSalt()),120000,256);
       byte[] check;try{check=javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();}finally{spec.clearPassword();}
       if(!MessageDigest.isEqual(check,java.util.Base64.getDecoder().decode(r.installHash())))throw new SecurityException("Incorrect module installation password");
+      }
     } finally { java.util.Arrays.fill(password, '\0'); }
     checkCompatibility(r);File ready=file(r);ready.getParentFile().mkdirs();
     File part=File.createTempFile("module-",".part",ready.getParentFile());

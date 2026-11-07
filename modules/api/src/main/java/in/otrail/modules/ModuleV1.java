@@ -9,6 +9,9 @@ import java.io.File;
 public interface ModuleV1 {
   int API_VERSION=1;
   interface Host {
+    default String photoContext(long capturedMs) throws Exception { throw new UnsupportedOperationException(); }
+    default void savePhoto(String metadata) throws Exception { throw new UnsupportedOperationException(); }
+    default String photos(long stopId) throws Exception { throw new UnsupportedOperationException(); }
     File packageFile();
     File privateDirectory();
     void startTask(String request) throws Exception;
@@ -29,6 +32,7 @@ public interface ModuleV1 {
     throw new UnsupportedOperationException("Module has no background tasks");
   }
   default void activityResult(int request,int result,Intent data) {}
+  default void permissionResult(int request,String[] permissions,int[] grants) {}
   default void resume() {}
   default void pause() {}
   default void close() {}

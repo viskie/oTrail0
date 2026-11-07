@@ -119,7 +119,7 @@ def prepare():
  state={'toolFiles':toolFiles,'sdk':{'file':'google-platform-37.zip','url':url,'sha256':sha(platform),'sizeBytes':platform.stat().st_size,'extractFiles':{entry:'android.jar'}}}
  (BUILD/'prepared.json').write_text(json.dumps(state,indent=2));print('Tool packs prepared',flush=True)
 
-def source():
+def source(version="0.4.0"):
  paths=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
  include=[]
  for name in paths:
@@ -128,10 +128,10 @@ def source():
   if file.is_file():include.append(name)
  protected={}
  for name in include:
-  if name in {'app/build.gradle','settings.gradle','build.gradle','gradle.properties','app/src/main/AndroidManifest.xml'} or name.startswith('app/src/main/res/') or (name.startswith('third_party/brouter/') or name.startswith('modules/mod1/')) and name.endswith('.java'):protected[name]=sha(ROOT/name)
- baseline={'version':'0.4.0','sourceRoots':['app/src/main/java','modules/src/main/java','modules/api/src/main/java'],'protected':protected}
+  if name in {'app/build.gradle','settings.gradle','build.gradle','gradle.properties','app/src/main/AndroidManifest.xml'} or name.startswith('app/src/main/res/') or (name.startswith('third_party/brouter/') or name.startswith('modules/mod1/') or name.startswith('modules/mod2/')) and name.endswith('.java'):protected[name]=sha(ROOT/name)
+ baseline={'version':version,'sourceRoots':['app/src/main/java','modules/src/main/java','modules/api/src/main/java'],'protected':protected}
  raw=json.dumps(baseline,sort_keys=True,indent=2).encode()
- path=RELEASES/'otrail-source-0.4.0.zip'
+ path=RELEASES/('otrail-source-'+version+'.zip')
  with zipfile.ZipFile(path,'w',zipfile.ZIP_DEFLATED) as out:
   for name in include:out.write(ROOT/name,name)
   out.writestr('.studio-baseline.json',raw)

@@ -51,6 +51,7 @@ public final class MainActivity extends Activity {
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
   private ModuleHost moduleHost;
+  private boolean camVisible;
   private final ArrayList<Runnable> cardUpdates = new ArrayList<>();
   private boolean downloads, history, offlineOnly, follow = true, busy;
   private long selectedTrip = -1, lastFixId = -1;
@@ -206,6 +207,10 @@ public final class MainActivity extends Activity {
     AppStyle.decoratePanel(mode,AppStyle.HEADING);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
+    camVisible=new ModuleStore(this).enabled("mod2");
+    if(camVisible){
+      ImageButton camera=new ImageButton(this);camera.setImageResource(android.R.drawable.ic_menu_camera);camera.setContentDescription("CAM · Take a geotagged photo");camera.setColorFilter(UiConfig.CYAN);camera.setBackgroundColor(android.graphics.Color.BLACK);camera.setOnClickListener(v->openCam("camera",-1));row.addView(camera,new LinearLayout.LayoutParams(dp(44),dp(44)));
+    }
     row.addView(button(UiConfig.text("settings"), this::showDownloads));
     AppStyle.spaceButtons(row);
     body.addView(row);
@@ -976,6 +981,10 @@ public final class MainActivity extends Activity {
     return leg==null?UiConfig.text("stop_distance_unavailable"):String.format(Locale.US,UiConfig.text("since_previous_stop_2f_km_average_since_departure_1f_km_h_s"),leg.meters()/1000,leg.averageKmh(),leg.missingMs()>60000?UiConfig.text("gps_gaps_present_recorded_distance_only"):"");
   }
 
+  private void openCam(String page,long stop){
+    if(new ModuleStore(this).enabled("mod2"))startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod2").putExtra("page",page).putExtra("stop_id",stop));
+    else toast("Activate CAM in Extension modules first");
+  }
   private void showStops() {
     final long chosen = history ? selectedTrip : -1;
     io.execute(() -> {
@@ -1008,7 +1017,9 @@ public final class MainActivity extends Activity {
               details += driveDetails(s.id());
               for(String value:new String[]{s.locality(),s.road(),s.district(),s.state(),s.country(),s.postalCode()})
                 if(value!=null&&!value.isBlank())details+="\n"+value;
-              new AppDialogs(this).setTitle(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName()).setMessage(details).setPositiveButton(UiConfig.text("close"),null).show();
+              android.app.AlertDialog.Builder detail=new AppDialogs(this).setTitle(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName()).setMessage(details).setPositiveButton(UiConfig.text("close"),null);
+              if(new ModuleStore(this).enabled("mod2"))detail.setNeutralButton("Photos",(dialog,which)->openCam("gallery",s.id()));
+              detail.show();
             }).setPositiveButton(UiConfig.text("close"),null).show();
         });
       }catch(Exception e){CrashReports.save(this,UiConfig.text("stop_list"),e);runOnUiThread(()->toast(UiConfig.text("cannot_read_stop_list")+e.getMessage()));}
@@ -1152,6 +1163,7 @@ public final class MainActivity extends Activity {
             MUTED));
     cardUpdates.clear();
     downloadCards.addView(button(UiConfig.text("modules_title"),()->ModuleHost.settings(this)));
+    if(new ModuleStore(this).available("mod2"))downloadCards.addView(button("CAM · Photo folder & camera settings",()->openCam("settings",-1)));
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
     if (routingControls == null) routingControls = new RoutingControls(this);
     routingControls.addTo(downloadCards, cardUpdates);
@@ -1596,6 +1608,7 @@ public final class MainActivity extends Activity {
     TrackingStartup.start(this, false);
     StopGeocoder.backfill(this);
     if (map != null) map.onResume();
+    boolean camNow=new ModuleStore(this).enabled("mod2");if(map!=null&&!downloads&&camNow!=camVisible){camVisible=camNow;showMap();}
     updates.resume();
     handler.post(ticker);
   }
