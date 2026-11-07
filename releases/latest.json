@@ -1,8 +1,8 @@
 {
-  "versionCode": 17,
-  "versionName": "0.3.7",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.7-debug.apk",
-  "sha256": "a53a8822206f0a082e509433aca58353aa80969e6d9f7c580d4dcb3390d9b949",
-  "sizeBytes": 41645705,
-  "notes": "Map dropdown text increased by 2sp. Total stats footer now neon green bold italic on a dark background. Retains compact Bijnor: UP-246701 heading, centered navigation, bottom landscape stats, three-column settings and recorded-stop distance styling. 57 JVM checks and lint pass. Same signing certificate; upgrade in place."
+  "versionCode": 18,
+  "versionName": "0.3.8",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.8-debug.apk",
+  "sha256": "e0fd3229c05e579d16d2079a6481465128d2f40d93352474fee872a83ae22563",
+  "sizeBytes": 42021388,
+  "notes": "Black navigation panel with purple, magenta, violet, cyan and turquoise spectrum text. Only one automatic long-stop label; it hides when a marker info bubble opens. Stop dots and full recorded-stop details retained. 57 JVM checks and lint pass. Same signing certificate; in-place upgrade."
 }

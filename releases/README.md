@@ -101,3 +101,7 @@ Compact destination headings: Bijnor: UP-246701; repeated India suffix omitted. 
 ## 0.3.7 — 2026-11-07
 
 Map dropdown text increased by 2sp. Total stats footer now neon green bold italic on a dark background. Retains compact Bijnor: UP-246701 heading, centered navigation, bottom landscape stats, three-column settings and recorded-stop distance styling. 57 JVM checks and lint pass. Same signing certificate; upgrade in place.
+
+## 0.3.8 — 2026-11-07
+
+Black navigation panel with purple, magenta, violet, cyan and turquoise spectrum text. Only one automatic long-stop label; it hides when a marker info bubble opens. Stop dots and full recorded-stop details retained. 57 JVM checks and lint pass. Same signing certificate; in-place upgrade.
