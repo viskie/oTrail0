@@ -44,3 +44,5 @@ Spacing: `BUTTON_INNER_PADDING_DP=4`, `BUTTON_GAP_DP=4`, `CONTROL_ROW_PADDING_DP
 Destination text uses `NAV_TITLE_SIZE_SP` (18sp), centered with a two-line limit; turn instructions use `NAV_INSTRUCTION_SIZE_SP` (14sp). Landscape stats stay below the scrolling right-hand controls. `SETTINGS_COLUMNS_LANDSCAPE` controls the three-column settings button rows.
 
 Long stops use `LONG_STOP_MINUTES` (60 minutes), `LONG_STOP_COLOR`, `LONG_STOP_LABEL_SIZE_SP`, `LONG_STOP_LABEL_MIN_ZOOM`, and `LONG_STOP_LABEL_LIMIT`. Big offline city labels use `BIG_CITY_LABEL_COLOR` and `BIG_CITY_LABEL_STYLE`. Long-stop labels become bold italic when their projected screen rectangles overlap a city/town label from the installed offline map. This is an approximate collision check, since the map renderer can displace its labels. Stop-list entries and popups show existing derived inter-stop distance and average speed, including older records.
+
+Map dropdown font: `MAP_SELECTOR_SIZE_SP` (body size +2sp). Total footer: `TOTAL_STATS_TEXT_COLOR` (neon green), `TOTAL_STATS_BACKGROUND` (dark for contrast), `TOTAL_STATS_FONT_STYLE` (bold italic).

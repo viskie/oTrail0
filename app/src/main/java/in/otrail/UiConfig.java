@@ -39,6 +39,9 @@ public class UiConfig {
   public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
       PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
   public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
+  public static final int MAP_SELECTOR_SIZE_SP=BODY_SIZE_SP+2;
+  public static final int TOTAL_STATS_TEXT_COLOR=0xff01ff1f, TOTAL_STATS_BACKGROUND=0xff202039;
+  public static final int TOTAL_STATS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final float TEXT_SCALE=1f;
   public static final int CAPTION_SIZE_SP=11, SECONDARY_SIZE_SP=12, MODE_SIZE_SP=13,
       SUBHEADING_SIZE_SP=14, HEADING_SIZE_SP=18, CARD_TITLE_SIZE_SP=19,

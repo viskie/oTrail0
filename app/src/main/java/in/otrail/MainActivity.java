@@ -212,7 +212,7 @@ public final class MainActivity extends Activity {
     String[] names = {UiConfig.text("osm_roads"), UiConfig.text("esri_satellite"), UiConfig.text("india_offline")};
     Spinner selector = new Spinner(this);
     selector.setAdapter(
-        AppStyle.choices(this, java.util.Arrays.asList(names)));
+        AppStyle.choices(this, java.util.Arrays.asList(names),UiConfig.MAP_SELECTOR_SIZE_SP));
     selector.setSelection(provider);
     tools.addView(selector, new LinearLayout.LayoutParams(0, dp(40), 1));
     Switch network = new Switch(this);
@@ -304,9 +304,13 @@ public final class MainActivity extends Activity {
     status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
-    stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, MUTED);
+    stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
+    stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
     stats.setMaxLines(2);
     AppStyle.decoratePanel(stats,AppStyle.CYAN);
+    GradientDrawable totalBackground=bg(UiConfig.TOTAL_STATS_BACKGROUND,9);
+    totalBackground.setStroke(dp(1),UiConfig.TOTAL_STATS_TEXT_COLOR);
+    stats.setBackground(totalBackground);
     body.addView(stats);
     LinearLayout actions = new LinearLayout(this);
     actions.addView(

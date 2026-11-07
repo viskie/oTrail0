@@ -49,12 +49,15 @@ public final class AppStyle extends UiConfig {
     };
   }
   public static ArrayAdapter<String> choices(android.content.Context context,java.util.List<String> values) {
+    return choices(context,values,BODY_SIZE_SP);
+  }
+  public static ArrayAdapter<String> choices(android.content.Context context,java.util.List<String> values,int sizeSp) {
     return new ArrayAdapter<String>(context,android.R.layout.simple_spinner_dropdown_item,values){
       @Override public android.view.View getView(int position,android.view.View recycled,android.view.ViewGroup parent){
-        android.view.View view=super.getView(position,recycled,parent);nativeTextTree(view);return view;
+        android.view.View view=super.getView(position,recycled,parent);nativeTextTree(view);if(view instanceof TextView text)text.setTextSize(sizeSp*TEXT_SCALE);return view;
       }
       @Override public android.view.View getDropDownView(int position,android.view.View recycled,android.view.ViewGroup parent){
-        android.view.View view=super.getDropDownView(position,recycled,parent);nativeTextTree(view);view.setBackgroundColor(SURFACE);return view;
+        android.view.View view=super.getDropDownView(position,recycled,parent);nativeTextTree(view);if(view instanceof TextView text)text.setTextSize(sizeSp*TEXT_SCALE);view.setBackgroundColor(SURFACE);return view;
       }
     };
   }
