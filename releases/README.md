@@ -89,3 +89,7 @@ GPS uncertainty handling and stable-signal stop recovery, including drifted dupl
 ## 0.3.4 — 2026-11-07
 
 More vibrant gradients, magenta-edged cyan buttons, bold labels, colored status/navigation panels and cycling settings-card accents. Existing manual colors, fonts/sizes, grey base, map labels, dots and trail palette retained. Finish controls in UiConfig.java. No journal or tracking changes. 52 JVM checks and lint pass. Phone unavailable over ADB; device installation/visual checks pending. Same signing certificate for in-place upgrade. Details: docs/0.3.4-vibrant-finish.md.
+
+## 0.3.5 — 2026-11-07
+
+Centered 18sp destination, bottom-pinned landscape stats, three-column settings buttons, larger italic fonts and vivid gradients. Recorded stops show distance and average speed since previous stop. Long stops and big offline cities are red italic; overlapping stop/city labels use bold italics. Zoom-scaled offline city names. Installed on POCO with all raw fixes and stop IDs retained. 53 JVM checks and lint pass. Same signing certificate for in-place upgrade. Details: docs/0.3.5-layout-stops.md.

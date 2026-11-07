@@ -1,8 +1,8 @@
 {
-  "versionCode": 14,
-  "versionName": "0.3.4",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.4-debug.apk",
-  "sha256": "ef7e53a73738480b28b24f19243e8bc960c82214c3a386a7645349120f55278d",
-  "sizeBytes": 41985968,
-  "notes": "More vibrant gradients, magenta-edged cyan buttons, bold labels, colored status/navigation panels and cycling settings-card accents. Existing manual colors, fonts/sizes, grey base, map labels, dots and trail palette retained. Finish controls in UiConfig.java. No journal or tracking changes. 52 JVM checks and lint pass. Phone unavailable over ADB; device installation/visual checks pending."
+  "versionCode": 15,
+  "versionName": "0.3.5",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.5-debug.apk",
+  "sha256": "e4dc1f267efdb6462940369cbf210dbb8b96a365426c594346ae69e8f78d4548",
+  "sizeBytes": 41999808,
+  "notes": "Centered 18sp destination, bottom-pinned landscape stats, three-column settings buttons, larger italic fonts and vivid gradients. Recorded stops show distance and average speed since previous stop. Long stops and big offline cities are red italic; overlapping stop/city labels use bold italics. Zoom-scaled offline city names. Installed on POCO with all raw fixes and stop IDs retained. 53 JVM checks and lint pass."
 }
