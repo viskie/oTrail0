@@ -52,3 +52,5 @@ Navigation panel: `NAV_PANEL_BACKGROUND` (black), `NAV_TEXT_SPECTRUM` (purple, m
 Navigation heading, instruction and summary now use solid `NAV_TEXT_COLOR` (turquoise), without a text shader. `NAV_TEXT_SPECTRUM` remains available for the panel border/older color references.
 
 Status/Stopped panel uses `STATUS_BACKGROUND` (black), `STATUS_TEXT_COLOR` (cyan), and `STATUS_SPEED_COLOR` (white). The speed span keeps its separate color in every movement state, including unavailable speed.
+
+The floating Locate action shows the application icon inside a hexagon. Edit `LOCATE_SIZE_DP`, `LOCATE_BACKGROUND`, `LOCATE_LOGO_COLOR`, `LOCATE_BORDER_COLOR`, and `LOCATE_RIPPLE_COLOR`; the action and accessibility description remain Locate.

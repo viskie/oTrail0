@@ -250,9 +250,9 @@ public final class MainActivity extends Activity {
     map.setScrollableAreaLimitDouble(new BoundingBox(38, 98, 6, 68));
     mapFrame = new FrameLayout(this);
     mapFrame.addView(map, new FrameLayout.LayoutParams(-1, -1));
-    Button locateButton=button(UiConfig.text("locate"),this::locate);
+    LocateLogoButton locateButton=new LocateLogoButton(this,this::locate);
     locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
-    FrameLayout.LayoutParams locatePosition=new FrameLayout.LayoutParams(dp(84),dp(44),Gravity.BOTTOM|Gravity.END);
+    FrameLayout.LayoutParams locatePosition=new FrameLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP),Gravity.BOTTOM|Gravity.END);
     locatePosition.setMargins(dp(8),dp(8),dp(10),dp(12));
     mapFrame.addView(locateButton,locatePosition);
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
