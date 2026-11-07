@@ -20,24 +20,43 @@ public class UiConfig {
   public static final boolean VIBRANT_FINISH=true;
   public static final int BUTTON_GRADIENT_ACCENT=BLUE, BUTTON_EDGE_ACCENT=SECONDARY;
   public static final float BUTTON_GRADIENT_MIX=.24f, PANEL_TINT_MIX=.26f;
-  public static final int BUTTON_FONT_STYLE=android.graphics.Typeface.BOLD;
+  public static final int BUTTON_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
+  public static final boolean PSYCHEDELIC_GRADIENTS=true;
+  public static final int[] BUTTON_SPECTRUM={BUTTON,LIME,YELLOW,ORANGE};
+  public static final int[] CANVAS_SPECTRUM={CYAN,SECONDARY,PURPLE,ORANGE};
+  public static final float CANVAS_COLOR_STRENGTH=.62f;
+  public static final int BODY_FONT_STYLE=android.graphics.Typeface.ITALIC,
+      STATUS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
+  public static final String HEADING_FONT="casual";
+  public static final int HEADING_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final int[] PANEL_ACCENTS={CYAN,PURPLE,ORANGE,LIME,PINK};
-  public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="sans-serif-medium",
+  public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="casual",
       STATUS_FONT="sans-serif-medium", MAP_LABEL_FONT="sans-serif";
-  public static final int BUTTON_SIZE_SP=9, BODY_SIZE_SP=9, STATUS_SIZE_SP=13,
-      NAV_TITLE_SIZE_SP=12, NAV_INSTRUCTION_SIZE_SP=14, NAV_SUMMARY_SIZE_SP=11,
+  public static final int BUTTON_SIZE_SP=12, BODY_SIZE_SP=10, STATUS_SIZE_SP=13,
+      NAV_TITLE_SIZE_SP=18, NAV_INSTRUCTION_SIZE_SP=14, NAV_SUMMARY_SIZE_SP=11,
       MAP_LABEL_SIZE_SP=11, MAP_LABEL_STYLE=android.graphics.Typeface.BOLD; // 0 normal, 1 bold, 2 italic
+  public static final int BUTTON_INNER_PADDING_DP=4, BUTTON_GAP_DP=4, CONTROL_ROW_PADDING_DP=2;
+  public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
+      PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
+  public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
   public static final float TEXT_SCALE=1f;
-  public static final int CAPTION_SIZE_SP=10, SECONDARY_SIZE_SP=11, MODE_SIZE_SP=13,
+  public static final int CAPTION_SIZE_SP=11, SECONDARY_SIZE_SP=12, MODE_SIZE_SP=13,
       SUBHEADING_SIZE_SP=14, HEADING_SIZE_SP=18, CARD_TITLE_SIZE_SP=19,
       SETTINGS_TITLE_SIZE_SP=25, APP_TITLE_SIZE_SP=27;
   public static final float OFFLINE_MAP_TEXT_SCALE=1f;
   // Offline basemap names such as Bilaspur (cities, towns, villages and suburbs).
   // Mapsforge families: default, sans_serif, serif, monospace.
   // Styles: normal, bold, italic, bold_italic. Size multiplier preserves zoom rules.
-  public static final String CITY_LABEL_FONT="sans_serif", CITY_LABEL_STYLE="bold";
+  public static final String CITY_LABEL_FONT="sans_serif", CITY_LABEL_STYLE="bold_italic";
   public static final int CITY_LABEL_COLOR=0xffFF00FF, CITY_LABEL_OUTLINE_COLOR=0xffFF00FF;
-  public static final float CITY_LABEL_SIZE_SCALE=1f, CITY_LABEL_OUTLINE_WIDTH=1f;
+  public static final float CITY_LABEL_SIZE_SCALE=1f, CITY_LABEL_OUTLINE_WIDTH=.35f;
+  // Theme pixels before screen density; city names get progressively larger with zoom.
+  public static final float CITY_LABEL_MIN_SIZE=8f, CITY_LABEL_MAX_SIZE=14f;
+  public static final int BIG_CITY_LABEL_COLOR=0xffff0000, LONG_STOP_COLOR=0xffff0000,
+      LONG_STOP_LABEL_BACKGROUND=0xeefaf6ff;
+  public static final String BIG_CITY_LABEL_STYLE="italic";
+  public static final int LONG_STOP_MINUTES=60, LONG_STOP_LABEL_SIZE_SP=11,
+      LONG_STOP_LABEL_MIN_ZOOM=8, LONG_STOP_LABEL_LIMIT=16;
   // Remaining offline basemap lettering (roads and POIs); INK controls default dark text.
   public static final int MAP_ROAD_LABEL_COLOR=INK, MAP_OTHER_LABEL_COLOR=INK,
       MAP_TEXT_OUTLINE_COLOR=0xffffffff;
@@ -85,6 +104,8 @@ public class UiConfig {
   public static final String UI_LANGUAGE="";
   public static final Map<String, Map<String,String>> TRANSLATIONS=Map.of();
   public static final Map<String,String> ENGLISH=Map.ofEntries(
+      Map.entry("stop_leg_summary", "%.2f km since previous stop · avg %.1f km/h"),
+      Map.entry("stop_distance_unavailable", "\nDistance since previous stop: unavailable"),
       Map.entry("gps_uncertain", "GPS uncertain"),
       Map.entry("speed_unknown", " · — km/h"),
       Map.entry("stop_signal_uncertain", "Weak GPS · stop retained"),

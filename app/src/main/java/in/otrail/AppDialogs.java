@@ -15,7 +15,7 @@ final class AppDialogs extends AlertDialog.Builder {
       }
       int title=dialog.getContext().getResources().getIdentifier("alertTitle","id","android");
       android.widget.TextView heading=dialog.findViewById(title);
-      if(heading!=null){heading.setTextColor(UiConfig.HEADING);heading.setTextSize(UiConfig.HEADING_SIZE_SP*UiConfig.TEXT_SCALE);}
+      if(heading!=null){heading.setTextColor(UiConfig.HEADING);heading.setTypeface(android.graphics.Typeface.create(UiConfig.HEADING_FONT,UiConfig.HEADING_FONT_STYLE));heading.setTextSize(UiConfig.HEADING_SIZE_SP*UiConfig.TEXT_SCALE);}
     });
     return dialog;
   }

@@ -48,7 +48,9 @@ final class NavigationControls implements AutoCloseable {
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
-    title.setSingleLine(true);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    title.setGravity(android.view.Gravity.CENTER);
+    title.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+    title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     instruction.setMaxLines(2);
     panel.addView(title);
     panel.addView(instruction);
@@ -85,6 +87,7 @@ final class NavigationControls implements AutoCloseable {
               changed.run();
             }),
         new LinearLayout.LayoutParams(0, dp(44), 1));
+    AppStyle.spaceButtons(row);
     panel.addView(row);
     TextView credits = text(UiConfig.text("osrm_fossgis_openstreetmap_contributors"), 10);
     credits.setOnClickListener(
@@ -108,7 +111,7 @@ final class NavigationControls implements AutoCloseable {
     v.setTextSize(UiConfig.textSize(size));
     AppStyle.text(v);
     v.setTextColor(AppStyle.textColor(size, size>=14));
-    if(size>=14)v.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,android.graphics.Typeface.BOLD));
+    if(size>=14)v.setTypeface(android.graphics.Typeface.create(UiConfig.HEADING_FONT,UiConfig.HEADING_FONT_STYLE));
     v.setPadding(dp(8), dp(2), dp(8), dp(2));
     return v;
   }

@@ -38,6 +38,8 @@ public final class MainActivity extends Activity {
   private long routeFitRevision = -1;
   private MapPacks packs;
   private MapView map;
+  private final CityPlaces cityPlaces=new CityPlaces();
+  private StopLabelsOverlay stopLabels;
   private FrameLayout mapFrame;
   private LinearLayout root, body, downloadCards;
   private TextView status, stats, mode, packSummary;
@@ -161,7 +163,7 @@ public final class MainActivity extends Activity {
     head.setPadding(dp(4), dp(8), dp(8), dp(8));
     head.setBackgroundColor(INK);
     TextView title = text(UiConfig.text("otrail"), 27, Color.WHITE);
-    title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
+    title.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
     TextView region = text(UiConfig.text("india_in"), 12, UiConfig.REGION_LABEL_TEXT);
     head.addView(region);
@@ -196,13 +198,14 @@ public final class MainActivity extends Activity {
     base(UiConfig.text("your_road_your_record_personal_navigation"));
     LinearLayout row = new LinearLayout(this);
     mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 13, TEAL);
-    mode.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
+    mode.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     mode.setTextColor(AppStyle.HEADING);
     mode.setLetterSpacing(.06f);
     AppStyle.decoratePanel(mode,AppStyle.HEADING);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
     row.addView(button(UiConfig.text("settings"), this::showDownloads));
+    AppStyle.spaceButtons(row);
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
     AppStyle.decoratePanel(tools,AppStyle.CYAN);
@@ -220,6 +223,7 @@ public final class MainActivity extends Activity {
     network.setMinHeight(dp(44));
     network.setChecked(offlineOnly);
     tools.addView(network);
+    AppStyle.spaceButtons(tools);
     body.addView(tools);
     roadInfo = text(UiConfig.text("road_landmarks_cache_first"), 12, MUTED);
     AppStyle.decoratePanel(roadInfo,AppStyle.ORANGE);
@@ -228,13 +232,16 @@ public final class MainActivity extends Activity {
     body.addView(roadInfo);
     body.addView(navigation.panel());
     map = new MapView(this);
+    stopLabels=new StopLabelsOverlay();
     map.setDestroyMode(false); // Lifecycle is owned here; avoid a second teardown on window detach.
     roadControls.attach(roadInfo, map);
     map.setMultiTouchControls(true);
     map.setOnTouchListener(
         (v, event) -> {
-          if (event.getActionMasked() == android.view.MotionEvent.ACTION_MOVE)
-            navigationFollow = false;
+          if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN
+              || event.getActionMasked() == android.view.MotionEvent.ACTION_MOVE) {
+            navigationFollow = false;follow=false;
+          }
           return false;
         });
     map.getController().setZoom(5.0);
@@ -291,7 +298,7 @@ public final class MainActivity extends Activity {
     tip.setVisibility(View.GONE);
     body.addView(tip);
     status = text(UiConfig.text("ready_when_you_are"), UiConfig.STATUS_SIZE_SP, INK);
-    status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, Typeface.BOLD));
+    status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, UiConfig.STATUS_FONT_STYLE));
     status.setTextColor(AppStyle.HEADING);
     AppStyle.decoratePanel(status,AppStyle.HEADING);
     status.setMaxLines(2);
@@ -310,6 +317,7 @@ public final class MainActivity extends Activity {
     actions.addView(
         button(history ? UiConfig.text("live") : UiConfig.text("history"), this::history),
         new LinearLayout.LayoutParams(0, dp(44), 1));
+    AppStyle.spaceButtons(actions);
     body.addView(actions);
     TextView legend =
         text(UiConfig.text("green_ready_blue_moving_turquoise_stopped_cyan_history"), 10, MUTED);
@@ -327,12 +335,25 @@ public final class MainActivity extends Activity {
       body.removeAllViews();
       body.setOrientation(LinearLayout.HORIZONTAL);
       body.addView(mapFrame, new LinearLayout.LayoutParams(0, -1, 1));
-      ScrollView panel = new ScrollView(this);
-      LinearLayout stack = new LinearLayout(this);
+      LinearLayout sidebar=new LinearLayout(this);
+      sidebar.setOrientation(LinearLayout.VERTICAL);
+      sidebar.setPadding(dp(UiConfig.SIDEBAR_INSET_DP),0,dp(UiConfig.SIDEBAR_INSET_DP),dp(UiConfig.SIDEBAR_INSET_DP));
+      ScrollView panel=new ScrollView(this);
+      LinearLayout stack=new LinearLayout(this);
       stack.setOrientation(LinearLayout.VERTICAL);
-      for (View child : controls) stack.addView(child);
+      stack.setPadding(0,dp(UiConfig.PANEL_GAP_DP),0,dp(UiConfig.PANEL_GAP_DP));
+      for(View child:controls) {
+        if(child==stats)continue;
+        LinearLayout.LayoutParams space=new LinearLayout.LayoutParams(-1,-2);
+        space.setMargins(0,dp(UiConfig.PANEL_GAP_DP)/2,0,dp(UiConfig.PANEL_GAP_DP)/2);
+        stack.addView(child,space);
+      }
       panel.addView(stack);
-      body.addView(panel, new LinearLayout.LayoutParams(dp(226), -1));
+      sidebar.addView(panel,new LinearLayout.LayoutParams(-1,0,1));
+      LinearLayout.LayoutParams footer=new LinearLayout.LayoutParams(-1,-2);
+      footer.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
+      sidebar.addView(stats,footer);
+      body.addView(sidebar,new LinearLayout.LayoutParams(dp(UiConfig.SIDEBAR_WIDTH_DP),-1));
     }
     lastFixId = -1;
     lastStopSignature = 0;
@@ -354,7 +375,7 @@ public final class MainActivity extends Activity {
         org.mapsforge.map.model.DisplayModel.textScale=UiConfig.OFFLINE_MAP_TEXT_SCALE;
         MapsForgeTileSource source =
             MapsForgeTileSource.createFromFiles(
-                new File[] {packs.active()}, new OfflineMapTheme(), "India-render-v3-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE + "-city-" + OfflineMapTheme.cacheKey());
+                new File[] {packs.active()}, new OfflineMapTheme(), "India-render-v4-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE + "-city-" + OfflineMapTheme.cacheKey());
         map.setTileProvider(
             new MapsForgeTileProvider(new SimpleRegisterReceiver(this), source, null));
       } else {
@@ -399,6 +420,8 @@ public final class MainActivity extends Activity {
     busy = true;
     final boolean viewHistory = history;
     final long chosen = selectedTrip;
+    final BoundingBox cityBox=map.getBoundingBox();
+    final int cityZoom=(int)map.getZoomLevelDouble();
     io.execute(
         () -> {
           try {
@@ -440,13 +463,14 @@ public final class MainActivity extends Activity {
                 historicVisible && center != null
                     ? HistoricPlaces.cached(db, center.getLatitude(), center.getLongitude())
                     : List.of();
+            List<CityPlaces.Place> visibleCities=cityPlaces.read(packs.active(),cityBox,cityZoom);
             runOnUiThread(
                 () -> {
                   busy = false;
                   if (downloads || history != viewHistory || viewHistory && selectedTrip != chosen)
                     return;
                   if (map == null || isFinishing() || isDestroyed()) return;
-                  try { driveMetrics = metrics; render(active, trip, fixes, stops, segments, places, colored, trailMeters); }
+                  try { driveMetrics = metrics; stopLabels.update(stops,metrics,visibleCities); render(active, trip, fixes, stops, segments, places, colored, trailMeters); }
                   catch (RuntimeException e) {
                     CrashReports.save(this, "Trail render · provider=" + provider + UiConfig.text("history_2") + history, e);
                     android.util.Log.e("oTraiL", "Trail render failed", e);
@@ -557,12 +581,13 @@ public final class MainActivity extends Activity {
       Marker m = new Marker(map);
       m.setPosition(new GeoPoint(s.lat(), s.lon()));
       m.setAnchor(.5f, .5f);
-      m.setIcon(dot(UiConfig.SAVED_STOP_DOT, 14));
+      m.setIcon(dot(StopLabelsOverlay.longStop(s)?UiConfig.LONG_STOP_COLOR:UiConfig.SAVED_STOP_DOT,StopLabelsOverlay.longStop(s)?18:14));
       String place =
           s.placeName() == null || s.placeName().isBlank()
               ? UiConfig.text("location_not_yet_identified")
               : s.placeName();
-      m.setTitle(place);
+      DriveMetrics.Leg stopLeg=driveMetrics==null?null:driveMetrics.stops().get(s.id());
+      m.setTitle(place+(stopLeg==null?"":String.format(Locale.US," · %.2f km",stopLeg.meters()/1000)));
       StringBuilder details = new StringBuilder();
       if (s.locality() != null && !s.locality().equals(place))
         details.append(s.locality()).append("\n");
@@ -604,6 +629,7 @@ public final class MainActivity extends Activity {
             last.accuracy(),
             clock(last.time())));
     registerMarker("live", dot);
+    map.getOverlays().remove(stopLabels);map.getOverlays().add(stopLabels);
     drawHistoricPlaces();
     Marker reopen = visibleMarkers.get(openMarkerKey);
     if (reopen != null) MarkerPopups.openOnly(map,reopen);
@@ -927,7 +953,7 @@ public final class MainActivity extends Activity {
 
   private String driveDetails(long id) {
     DriveMetrics.Leg leg=driveMetrics==null?null:driveMetrics.stops().get(id);
-    return leg==null?"":String.format(Locale.US,UiConfig.text("since_previous_stop_2f_km_average_since_departure_1f_km_h_s"),leg.meters()/1000,leg.averageKmh(),leg.missingMs()>60000?UiConfig.text("gps_gaps_present_recorded_distance_only"):"");
+    return leg==null?UiConfig.text("stop_distance_unavailable"):String.format(Locale.US,UiConfig.text("since_previous_stop_2f_km_average_since_departure_1f_km_h_s"),leg.meters()/1000,leg.averageKmh(),leg.missingMs()>60000?UiConfig.text("gps_gaps_present_recorded_distance_only"):"");
   }
 
   private void showStops() {
@@ -937,10 +963,18 @@ public final class MainActivity extends Activity {
         List<TrailDb.Stop> stops = db.stops(chosen);
         DriveMetrics.Result metrics = db.driveMetrics();
         Collections.reverse(stops);
-        String[] labels = new String[stops.size()];
+        CharSequence[] labels = new CharSequence[stops.size()];
         for(int i=0;i<stops.size();i++) {
           TrailDb.Stop s=stops.get(i);
-          labels[i]=clock(s.arrival())+" · "+duration(s.observed()-s.arrival())+" · "+(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName());
+          DriveMetrics.Leg leg=metrics.stops().get(s.id());
+          String label=(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName())+"\n"+clock(s.arrival())+" · "+duration(s.observed()-s.arrival())
+              +(leg==null?UiConfig.text("stop_distance_unavailable"):"\n"+String.format(Locale.US,UiConfig.text("stop_leg_summary"),leg.meters()/1000,leg.averageKmh()));
+          android.text.SpannableString styled=new android.text.SpannableString(label);
+          if(StopLabelsOverlay.longStop(s)){
+            styled.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.LONG_STOP_COLOR),0,styled.length(),0);
+            styled.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC),0,styled.length(),0);
+          }
+          labels[i]=styled;
         }
         runOnUiThread(() -> {
           if(isFinishing() || isDestroyed())return;
@@ -1073,7 +1107,12 @@ public final class MainActivity extends Activity {
     }
     base(UiConfig.text("maps_downloads_india_only"));
     Button back = button(UiConfig.text("back_to_map"), this::showMap);
-    body.addView(back);
+    if(getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE){
+      LinearLayout backRow=new LinearLayout(this);
+      backRow.addView(back,new LinearLayout.LayoutParams(0,dp(44),1));
+      for(int slot=1;slot<UiConfig.SETTINGS_COLUMNS_LANDSCAPE;slot++)backRow.addView(new View(this),new LinearLayout.LayoutParams(0,1,1));
+      AppStyle.spaceButtons(backRow);body.addView(backRow);
+    }else body.addView(back);
     ScrollView scroll = new ScrollView(this);
     downloadCards = new LinearLayout(this);
     downloadCards.setOrientation(LinearLayout.VERTICAL);
@@ -1081,7 +1120,7 @@ public final class MainActivity extends Activity {
     scroll.addView(downloadCards);
     body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
     TextView title = text(UiConfig.text("take_india_with_you"), 25, INK);
-    title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
+    title.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     downloadCards.addView(title);
     downloadCards.addView(
         text(
@@ -1244,6 +1283,8 @@ public final class MainActivity extends Activity {
                                     Uri.parse("package:" + getPackageName()))))
                     .setNegativeButton(UiConfig.text("close"), null)
                     .show()));
+    if(getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)
+      AppStyle.compactSettings(downloadCards,UiConfig.SETTINGS_COLUMNS_LANDSCAPE);
     for (Runnable r : cardUpdates) r.run();
   }
 
@@ -1251,7 +1292,7 @@ public final class MainActivity extends Activity {
     LinearLayout card = card();
     card.addView(text(tag, 10, TEAL));
     TextView title = text(name, 18, INK);
-    title.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
+    title.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     card.addView(title);
     card.addView(text(detail, 12, MUTED));
   }
@@ -1277,7 +1318,7 @@ public final class MainActivity extends Activity {
             10,
             TEAL));
     TextView name = text(p.name(), 19, INK);
-    name.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
+    name.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     card.addView(name);
     card.addView(text(p.description(), 12, MUTED));
     TextView state = text(UiConfig.text("checking_phone_storage"), 13, INK);

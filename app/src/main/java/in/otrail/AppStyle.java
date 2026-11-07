@@ -10,11 +10,11 @@ public final class AppStyle extends UiConfig {
   private static int dp(android.view.View v,float n){return (int)(v.getResources().getDisplayMetrics().density*n+.5f);}
   public static void button(Button b){button(b,0);}
   public static void button(Button b,int emphasis) {
-    b.setAllCaps(false);b.setTypeface(Typeface.create(BUTTON_FONT,BUTTON_FONT_STYLE));b.setTextSize(BUTTON_SIZE_SP);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setLetterSpacing(.01f);
-    b.setMinHeight(dp(b,44));b.setMinimumHeight(dp(b,44));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,9),0,dp(b,9),0);b.setStateListAnimator(null);
+    b.setGravity(android.view.Gravity.CENTER);b.setAllCaps(false);b.setTypeface(Typeface.create(BUTTON_FONT,BUTTON_FONT_STYLE));b.setTextSize(BUTTON_SIZE_SP);b.setShadowLayer(dp(b,.6f),0,0,Color.WHITE);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setLetterSpacing(.01f);
+    b.setMinHeight(dp(b,44));b.setMinimumHeight(dp(b,44));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);b.setStateListAnimator(null);
     int fill=BUTTON;
     GradientDrawable shape=VIBRANT_FINISH
-        ?new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{fill,mix(fill,BUTTON_GRADIENT_ACCENT,BUTTON_GRADIENT_MIX)})
+        ?new GradientDrawable(GradientDrawable.Orientation.TL_BR,PSYCHEDELIC_GRADIENTS?BUTTON_SPECTRUM:new int[]{fill,mix(fill,BUTTON_GRADIENT_ACCENT,BUTTON_GRADIENT_MIX)})
         :new GradientDrawable();
     if(!VIBRANT_FINISH)shape.setColor(fill);
     shape.setCornerRadius(dp(b,10));shape.setStroke(dp(b,1),BUTTON_BORDER);
@@ -25,19 +25,28 @@ public final class AppStyle extends UiConfig {
       layers.setLayerInset(1,dp(b,1),dp(b,1),dp(b,1),dp(b,3));face=layers;
     }
     b.setBackgroundTintList(null);b.setBackground(new RippleDrawable(ColorStateList.valueOf(BUTTON_RIPPLE),face,null));
-    b.setPadding(dp(b,9),0,dp(b,9),0);
+    b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);
     b.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{BUTTON_DISABLED_TEXT,BUTTON_TEXT}));
   }
-  public static void text(TextView t){t.setTypeface(Typeface.create(BODY_FONT,Typeface.NORMAL));t.setTextColor(ACCENT_TEXT);t.setIncludeFontPadding(false);}
+  public static void text(TextView t){t.setTypeface(Typeface.create(BODY_FONT,BODY_FONT_STYLE));t.setTextColor(ACCENT_TEXT);t.setIncludeFontPadding(false);}
   public static int textColor(int size,boolean bold){return bold||size>=18?HEADING:size<=11?SECONDARY:ACCENT_TEXT;}
   public static void nativeTextTree(android.view.View view) {
     if(view instanceof Button button && !(view instanceof CompoundButton))button(button);
     else if(view instanceof TextView text){
-      text.setTextColor(INK);text.setLinkTextColor(ACCENT_TEXT);text.setTextSize(BODY_SIZE_SP*TEXT_SCALE);text.setTypeface(Typeface.create(BODY_FONT,text.getTypeface()==null?Typeface.NORMAL:text.getTypeface().getStyle()));
+      text.setTextColor(INK);text.setLinkTextColor(ACCENT_TEXT);text.setTextSize(BODY_SIZE_SP*TEXT_SCALE);text.setTypeface(bodyTypeface(text.getTypeface()));
       if(text instanceof EditText)text.setHintTextColor(MUTED);
     }
     if(view instanceof android.view.ViewGroup group)
       for(int i=0;i<group.getChildCount();i++)nativeTextTree(group.getChildAt(i));
+  }
+  private static Typeface bodyTypeface(Typeface existing){
+    int style=(existing==null?Typeface.NORMAL:existing.getStyle())|BODY_FONT_STYLE;
+    return switch(style&3){
+      case 3 -> Typeface.create(BODY_FONT,Typeface.BOLD_ITALIC);
+      case 2 -> Typeface.create(BODY_FONT,Typeface.ITALIC);
+      case 1 -> Typeface.create(BODY_FONT,Typeface.BOLD);
+      default -> Typeface.create(BODY_FONT,Typeface.NORMAL);
+    };
   }
   public static ArrayAdapter<String> choices(android.content.Context context,java.util.List<String> values) {
     return new ArrayAdapter<String>(context,android.R.layout.simple_spinner_dropdown_item,values){
@@ -59,7 +68,9 @@ public final class AppStyle extends UiConfig {
   }
   public static android.graphics.drawable.Drawable canvas(){
     if(!VIBRANT_FINISH)return new ColorDrawable(BACKGROUND);
-    return new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+    int[] colors=new int[CANVAS_SPECTRUM.length];
+    for(int i=0;i<colors.length;i++)colors[i]=mix(BACKGROUND,CANVAS_SPECTRUM[i],CANVAS_COLOR_STRENGTH);
+    return new GradientDrawable(GradientDrawable.Orientation.TL_BR,PSYCHEDELIC_GRADIENTS?colors:
         new int[]{mix(BACKGROUND,CYAN,.12f),BACKGROUND,mix(BACKGROUND,SECONDARY,.10f)});
   }
   public static android.graphics.drawable.Drawable panel(android.view.View view,int accent){
@@ -76,6 +87,56 @@ public final class AppStyle extends UiConfig {
   public static void decoratePanel(android.view.View view,int accent){
     int left=view.getPaddingLeft(),top=view.getPaddingTop(),right=view.getPaddingRight(),bottom=view.getPaddingBottom();
     view.setBackground(panel(view,accent));view.setPadding(left,top,right,bottom);
+  }
+  public static void spaceButtons(LinearLayout row){
+    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    int inset=dp(row,CONTROL_ROW_PADDING_DP),halfGap=dp(row,BUTTON_GAP_DP)/2;
+    row.setPadding(dp(row,PANEL_INNER_PADDING_DP),inset,dp(row,PANEL_INNER_PADDING_DP),inset);
+    for(int i=0;i<row.getChildCount();i++){
+      android.view.View child=row.getChildAt(i);
+      if(child instanceof Button && !(child instanceof CompoundButton)){
+        LinearLayout.LayoutParams params=child.getLayoutParams() instanceof LinearLayout.LayoutParams current
+            ?current:new LinearLayout.LayoutParams(-2,dp(row,44));
+        params.height=dp(row,44);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
+      }else if(child instanceof TextView label && !(child instanceof CompoundButton)){
+        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,44));
+      }
+    }
+  }
+  /** Reflow existing settings buttons; listeners and asynchronous status references stay attached. */
+  public static void compactSettings(android.view.ViewGroup group,int requestedColumns){
+    int columns=Math.max(1,requestedColumns);
+    java.util.List<android.view.View> children=new java.util.ArrayList<>();
+    for(int i=0;i<group.getChildCount();i++)children.add(group.getChildAt(i));
+    for(android.view.View child:children)if(child instanceof android.view.ViewGroup nested)compactSettings(nested,columns);
+    if(!(group instanceof LinearLayout box))return;
+    if(box.getOrientation()==LinearLayout.HORIZONTAL){
+      boolean onlyButtons=box.getChildCount()>0&&box.getChildCount()<=columns;
+      for(int i=0;i<box.getChildCount();i++)onlyButtons&=box.getChildAt(i) instanceof Button;
+      if(onlyButtons){
+        for(int i=box.getChildCount();i<columns;i++)box.addView(new android.view.View(box.getContext()),new LinearLayout.LayoutParams(0,1,1));
+        spaceButtons(box);
+      }
+      return;
+    }
+    int index=0;
+    while(index<box.getChildCount()){
+      if(!(box.getChildAt(index) instanceof Button)){index++;continue;}
+      java.util.List<Button> run=new java.util.ArrayList<>();
+      while(index<box.getChildCount()&&box.getChildAt(index) instanceof Button button){box.removeViewAt(index);run.add(button);}
+      for(int start=0;start<run.size();start+=columns){
+        LinearLayout row=new LinearLayout(box.getContext());
+        for(int c=0;c<columns;c++){
+          if(start+c<run.size()){
+            Button button=run.get(start+c);button.setSingleLine(false);button.setMaxLines(2);
+            row.addView(button,new LinearLayout.LayoutParams(0,dp(box,44),1));
+          }else row.addView(new android.view.View(box.getContext()),new LinearLayout.LayoutParams(0,1,1));
+        }
+        spaceButtons(row);
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+        params.setMargins(0,dp(box,2),0,dp(box,2));box.addView(row,index++,params);
+      }
+    }
   }
   public static void toggle(Switch toggle){
     toggle.setThumbTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{PURPLE,CYAN}));
