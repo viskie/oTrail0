@@ -1,8 +1,8 @@
 {
-  "versionCode": 13,
-  "versionName": "0.3.3",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.3-debug.apk",
-  "sha256": "df6633a07545fd6b882d863c7bd336c8f01f6f65559b73368df417aad649ea33",
-  "sizeBytes": 41629333,
-  "notes": "GPS uncertainty handling and stable-signal stop recovery, including drifted duplicate open stops. Raw GPS, saved stop IDs and labels retained with repair audit logs. Weak-signal status, anchored dot and unreliable-speed suppression. INK now controls native text; offline road/city labels have configurable colors. 52 JVM checks, lint and 24 phone checks pass. Installed and data integrity verified on POCO."
+  "versionCode": 14,
+  "versionName": "0.3.4",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.4-debug.apk",
+  "sha256": "ef7e53a73738480b28b24f19243e8bc960c82214c3a386a7645349120f55278d",
+  "sizeBytes": 41985968,
+  "notes": "More vibrant gradients, magenta-edged cyan buttons, bold labels, colored status/navigation panels and cycling settings-card accents. Existing manual colors, fonts/sizes, grey base, map labels, dots and trail palette retained. Finish controls in UiConfig.java. No journal or tracking changes. 52 JVM checks and lint pass. Phone unavailable over ADB; device installation/visual checks pending."
 }

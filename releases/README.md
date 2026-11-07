@@ -85,3 +85,7 @@ Conservative GPS departure confirmation, stop recovery after stable reception an
 ## 0.3.3 — 2026-11-06
 
 GPS uncertainty handling and stable-signal stop recovery, including drifted duplicate open stops. Raw GPS, saved stop IDs and labels retained with repair audit logs. Weak-signal status, anchored dot and unreliable-speed suppression. INK now controls native text; offline road/city labels have configurable colors. 52 JVM checks, lint and 24 phone checks pass. Installed and data integrity verified on POCO. Same signing certificate; install in place. See docs/0.3.3-stop-reconciliation.md.
+
+## 0.3.4 — 2026-11-07
+
+More vibrant gradients, magenta-edged cyan buttons, bold labels, colored status/navigation panels and cycling settings-card accents. Existing manual colors, fonts/sizes, grey base, map labels, dots and trail palette retained. Finish controls in UiConfig.java. No journal or tracking changes. 52 JVM checks and lint pass. Phone unavailable over ADB; device installation/visual checks pending. Same signing certificate for in-place upgrade. Details: docs/0.3.4-vibrant-finish.md.
