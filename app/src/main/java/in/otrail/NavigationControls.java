@@ -116,11 +116,8 @@ final class NavigationControls implements AutoCloseable {
     v.setTextColor(AppStyle.textColor(size, size>=14));
     if(size>=14)v.setTypeface(android.graphics.Typeface.create(UiConfig.HEADING_FONT,UiConfig.HEADING_FONT_STYLE));
     v.setPadding(dp(8), dp(2), dp(8), dp(2));
-    v.setTextColor(UiConfig.NAV_TEXT_SPECTRUM[0]);
-    v.addOnLayoutChangeListener((view,l,t,r,b,ol,ot,or,ob)->{
-      float width=Math.max(1,v.getWidth()-v.getPaddingLeft()-v.getPaddingRight());
-      v.getPaint().setShader(new android.graphics.LinearGradient(0,0,width,0,UiConfig.NAV_TEXT_SPECTRUM,null,android.graphics.Shader.TileMode.CLAMP));v.invalidate();
-    });
+    v.getPaint().setShader(null);
+    v.setTextColor(UiConfig.NAV_TEXT_COLOR);
     return v;
   }
 

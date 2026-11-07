@@ -40,6 +40,7 @@ public class UiConfig {
       PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
   public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
   public static final int NAV_PANEL_BACKGROUND=0xff000000;
+  public static final int NAV_TEXT_COLOR=0xff40e0d0; // Solid turquoise navigation text.
   public static final int[] NAV_TEXT_SPECTRUM={0xffbf40ff,0xffff00ff,0xffb366ff,0xff00ffff,0xff40e0d0};
   public static final int MAP_SELECTOR_SIZE_SP=BODY_SIZE_SP+2;
   public static final int TOTAL_STATS_TEXT_COLOR=0xff01ff1f, TOTAL_STATS_BACKGROUND=0xff202039;
