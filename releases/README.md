@@ -125,3 +125,7 @@ No Mod1 editor/build tools included. Adds planning-only modules folder/API and S
 ## 0.4.0 — 2026-11-07
 
 Signed downloadable module host and separately downloadable GOD 1.0.0 (`.oTrail0`). In-app source editor, on-phone Java compiler toolchain, signing-key import and Android Keystore SSH publishing. No Termux/external builder. First compiler retains resources/native libraries and rejects resource/build-system edits. 64 JVM checks and lint pass; full compiler smoke test passes on the build computer. Host installed over ADB, journal and India map retained. On-phone compilation/publishing validation pending. See docs/0.4.0-god.md.
+
+## 0.4.1 — 2026-11-07
+
+CAM host support with additive photo-index migration. Download CAM separately from Extension modules; no module implementations are bundled in the APK. Camera/hexagonal locate controls sit together at map top right. Photo albums are available from map stop bubbles and recorded-stop details. APK/module upgrades retain installed modules, old versions, settings, workspaces and existing journal. GOD 1.0.2 has three-column landscape buttons and atomic automatic drafts. 70 JVM checks/lint, isolated on-phone photo migration/recovery checks and real POCO camera/photo/stop-link viewing passed. See docs/0.4.1-cam.md.
