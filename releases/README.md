@@ -93,3 +93,7 @@ More vibrant gradients, magenta-edged cyan buttons, bold labels, colored status/
 ## 0.3.5 — 2026-11-07
 
 Centered 18sp destination, bottom-pinned landscape stats, three-column settings buttons, larger italic fonts and vivid gradients. Recorded stops show distance and average speed since previous stop. Long stops and big offline cities are red italic; overlapping stop/city labels use bold italics. Zoom-scaled offline city names. Installed on POCO with all raw fixes and stop IDs retained. 53 JVM checks and lint pass. Same signing certificate for in-place upgrade. Details: docs/0.3.5-layout-stops.md.
+
+## 0.3.6 — 2026-11-07
+
+Compact destination headings: Bijnor: UP-246701; repeated India suffix omitted. Stored destination data unchanged. Includes centered heading, bottom landscape stats, three-column settings, stop distances and red italic long-stop/city labels from 0.3.5. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade.
