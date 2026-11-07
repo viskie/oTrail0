@@ -221,7 +221,7 @@ final class NavigationControls implements AutoCloseable {
       draw(map, s);
       return;
     }
-    title.setText(pending != null ? pending.name() : s.name());
+    title.setText(DestinationLabel.format(pending != null ? pending.name() : s.name()));
     NavigationProgress.Guidance g = s.guidance();
     boolean active = "ACTIVE".equals(s.mode());
     boolean stale =
@@ -287,7 +287,7 @@ final class NavigationControls implements AutoCloseable {
       Marker end = new Marker(map);
       end.setId("navigation:destination");
       end.setPosition(new GeoPoint(s.target().lat(), s.target().lon()));
-      end.setTitle(s.name());
+      end.setTitle(DestinationLabel.format(s.name()));
       end.setSnippet(UiConfig.text("navigation_destination"));
       end.setOnMarkerClickListener(
           (marker, view) -> {
@@ -327,7 +327,7 @@ final class NavigationControls implements AutoCloseable {
           .append(step.instruction())
           .append("\n\n");
     new AppDialogs(activity)
-        .setTitle(s.name())
+        .setTitle(DestinationLabel.format(s.name()))
         .setMessage(out.toString())
         .setPositiveButton(UiConfig.text("close"), null)
         .setNeutralButton(
