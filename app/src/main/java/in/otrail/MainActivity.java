@@ -208,9 +208,6 @@ public final class MainActivity extends Activity {
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
     camVisible=new ModuleStore(this).enabled("mod2");
-    if(camVisible){
-      ImageButton camera=new ImageButton(this);camera.setImageResource(android.R.drawable.ic_menu_camera);camera.setContentDescription("CAM · Take a geotagged photo");camera.setColorFilter(UiConfig.CYAN);camera.setBackgroundColor(android.graphics.Color.BLACK);camera.setOnClickListener(v->openCam("camera",-1));row.addView(camera,new LinearLayout.LayoutParams(dp(44),dp(44)));
-    }
     row.addView(button(UiConfig.text("settings"), this::showDownloads));
     AppStyle.spaceButtons(row);
     body.addView(row);
@@ -259,9 +256,14 @@ public final class MainActivity extends Activity {
     mapFrame.addView(map, new FrameLayout.LayoutParams(-1, -1));
     LocateLogoButton locateButton=new LocateLogoButton(this,this::locate);
     locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
-    FrameLayout.LayoutParams locatePosition=new FrameLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP),Gravity.BOTTOM|Gravity.END);
-    locatePosition.setMargins(dp(8),dp(8),dp(10),dp(12));
-    mapFrame.addView(locateButton,locatePosition);
+    LinearLayout mapControls=new LinearLayout(this);mapControls.setGravity(Gravity.CENTER_VERTICAL);
+    if(camVisible){
+      ImageButton camera=new ImageButton(this);camera.setImageResource(android.R.drawable.ic_menu_camera);camera.setContentDescription("CAM · Take a geotagged photo");camera.setColorFilter(UiConfig.CYAN);
+      android.graphics.drawable.GradientDrawable cameraBackground=new android.graphics.drawable.GradientDrawable();cameraBackground.setColor(android.graphics.Color.BLACK);cameraBackground.setCornerRadius(dp(12));cameraBackground.setStroke(dp(1),UiConfig.CYAN);camera.setBackground(cameraBackground);camera.setPadding(dp(9),dp(9),dp(9),dp(9));camera.setOnClickListener(v->openCam("camera",-1));
+      LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(48),dp(48));cameraPosition.setMargins(0,0,dp(8),0);mapControls.addView(camera,cameraPosition);
+    }
+    mapControls.addView(locateButton,new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP)));
+    FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(8),dp(10),dp(10),dp(8));mapFrame.addView(mapControls,controlPosition);
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -697,9 +699,11 @@ public final class MainActivity extends Activity {
         (m, view) -> {
           openMarkerKey = key;
           if (key.startsWith("stop:")) {
-            new AppDialogs(this).setTitle(m.getTitle())
+            android.app.AlertDialog.Builder info=new AppDialogs(this).setTitle(m.getTitle())
                 .setMessage(android.text.Html.fromHtml(m.getSnippet(), android.text.Html.FROM_HTML_MODE_LEGACY))
-                .setPositiveButton(UiConfig.text("close"), null).show();
+                .setPositiveButton(UiConfig.text("close"), null);
+            if(new ModuleStore(this).enabled("mod2"))try{long stop=Long.parseLong(key.substring(5));info.setNeutralButton("Photos",(dialog,which)->openCam("gallery",stop));}catch(NumberFormatException ignored){}
+            info.show();
             openMarkerKey = null;
           } else MarkerPopups.openOnly(view, m);
           return true;
