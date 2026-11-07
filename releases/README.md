@@ -97,3 +97,7 @@ Centered 18sp destination, bottom-pinned landscape stats, three-column settings 
 ## 0.3.6 — 2026-11-07
 
 Compact destination headings: Bijnor: UP-246701; repeated India suffix omitted. Stored destination data unchanged. Includes centered heading, bottom landscape stats, three-column settings, stop distances and red italic long-stop/city labels from 0.3.5. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade.
+
+## 0.3.7 — 2026-11-07
+
+Map dropdown text increased by 2sp. Total stats footer now neon green bold italic on a dark background. Retains compact Bijnor: UP-246701 heading, centered navigation, bottom landscape stats, three-column settings and recorded-stop distance styling. 57 JVM checks and lint pass. Same signing certificate; upgrade in place.

@@ -1,8 +1,8 @@
 {
-  "versionCode": 16,
-  "versionName": "0.3.6",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.6-debug.apk",
-  "sha256": "583d8f42867019884d3c5cf7d9a1f4e49cf501e065bde2dfe9cdeec417a80535",
+  "versionCode": 17,
+  "versionName": "0.3.7",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.7-debug.apk",
+  "sha256": "a53a8822206f0a082e509433aca58353aa80969e6d9f7c580d4dcb3390d9b949",
   "sizeBytes": 41645705,
-  "notes": "Compact destination headings: Bijnor: UP-246701; repeated India suffix omitted. Stored destination data unchanged. Includes centered heading, bottom landscape stats, three-column settings, stop distances and red italic long-stop/city labels from 0.3.5. 57 JVM checks and lint pass."
+  "notes": "Map dropdown text increased by 2sp. Total stats footer now neon green bold italic on a dark background. Retains compact Bijnor: UP-246701 heading, centered navigation, bottom landscape stats, three-column settings and recorded-stop distance styling. 57 JVM checks and lint pass. Same signing certificate; upgrade in place."
 }
