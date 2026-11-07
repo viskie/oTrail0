@@ -56,3 +56,5 @@ Status/Stopped panel uses `STATUS_BACKGROUND` (black), `STATUS_TEXT_COLOR` (cyan
 The floating Locate action shows the application icon inside a hexagon. Edit `LOCATE_SIZE_DP`, `LOCATE_BACKGROUND`, `LOCATE_LOGO_COLOR`, `LOCATE_BORDER_COLOR`, and `LOCATE_RIPPLE_COLOR`; the action and accessibility description remain Locate.
 
 Live status speed uses metres per hour (`0f_m_hr`, m/s ×3600). A known stop always shows zero, even with weak/stale GPS. Uncertain movement remains unknown (`speed_unknown_m_hr`); distances and historical average-speed metrics retain their existing units.
+
+Current live drive uses `LIVE_TRAIL_COLOR` (neon pink); history retains its pass palette and inferred gaps retain green. While stopped, the most recent incoming drive remains highlighted. This changes rendering only. `NAV_TITLE_BOLD` controls the destination's extra bold weight. `LOCATE_VISUAL_SCALE=.60f` reduces the logo and regular hexagon by 40%, while preserving its original touch target; `LOCATE_BEVEL_LIGHT`/`LOCATE_BEVEL_SHADOW` control its 3D edge.

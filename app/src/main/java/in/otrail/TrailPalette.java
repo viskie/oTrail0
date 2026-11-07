@@ -10,6 +10,20 @@ public final class TrailPalette {
   private record Cell(int x,int y){}
   private record Visit(int pass,long time,double x,double y,double dx,double dy){}
   private static Cell cell(double x,double y){return new Cell((int)Math.floor(x/35),(int)Math.floor(y/35));}
+  /** Display-only highlight. Preserve inferred green strokes and all historical colors. */
+  public static List<Stroke> highlightCurrent(List<Stroke> strokes,long start){
+    List<Stroke> result=new ArrayList<>();
+    for(Stroke stroke:strokes){
+      if(stroke.pass()==0){result.add(stroke);continue;}
+      List<TrailSegments.Sample> points=stroke.points();
+      if(points.size()<2){result.add(stroke);continue;}
+      int split=1;while(split<points.size()&&points.get(split).time()<start)split++;
+      if(split==points.size()){result.add(stroke);continue;}
+      if(split>1)result.add(new Stroke(stroke.color(),stroke.pass(),List.copyOf(points.subList(0,split))));
+      result.add(new Stroke(UiConfig.LIVE_TRAIL_COLOR,stroke.pass(),List.copyOf(points.subList(split-1,points.size()))));
+    }
+    return result;
+  }
   public static List<Stroke> build(List<TrailSegments.Segment> segments) {
     Map<Cell,Visit> visits=new HashMap<>();List<Stroke> out=new ArrayList<>();
     for(TrailSegments.Segment segment:segments) {

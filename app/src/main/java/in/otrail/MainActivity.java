@@ -50,6 +50,7 @@ public final class MainActivity extends Activity {
   private RoadControls roadControls;
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
+  private ModuleHost moduleHost;
   private final ArrayList<Runnable> cardUpdates = new ArrayList<>();
   private boolean downloads, history, offlineOnly, follow = true, busy;
   private long selectedTrip = -1, lastFixId = -1;
@@ -178,6 +179,7 @@ public final class MainActivity extends Activity {
   }
 
   private void showMap() {
+    if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     if (map != null) {
       org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
       MapView old = map;
@@ -307,6 +309,7 @@ public final class MainActivity extends Activity {
     status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
+    moduleHost=new ModuleHost(this);body.addView(moduleHost.view());
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
     stats.setMaxLines(2);
@@ -560,6 +563,7 @@ public final class MainActivity extends Activity {
             + Math.round(last.accuracy())
             + UiConfig.text("m")
             + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time())));
+    if(moduleHost!=null)moduleHost.update(new TrailModule.Snapshot(System.currentTimeMillis(),last.time(),last.lat(),last.lon(),last.accuracy(),driveMetrics==null?0:driveMetrics.totalMeters(),stops.size(),history));
     int stopSignature = stops.hashCode(), heritageSignature = places.hashCode();
     if (lastFixId == last.id()
         && lastState.equals(state)
@@ -583,7 +587,12 @@ public final class MainActivity extends Activity {
                     && (!(o instanceof Polyline)
                         || ((Polyline) o).getId() == null
                         || !((Polyline) o).getId().startsWith("navigation:")));
-    for (TrailPalette.Stroke stroke : colored) {
+    long liveRunStart=driveMetrics==null?last.time():driveMetrics.current().start();
+    if(stopped&&current!=null&&driveMetrics!=null){
+      DriveMetrics.Leg arrivedLeg=driveMetrics.stops().get(current.id());
+      if(arrivedLeg!=null)liveRunStart=arrivedLeg.start();
+    }
+    for (TrailPalette.Stroke stroke : recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart)) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
       line(points, stroke.color());
@@ -1106,6 +1115,7 @@ public final class MainActivity extends Activity {
   }
 
   private void showDownloads() {
+    if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     downloads = true;
     if (map != null) {
       MapView old = map;
@@ -1141,6 +1151,7 @@ public final class MainActivity extends Activity {
             13,
             MUTED));
     cardUpdates.clear();
+    downloadCards.addView(button(UiConfig.text("modules_title"),()->ModuleHost.settings(this)));
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
     if (routingControls == null) routingControls = new RoutingControls(this);
     routingControls.addTo(downloadCards, cardUpdates);
@@ -1611,6 +1622,7 @@ public final class MainActivity extends Activity {
     if (map != null) map.onDetach();
     io.shutdown();
     heritageIo.shutdownNow();
+    if(moduleHost!=null)moduleHost.close();
     navigation.close();
     roadControls.close();
     if (routingControls != null) routingControls.close();

@@ -14,7 +14,7 @@ final class LocateLogoButton extends ImageButton {
     setImageDrawable(context.getApplicationInfo().loadIcon(context.getPackageManager()));
     setColorFilter(UiConfig.LOCATE_LOGO_COLOR);
     setScaleType(ScaleType.FIT_CENTER);
-    int inset=Math.round(14*getResources().getDisplayMetrics().density);
+    int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2*getResources().getDisplayMetrics().density);
     setPadding(inset,inset,inset,inset);
     setBackground(new RippleDrawable(ColorStateList.valueOf(UiConfig.LOCATE_RIPPLE_COLOR),
         new Hex(UiConfig.LOCATE_BACKGROUND,UiConfig.LOCATE_BORDER_COLOR),new Hex(Color.WHITE,Color.WHITE)));
@@ -27,13 +27,28 @@ final class LocateLogoButton extends ImageButton {
     private final int fill,edge;
     Hex(int fill,int edge){this.fill=fill;this.edge=edge;}
     @Override public void draw(Canvas canvas){
-      Rect b=getBounds();float stroke=Math.max(2,b.width()*.025f),left=b.left+stroke,top=b.top+stroke;
-      float w=b.width()-2*stroke,h=b.height()-2*stroke;
-      Path path=new Path();path.moveTo(left+w*.25f,top);path.lineTo(left+w*.75f,top);
-      path.lineTo(left+w,top+h*.5f);path.lineTo(left+w*.75f,top+h);
-      path.lineTo(left+w*.25f,top+h);path.lineTo(left,top+h*.5f);path.close();
-      paint.setStyle(Paint.Style.FILL);paint.setColor(fill);canvas.drawPath(path,paint);
+      Rect b=getBounds();float stroke=Math.max(2,b.width()*.018f);
+      float radius=(Math.min(b.width(),b.height())/2f-stroke)*UiConfig.LOCATE_VISUAL_SCALE;
+      float cx=b.exactCenterX(),cy=b.exactCenterY(),depth=Math.max(2,b.height()*.035f);
+      Path path=new Path();
+      for(int i=0;i<6;i++){
+        double angle=Math.PI*i/3;
+        float x=cx+radius*(float)Math.cos(angle),y=cy+radius*(float)Math.sin(angle);
+        if(i==0)path.moveTo(x,y);else path.lineTo(x,y);
+      }
+      path.close();paint.setStyle(Paint.Style.FILL);paint.setShader(null);
+      if(fill!=Color.WHITE){
+        canvas.save();canvas.translate(0,depth);paint.setColor(UiConfig.LOCATE_BEVEL_SHADOW);canvas.drawPath(path,paint);canvas.restore();
+        paint.setShader(new LinearGradient(cx-radius,cy-radius,cx+radius,cy+radius,
+            new int[]{UiConfig.LOCATE_BEVEL_LIGHT,fill,fill},null,Shader.TileMode.CLAMP));
+      }
+      paint.setColor(fill);canvas.drawPath(path,paint);paint.setShader(null);
       paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(stroke);paint.setColor(edge);canvas.drawPath(path,paint);
+      if(fill!=Color.WHITE){
+        paint.setColor(UiConfig.LOCATE_BEVEL_LIGHT);paint.setStrokeWidth(stroke*.55f);
+        canvas.drawLine(cx-radius,cy,cx-radius*.5f,cy-radius*.8660254f,paint);
+        canvas.drawLine(cx-radius*.5f,cy-radius*.8660254f,cx+radius*.5f,cy-radius*.8660254f,paint);
+      }
     }
     @Override public void setAlpha(int alpha){paint.setAlpha(alpha);invalidateSelf();}
     @Override public void setColorFilter(ColorFilter filter){paint.setColorFilter(filter);invalidateSelf();}

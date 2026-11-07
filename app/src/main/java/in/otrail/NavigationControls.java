@@ -53,6 +53,7 @@ final class NavigationControls implements AutoCloseable {
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
     title.setGravity(android.view.Gravity.CENTER);
     title.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+    title.getPaint().setFakeBoldText(UiConfig.NAV_TITLE_BOLD);
     title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     instruction.setMaxLines(2);
     panel.addView(title);

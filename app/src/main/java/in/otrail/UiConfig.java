@@ -39,6 +39,10 @@ public class UiConfig {
   public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
       PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
   public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
+  public static final float LOCATE_VISUAL_SCALE=.60f;
+  public static final int LOCATE_BEVEL_LIGHT=0xff656180, LOCATE_BEVEL_SHADOW=0xff170d25;
+  public static final boolean NAV_TITLE_BOLD=true;
+  public static final int LIVE_TRAIL_COLOR=0xffff1493;
   public static final int LOCATE_SIZE_DP=56, LOCATE_BACKGROUND=0xff000000,
       LOCATE_LOGO_COLOR=0xff00ffff, LOCATE_BORDER_COLOR=0xffff00ff, LOCATE_RIPPLE_COLOR=0x6640e0d0;
   public static final int STATUS_BACKGROUND=0xff000000, STATUS_TEXT_COLOR=0xff00ffff, STATUS_SPEED_COLOR=0xffffffff;
@@ -113,6 +117,19 @@ public class UiConfig {
   public static final String UI_LANGUAGE="";
   public static final Map<String, Map<String,String>> TRANSLATIONS=Map.of();
   public static final Map<String,String> ENGLISH=Map.ofEntries(
+      Map.entry("modules_title", "Extension modules"),
+      Map.entry("module_planned", "Planned"),
+      Map.entry("module_enable", "Enable"), Map.entry("module_disable", "Disable"),
+      Map.entry("module_bundled", "Bundled · API 1 · Applies when you return to the map. Enable choice survives app updates and restarts."),
+      Map.entry("module_plan_only", "Planning only. Implementation will arrive in an app update."),
+      Map.entry("module_waiting", "GPS details · waiting for recorded position"),
+      Map.entry("module_gps_title", "GPS details"),
+      Map.entry("module_gps_summary", "Optional map-side panel showing coordinates, GPS accuracy and recorded-fix age. Reads existing fixes; adds no location collection."),
+      Map.entry("module_gps_details", "GPS details\n%.6f, %.6f\nAccuracy ±%.0f m · fix age %d s"),
+      Map.entry("module_road_title", "Road ahead"),
+      Map.entry("module_road_summary", "Plan: extend the map with cached upcoming road landmarks and optional actions."),
+      Map.entry("module_journey_title", "Journey summary"),
+      Map.entry("module_journey_summary", "Plan: extend trip history with read-only daily distance and long-stop summaries."),
       Map.entry("stop_leg_summary", "%.2f km since previous stop · avg %.1f km/h"),
       Map.entry("stop_distance_unavailable", "\nDistance since previous stop: unavailable"),
       Map.entry("gps_uncertain", "GPS uncertain"),
