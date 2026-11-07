@@ -152,7 +152,17 @@ def package():
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)
  release=dict(manifest,url=prefix+module.name,sha256=sha(module),sizeBytes=module.stat().st_size,installSalt=base64.b64encode(salt).decode(),installHash=base64.b64encode(hashlib.pbkdf2_hmac('sha256',password,salt,120000,32)).decode(),notes='In-app multi-tab editor and offline Java APK build. Download tools separately; unsupported resources/build-system edits rejected. Phone-specific SSH key, GitHub test and named APK publication. Device validation pending.')
- payload=json.dumps(dict(schema=1,repositories=[dict(name='viskie/oTrail0',url=prefix)],versions=[release],toolchains=[metadata]),sort_keys=True,separators=(',',':')).encode()
+ versions=[release];chains=[metadata]
+ old=RELEASES/'catalog.json'
+ if old.exists():
+  envelope=json.loads(old.read_text());previous=base64.b64decode(envelope['payload']);sig=BUILD/'old-catalog.sig';sig.write_bytes(base64.b64decode(envelope['signature']));public=BUILD/'publisher-public.pem'
+  key=pathlib.Path.home()/'.local/share/otrail/module-signing.pem'
+  public.write_bytes(subprocess.check_output(['openssl','pkey','-in',str(key),'-pubout']))
+  subprocess.run(['openssl','dgst','-sha256','-verify',str(public),'-signature',str(sig)],input=previous,check=True,stdout=subprocess.DEVNULL)
+  catalog=json.loads(previous)
+  versions += [item for item in catalog.get('versions',[]) if (item['id'],item['version'])!=(release['id'],release['version'])]
+  chains += [item for item in catalog.get('toolchains',[]) if item['id']!=metadata['id']]
+ payload=json.dumps(dict(schema=1,repositories=[dict(name='viskie/oTrail0',url=prefix)],versions=versions,toolchains=chains),sort_keys=True,separators=(',',':')).encode()
  (BUILD/'catalog-payload.json').write_bytes(payload)
  key=pathlib.Path.home()/'.local/share/otrail/module-signing.pem';signature=subprocess.check_output(['openssl','dgst','-sha256','-sign',str(key)],input=payload)
  (RELEASES/'catalog.json').write_text(json.dumps(dict(payload=base64.b64encode(payload).decode(),signature=base64.b64encode(signature).decode()),indent=2)+'\n')

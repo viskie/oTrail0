@@ -30,7 +30,7 @@ public final class SourceStudio implements ModuleV1 {
   private ProgressBar progress;private EditText editor;private CheckBox offline,licenses;
   private final ExecutorService io=Executors.newSingleThreadExecutor();private final Handler handler=new Handler(Looper.getMainLooper());
   private final LinkedHashMap<String,Buffer> buffers=new LinkedHashMap<>();
-  private String current="",token,tab="Project";private JSONObject metadata,state=new JSONObject();
+  private String current="",draftProject="",tab="Project";private JSONObject metadata,state=new JSONObject();
   private boolean running,closed,polling,suppress;private File exportFile;private String exportMime;
   private static final int EXPORT=710,KEYSTORE=711;
   private static final int BG=0xff10101b,TEXT=0xff40e0d0;
@@ -66,7 +66,7 @@ public final class SourceStudio implements ModuleV1 {
       panel.addView(label("No external app or build server is used.",12));
       try{JSONArray sources=metadata.getJSONArray("sources");for(int i=0;i<sources.length();i++){final JSONObject source=sources.getJSONObject(i);panel.addView(button("Download source · "+source.getString("version"),()->work(()->{call(obj("action","source","source",source));ui(()->status.setText("Source download started; progress below"));})));}}catch(Exception e){error(e);}
       panel.addView(button("Browse project files",this::browse));
-      panel.addView(button("Export source snapshot ZIP",()->work(()->{JSONObject result=call(obj("action","export"));download(result.getString("name"),false,true);}))); 
+      panel.addView(button("Export source snapshot ZIP",()->work(()->{JSONObject result=call(obj("action","export"));download(result.getString("name"),false,true);})));
       panel.addView(label("Return to an existing workspace by selecting its source version; existing edits are retained. Source downloads work over Wi-Fi or cellular.",12));
     }else if(name.equals("Build")){
       offline=new CheckBox(activity);offline.setText("Offline compilation after toolchain download");offline.setTextColor(TEXT);offline.setChecked(preferences().getBoolean("offline",false));panel.addView(offline);
@@ -119,7 +119,9 @@ public final class SourceStudio implements ModuleV1 {
   });}
   private void openFile(String path){
     synchronized(buffers){if(buffers.containsKey(path)){current=path;show("Editor");return;}}
-    work(()->{final String text=call(obj("action","read","path",path)).getString("text");ui(()->{Buffer b=new Buffer();b.text=b.saved=text;synchronized(buffers){buffers.put(path,b);}current=path;show("Editor");});});
+    work(()->{final String project=StudioFiles.project(host.privateDirectory()).getCanonicalPath();
+      if(!draftProject.isEmpty()&&!draftProject.equals(project))throw new IOException("Close saved editor tabs before switching source workspaces");
+      final String text=call(obj("action","read","path",path)).getString("text");ui(()->{draftProject=project;Buffer b=new Buffer();b.text=b.saved=text;synchronized(buffers){buffers.put(path,b);}current=path;show("Editor");});});
   }
   private void editorScreen(){
     HorizontalScrollView tabs=new HorizontalScrollView(activity);fileTabs=row();tabs.addView(fileTabs);content.addView(tabs);
@@ -142,14 +144,14 @@ public final class SourceStudio implements ModuleV1 {
   }
   private void undo(boolean redo){Buffer b=buffers.get(current);if(b==null)return;Deque<String> from=redo?b.redo:b.undo,to=redo?b.undo:b.redo;if(from.isEmpty())return;to.push(b.text);suppress=true;editor.setText(from.pop());suppress=false;}
   private void find(){if(editor==null)return;EditText query=new EditText(activity);new AlertDialog.Builder(activity).setTitle("Find in file").setView(query).setPositiveButton("Find",(d,w)->{String needle=query.getText().toString();int at=editor.getText().toString().indexOf(needle,Math.max(0,editor.getSelectionEnd()));if(at<0)at=editor.getText().toString().indexOf(needle);if(at>=0){editor.requestFocus();editor.setSelection(at,at+needle.length());}else status.setText("Text not found");}).setNegativeButton("Cancel",null).show();}
-  private void closeFile(){Buffer b=buffers.get(current);if(b==null)return;final String path=current;Runnable close=()->{buffers.remove(path);current=buffers.isEmpty()?"":buffers.keySet().iterator().next();show("Editor");};
+  private void closeFile(){Buffer b=buffers.get(current);if(b==null)return;final String path=current;Runnable close=()->{buffers.remove(path);if(buffers.isEmpty())draftProject="";current=buffers.isEmpty()?"":buffers.keySet().iterator().next();show("Editor");};
     if(b.dirty())new AlertDialog.Builder(activity).setTitle("Unsaved changes").setMessage(path).setPositiveButton("Save & close",(d,w)->work(()->{saveOne(path);ui(close);})).setNeutralButton("Discard",(d,w)->close.run()).setNegativeButton("Cancel",null).show();else close.run();
   }
-  private void saveOne(String path)throws Exception{final Buffer b;final String text;synchronized(buffers){b=buffers.get(path);if(b==null||!b.dirty())return;text=b.text;}call(obj("action","write","path",path,"text",text));ui(()->{b.saved=text;if(b.button!=null)b.button.setText(shortName(path)+(b.dirty()?" *":""));status.setText("Saved "+path);saveDrafts();});}
+  private void saveOne(String path)throws Exception{final Buffer b;final String text;synchronized(buffers){b=buffers.get(path);if(b==null||!b.dirty())return;text=b.text;}if(!draftProject.isEmpty()&&!draftProject.equals(StudioFiles.project(host.privateDirectory()).getCanonicalPath()))throw new IOException("This draft belongs to another source workspace; reopen that version before saving");call(obj("action","write","path",path,"text",text));ui(()->{b.saved=text;if(b.button!=null)b.button.setText(shortName(path)+(b.dirty()?" *":""));status.setText("Saved "+path);saveDrafts();});}
   private void saveAllNetwork()throws Exception{List<String> paths;synchronized(buffers){paths=new ArrayList<>(buffers.keySet());}for(String path:paths)saveOne(path);}
   private void openError(){String output=state.optString("log");Matcher m=Pattern.compile("([^\\s:]+\\.java):(\\d+):").matcher(output);if(m.find()){String path=m.group(1);int index=path.indexOf("/app/");if(index>=0)path=path.substring(index+1);else{index=path.indexOf("/modules/");if(index>=0)path=path.substring(index+1);}openFile(path);}else status.setText("No Java error location in current log");}
-  private void saveDrafts(){if(host==null)return;try{JSONObject root=new JSONObject();JSONArray files=new JSONArray();synchronized(buffers){for(Map.Entry<String,Buffer> e:buffers.entrySet())files.put(obj("path",e.getKey(),"text",e.getValue().text,"saved",e.getValue().saved));}root.put("files",files).put("current",current);android.util.AtomicFile atomic=new android.util.AtomicFile(new File(host.privateDirectory(),"drafts.json"));FileOutputStream out=atomic.startWrite();try{out.write(root.toString().getBytes(StandardCharsets.UTF_8));atomic.finishWrite(out);}catch(Exception e){atomic.failWrite(out);throw e;}}catch(Exception e){error(e);}}
-  private void restoreDrafts(){try{File file=new File(host.privateDirectory(),"drafts.json");if(!file.isFile())return;JSONObject data;try(InputStream in=new FileInputStream(file)){data=new JSONObject(new String(read(in,10000000),StandardCharsets.UTF_8));}JSONArray files=data.getJSONArray("files");for(int i=0;i<files.length();i++){JSONObject f=files.getJSONObject(i);Buffer b=new Buffer();b.text=f.getString("text");b.saved=f.getString("saved");buffers.put(f.getString("path"),b);}current=data.optString("current","");}catch(Exception e){error(e);}}
+  private void saveDrafts(){if(host==null)return;try{JSONObject root=new JSONObject();JSONArray files=new JSONArray();synchronized(buffers){for(Map.Entry<String,Buffer> e:buffers.entrySet())files.put(obj("path",e.getKey(),"text",e.getValue().text,"saved",e.getValue().saved));}root.put("files",files).put("current",current).put("project",draftProject);android.util.AtomicFile atomic=new android.util.AtomicFile(new File(host.privateDirectory(),"drafts.json"));FileOutputStream out=atomic.startWrite();try{out.write(root.toString().getBytes(StandardCharsets.UTF_8));atomic.finishWrite(out);}catch(Exception e){atomic.failWrite(out);throw e;}}catch(Exception e){error(e);}}
+  private void restoreDrafts(){try{File file=new File(host.privateDirectory(),"drafts.json");if(!file.isFile())return;JSONObject data;try(InputStream in=new FileInputStream(file)){data=new JSONObject(new String(read(in,10000000),StandardCharsets.UTF_8));}JSONArray files=data.getJSONArray("files");for(int i=0;i<files.length();i++){JSONObject f=files.getJSONObject(i);Buffer b=new Buffer();b.text=f.getString("text");b.saved=f.getString("saved");buffers.put(f.getString("path"),b);}current=data.optString("current","");draftProject=data.optString("project","");}catch(Exception e){error(e);}}
   private JSONObject call(JSONObject request)throws Exception{
     String action=request.getString("action");File data=host.privateDirectory();
     if(action.equals("status")){
@@ -161,6 +163,7 @@ public final class SourceStudio implements ModuleV1 {
     if(action.equals("cancel")){host.cancelTask();return obj("ok",true);}
     if(action.equals("source")||action.equals("setup")||action.equals("build")||action.startsWith("github")){
       if(new JSONObject(host.taskStatus()).optBoolean("busy"))throw new IOException("Another tool task is running");
+      if(action.equals("source")&&!buffers.isEmpty())throw new IOException("Save and close editor tabs before selecting a source workspace");
       host.startTask(request.toString());return obj("ok",true);
     }
     if(action.equals("signing")){
