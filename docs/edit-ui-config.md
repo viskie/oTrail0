@@ -47,4 +47,4 @@ Long stops use `LONG_STOP_MINUTES` (60 minutes), `LONG_STOP_COLOR`, `LONG_STOP_L
 
 Map dropdown font: `MAP_SELECTOR_SIZE_SP` (body size +2sp). Total footer: `TOTAL_STATS_TEXT_COLOR` (neon green), `TOTAL_STATS_BACKGROUND` (dark for contrast), `TOTAL_STATS_FONT_STYLE` (bold italic).
 
-Navigation panel: `NAV_PANEL_BACKGROUND` (black), `NAV_TEXT_SPECTRUM` (purple, magenta, violet, cyan, turquoise). Automatic long-stop labels are limited to six and hidden when they collide with another stop label; dots remain tappable.
+Navigation panel: `NAV_PANEL_BACKGROUND` (black), `NAV_TEXT_SPECTRUM` (purple, magenta, violet, cyan, turquoise). Automatic long-stop labels are limited to one and hidden when they collide with another stop label; dots remain tappable.

@@ -61,7 +61,7 @@ public class UiConfig {
       LONG_STOP_LABEL_BACKGROUND=0xeefaf6ff;
   public static final String BIG_CITY_LABEL_STYLE="italic";
   public static final int LONG_STOP_MINUTES=60, LONG_STOP_LABEL_SIZE_SP=11,
-      LONG_STOP_LABEL_MIN_ZOOM=8, LONG_STOP_LABEL_LIMIT=6;
+      LONG_STOP_LABEL_MIN_ZOOM=8, LONG_STOP_LABEL_LIMIT=1;
   // Remaining offline basemap lettering (roads and POIs); INK controls default dark text.
   public static final int MAP_ROAD_LABEL_COLOR=INK, MAP_OTHER_LABEL_COLOR=INK,
       MAP_TEXT_OUTLINE_COLOR=0xffffffff;
