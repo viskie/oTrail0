@@ -299,8 +299,11 @@ public final class MainActivity extends Activity {
     body.addView(tip);
     status = text(UiConfig.text("ready_when_you_are"), UiConfig.STATUS_SIZE_SP, INK);
     status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, UiConfig.STATUS_FONT_STYLE));
-    status.setTextColor(AppStyle.HEADING);
-    AppStyle.decoratePanel(status,AppStyle.HEADING);
+    status.setTextColor(UiConfig.STATUS_TEXT_COLOR);
+    AppStyle.decoratePanel(status,AppStyle.CYAN);
+    GradientDrawable statusBackground=bg(UiConfig.STATUS_BACKGROUND,9);
+    statusBackground.setStroke(dp(1),UiConfig.STATUS_TEXT_COLOR);
+    status.setBackground(statusBackground);
     status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
@@ -539,7 +542,9 @@ public final class MainActivity extends Activity {
     String drive=driveMetrics==null?"":String.format(Locale.US,UiConfig.text("drive_2f_km"),driveMetrics.current().meters()/1000);
     String speed=stale||uncertain?UiConfig.text("speed_unknown"):String.format(Locale.US,UiConfig.text("0f_km_h"),(stopped?0:last.speed()*3.6));
     String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
-    status.setText(state+speed+(!recorded&&!stopped?drive:"")+quality);
+    android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
+    statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    status.setText(statusText);
     roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !uncertain && !stopped && last.speed()>1.5, offlineOnly, history);
     stats.setText(
         (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), driveMetrics.totalMeters()/1000))

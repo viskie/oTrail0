@@ -50,3 +50,5 @@ Map dropdown font: `MAP_SELECTOR_SIZE_SP` (body size +2sp). Total footer: `TOTAL
 Navigation panel: `NAV_PANEL_BACKGROUND` (black), `NAV_TEXT_SPECTRUM` (purple, magenta, violet, cyan, turquoise). Automatic long-stop labels are limited to one and hidden when they collide with another stop label; dots remain tappable.
 
 Navigation heading, instruction and summary now use solid `NAV_TEXT_COLOR` (turquoise), without a text shader. `NAV_TEXT_SPECTRUM` remains available for the panel border/older color references.
+
+Status/Stopped panel uses `STATUS_BACKGROUND` (black), `STATUS_TEXT_COLOR` (cyan), and `STATUS_SPEED_COLOR` (white). The speed span keeps its separate color in every movement state, including unavailable speed.

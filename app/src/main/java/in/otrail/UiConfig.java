@@ -39,6 +39,7 @@ public class UiConfig {
   public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
       PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
   public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
+  public static final int STATUS_BACKGROUND=0xff000000, STATUS_TEXT_COLOR=0xff00ffff, STATUS_SPEED_COLOR=0xffffffff;
   public static final int NAV_PANEL_BACKGROUND=0xff000000;
   public static final int NAV_TEXT_COLOR=0xff40e0d0; // Solid turquoise navigation text.
   public static final int[] NAV_TEXT_SPECTRUM={0xffbf40ff,0xffff00ff,0xffb366ff,0xff00ffff,0xff40e0d0};
