@@ -42,7 +42,7 @@ public final class SourceStudio implements ModuleV1 {
     metadata=new JSONObject(asset("studio.json"));try{mergeMetadata(new JSONObject(host.selectedToolchain()));}catch(Exception ignored){}restoreDrafts();
     root=new LinearLayout(a);root.setOrientation(1);root.setPadding(dp(8),dp(6),dp(8),dp(6));root.setBackgroundColor(BG);
     LinearLayout top=row();top.addView(button("← Modules",()->activity.finish()),new LinearLayout.LayoutParams(0,dp(44),1));top.addView(label("GOD · Source Studio",18),new LinearLayout.LayoutParams(0,-2,2));root.addView(top);
-    HorizontalScrollView tabs=new HorizontalScrollView(a);LinearLayout names=row();for(String name:new String[]{"Project","Editor","Build","APKs","Tools"})names.addView(button(name,()->show(name)));tabs.addView(names);root.addView(tabs);
+    GridLayout names=new GridLayout(a);names.setColumnCount(3);int index=0;for(String name:new String[]{"Project","Editor","Build","APKs","Tools"}){Button b=button(name,()->show(name));GridLayout.LayoutParams p=new GridLayout.LayoutParams(GridLayout.spec(index/3),GridLayout.spec(index%3,1f));p.width=0;p.height=dp(44);p.setMargins(dp(3),dp(2),dp(3),dp(2));names.addView(b,p);index++;}root.addView(names,new LinearLayout.LayoutParams(-1,-2));
     status=label("In-app engine ready · select source and download compiler tools",12);root.addView(status);progress=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(5)));
     content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));show("Project");return root;
   }
@@ -85,6 +85,19 @@ public final class SourceStudio implements ModuleV1 {
         panel.addView(button("Publish APK to GitHub",()->publish(file)));
       }catch(Exception e){error(e);}
     }else toolsScreen(panel);
+    compactButtons(panel);
+  }
+  private void compactButtons(LinearLayout panel){
+    if(activity.getResources().getConfiguration().orientation!=android.content.res.Configuration.ORIENTATION_LANDSCAPE)return;
+    ArrayList<View> views=new ArrayList<>();for(int i=0;i<panel.getChildCount();i++)views.add(panel.getChildAt(i));panel.removeAllViews();
+    LinearLayout buttons=null;int column=0;
+    for(View view:views){
+      if(view instanceof Button&&!(view instanceof android.widget.CompoundButton)){
+        if(buttons==null||column==3){buttons=row();panel.addView(buttons,new LinearLayout.LayoutParams(-1,-2));column=0;}
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(48),1);p.setMargins(dp(3),dp(3),dp(3),dp(3));buttons.addView(view,p);column++;
+      }else{if(buttons!=null)while(column++<3)buttons.addView(new View(activity),new LinearLayout.LayoutParams(0,dp(48),1));buttons=null;column=0;panel.addView(view);}
+    }
+    if(buttons!=null)while(column++<3)buttons.addView(new View(activity),new LinearLayout.LayoutParams(0,dp(48),1));
   }
   private void mergeMetadata(JSONObject update)throws Exception{for(Iterator<String> it=update.keys();it.hasNext();){String key=it.next();metadata.put(key,update.get(key));}}
   private void toolsScreen(LinearLayout panel){
@@ -128,9 +141,9 @@ public final class SourceStudio implements ModuleV1 {
     HorizontalScrollView tabs=new HorizontalScrollView(activity);fileTabs=row();tabs.addView(fileTabs);content.addView(tabs);
     synchronized(buffers){for(Map.Entry<String,Buffer> entry:buffers.entrySet()){String path=entry.getKey();Buffer b=entry.getValue();b.button=button(shortName(path)+(b.dirty()?" *":""),()->{current=path;show("Editor");});fileTabs.addView(b.button);}}
     content.addView(label(current.isEmpty()?"Open a file from Project":current,12));
-    HorizontalScrollView tools=new HorizontalScrollView(activity);LinearLayout actions=row();
+    LinearLayout actions=new LinearLayout(activity);actions.setOrientation(1);
     actions.addView(button("Files",this::browse));actions.addView(button("Save",()->work(()->saveOne(current))));actions.addView(button("Save all",()->work(()->saveAllNetwork())));
-    actions.addView(button("Undo",()->undo(false)));actions.addView(button("Redo",()->undo(true)));actions.addView(button("Find",this::find));actions.addView(button("Close file",this::closeFile));tools.addView(actions);content.addView(tools);
+    actions.addView(button("Undo",()->undo(false)));actions.addView(button("Redo",()->undo(true)));actions.addView(button("Find",this::find));actions.addView(button("Close file",this::closeFile));compactButtons(actions);content.addView(actions);
     editor=new EditText(activity);editor.setTextColor(TEXT);editor.setBackgroundColor(0xff181827);editor.setTextSize(14);editor.setTypeface(Typeface.MONOSPACE);editor.setGravity(Gravity.TOP|Gravity.START);editor.setSingleLine(false);editor.setHorizontallyScrolling(true);editor.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
     Buffer b=buffers.get(current);editor.setText(b==null?"":b.text);editor.setEnabled(b!=null);content.addView(editor,new LinearLayout.LayoutParams(-1,0,1));highlight();
     editor.addTextChangedListener(new SimpleWatcher(){
