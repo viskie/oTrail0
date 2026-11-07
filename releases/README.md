@@ -105,3 +105,7 @@ Map dropdown text increased by 2sp. Total stats footer now neon green bold itali
 ## 0.3.8 — 2026-11-07
 
 Black navigation panel with purple, magenta, violet, cyan and turquoise spectrum text. Only one automatic long-stop label; it hides when a marker info bubble opens. Stop dots and full recorded-stop details retained. 57 JVM checks and lint pass. Same signing certificate; in-place upgrade.
+
+## 0.3.9 — 2026-11-07
+
+First three navigation lines use solid turquoise text without gradients on the black panel. Single automatic stop label behavior retained. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade.
