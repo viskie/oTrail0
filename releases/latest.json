@@ -1,8 +1,8 @@
 {
-  "versionCode": 21,
-  "versionName": "0.3.11",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.11-debug.apk",
-  "sha256": "b1266e583b330e8cd42589e69354ec87d7259cdc2d680d4d1d4e63f3711dc148",
-  "sizeBytes": 41645701,
-  "notes": "Live status speed now uses metres per hour (m/hr), converting metres/second by 3600. A known stop always displays 0 m/hr, including weak or stale GPS. Distance units and stored journal measurements unchanged. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade."
+  "versionCode": 22,
+  "versionName": "0.3.12",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.3.12-debug.apk",
+  "sha256": "42174ab30822c4eda994ce55c041e5440fce0e1d6cad18921c420735c7cfe87c",
+  "sizeBytes": 42050944,
+  "notes": "No Mod1 editor/build tools included. Adds planning-only modules folder/API and Settings catalog, without executable extensions. Current drive is neon pink; history palette and green inferred gaps retained. Destination heading visibly bold. Locate logo/regular hexagon 40% smaller with 3D bevel, retaining full touch target. 61 JVM checks and lint pass. Same signing certificate; upgrade in place."
 }

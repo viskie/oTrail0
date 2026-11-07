@@ -117,3 +117,7 @@ Status/Stopped panel is black with cyan text and a white speed value. Floating L
 ## 0.3.11 — 2026-11-07
 
 Live status speed now uses metres per hour (m/hr), converting metres/second by 3600. A known stop always displays 0 m/hr, including weak or stale GPS. Distance units and stored journal measurements unchanged. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade.
+
+## 0.3.12 — 2026-11-07
+
+No Mod1 editor/build tools included. Adds planning-only modules folder/API and Settings catalog, without executable extensions. Current drive is neon pink; history palette and green inferred gaps retained. Destination heading visibly bold. Locate logo/regular hexagon 40% smaller with 3D bevel, retaining full touch target. 61 JVM checks and lint pass. Same signing certificate; upgrade in place. See docs/0.3.12-modules-ui.md.
