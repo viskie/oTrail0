@@ -1,13 +1,12 @@
 # oTraiL extension modules
 
-Settings → Extension modules lists bundled extensions and planned modules. Tap GPS details → Enable, then return to the map to load its panel. All modules default off. Enable choices survive restarts and in-place updates (normal app preferences; not guaranteed after uninstall).
+Settings → Extension modules lists planned modules. This release provides the host/interface scaffold only; no executable extension is included. Once a future bundled module is implemented, its Enable/Disable choice will apply on returning to the map and survive restarts and in-place updates (normal app preferences; not guaranteed after uninstall).
 
 ## Layout
 
 - `src/main/java/in/otrail/TrailModule.java`: extension API v1 and immutable read-only snapshots.
 - `ModuleCatalog.java`: stable module IDs and bundled/planned status.
 - `ModuleHost.java`: view mounting, lifecycle, preferences and error reporting.
-- `GpsDetailsModule.java`: functioning example, coordinates/accuracy/fix age.
 - `plans/`: proposals for future UI and functionality.
 
 ## Add a module
