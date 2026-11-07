@@ -113,3 +113,7 @@ First three navigation lines use solid turquoise text without gradients on the b
 ## 0.3.10 — 2026-11-07
 
 Status/Stopped panel is black with cyan text and a white speed value. Floating Locate text replaced with the current app logo inside a black hexagon with cyan icon and magenta edge. Recenter behavior and accessibility retained. 57 JVM checks and lint pass. Same signing certificate; upgrade in place.
+
+## 0.3.11 — 2026-11-07
+
+Live status speed now uses metres per hour (m/hr), converting metres/second by 3600. A known stop always displays 0 m/hr, including weak or stale GPS. Distance units and stored journal measurements unchanged. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade.
