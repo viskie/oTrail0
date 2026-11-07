@@ -15,6 +15,13 @@ public class UiConfig {
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2;
   public static final int BUTTON_BORDER=0xff17deee, BUTTON_RIPPLE=0xff17deee,
       BUTTON_DISABLED_TEXT=0x99ff00ff;
+  // Vibrant finish. Existing manually edited base colors above remain authoritative.
+  // Set VIBRANT_FINISH=false to return to flat controls; all colors remain editable here.
+  public static final boolean VIBRANT_FINISH=true;
+  public static final int BUTTON_GRADIENT_ACCENT=BLUE, BUTTON_EDGE_ACCENT=SECONDARY;
+  public static final float BUTTON_GRADIENT_MIX=.24f, PANEL_TINT_MIX=.26f;
+  public static final int BUTTON_FONT_STYLE=android.graphics.Typeface.BOLD;
+  public static final int[] PANEL_ACCENTS={CYAN,PURPLE,ORANGE,LIME,PINK};
   public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="sans-serif-medium",
       STATUS_FONT="sans-serif-medium", MAP_LABEL_FONT="sans-serif";
   public static final int BUTTON_SIZE_SP=9, BODY_SIZE_SP=9, STATUS_SIZE_SP=13,

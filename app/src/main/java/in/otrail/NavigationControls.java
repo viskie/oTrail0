@@ -44,7 +44,7 @@ final class NavigationControls implements AutoCloseable {
   LinearLayout panel() {
     panel = new LinearLayout(activity);
     panel.setOrientation(LinearLayout.VERTICAL);
-    panel.setBackgroundColor(AppStyle.SURFACE);
+    AppStyle.decoratePanel(panel,AppStyle.CORAL);
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);

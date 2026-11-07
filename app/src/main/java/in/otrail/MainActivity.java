@@ -147,7 +147,7 @@ public final class MainActivity extends Activity {
   private void base(String subtitle) {
     root = new LinearLayout(this);
     root.setOrientation(LinearLayout.VERTICAL);
-    root.setBackgroundColor(PAPER);
+    root.setBackground(AppStyle.canvas());
     root.setFitsSystemWindows(false);
     root.setPadding(dp(4), dp(2), dp(4), dp(5));
     root.setOnApplyWindowInsetsListener((v, insets) -> {
@@ -198,11 +198,14 @@ public final class MainActivity extends Activity {
     mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 13, TEAL);
     mode.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     mode.setTextColor(AppStyle.HEADING);
+    mode.setLetterSpacing(.06f);
+    AppStyle.decoratePanel(mode,AppStyle.HEADING);
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
     row.addView(button(UiConfig.text("settings"), this::showDownloads));
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
+    AppStyle.decoratePanel(tools,AppStyle.CYAN);
     String[] names = {UiConfig.text("osm_roads"), UiConfig.text("esri_satellite"), UiConfig.text("india_offline")};
     Spinner selector = new Spinner(this);
     selector.setAdapter(
@@ -213,11 +216,13 @@ public final class MainActivity extends Activity {
     network.setText(UiConfig.text("offline"));
     network.setTextSize(UiConfig.BODY_SIZE_SP);
     AppStyle.nativeTextTree(network);
+    AppStyle.toggle(network);
     network.setMinHeight(dp(44));
     network.setChecked(offlineOnly);
     tools.addView(network);
     body.addView(tools);
     roadInfo = text(UiConfig.text("road_landmarks_cache_first"), 12, MUTED);
+    AppStyle.decoratePanel(roadInfo,AppStyle.ORANGE);
     roadInfo.setSingleLine(true);
     roadInfo.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(roadInfo);
@@ -288,11 +293,13 @@ public final class MainActivity extends Activity {
     status = text(UiConfig.text("ready_when_you_are"), UiConfig.STATUS_SIZE_SP, INK);
     status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, Typeface.BOLD));
     status.setTextColor(AppStyle.HEADING);
+    AppStyle.decoratePanel(status,AppStyle.HEADING);
     status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, MUTED);
     stats.setMaxLines(2);
+    AppStyle.decoratePanel(stats,AppStyle.CYAN);
     body.addView(stats);
     LinearLayout actions = new LinearLayout(this);
     actions.addView(
@@ -333,7 +340,7 @@ public final class MainActivity extends Activity {
   }
 
   private void applyProvider() {
-    if (map == null) return;
+    if (map == null) { return; }
     try {
       if (provider == 2) {
         if (!packs.active().exists()) {
@@ -573,11 +580,12 @@ public final class MainActivity extends Activity {
           .append(clock(s.departure() == 0 ? s.observed() : s.departure()));
       details.append(driveDetails(s.id()));
       details.append(String.format(Locale.US, UiConfig.text("gps_6f_6f"), s.lat(), s.lon()));
-      if (!"RESOLVED".equals(s.geocodeStatus()))
+      if (!"RESOLVED".equals(s.geocodeStatus())) {
         details
             .append(UiConfig.text("place_lookup"))
             .append(
                 "FAILED".equals(s.geocodeStatus()) ? UiConfig.text("unavailable_retry_after_24h") : "pending");
+      }
       m.setSnippet(android.text.TextUtils.htmlEncode(details.toString()).replace("\n", "<br/>"));
       registerMarker("stop:" + s.id(), m);
     }
@@ -857,7 +865,7 @@ public final class MainActivity extends Activity {
   }
 
   private void drawHistoricPlaces() {
-    if (map == null) return;
+    if (map == null) { return; }
     map.getOverlays()
         .removeIf(
             o ->
@@ -1252,7 +1260,7 @@ public final class MainActivity extends Activity {
     LinearLayout card = new LinearLayout(this);
     card.setOrientation(LinearLayout.VERTICAL);
     card.setPadding(0, dp(9), 0, dp(12));
-    card.setBackground(bg(AppStyle.SURFACE, 12));
+    AppStyle.decoratePanel(card,UiConfig.PANEL_ACCENTS[downloadCards.getChildCount()%UiConfig.PANEL_ACCENTS.length]);
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
     params.setMargins(0, dp(10), 0, dp(4));
     downloadCards.addView(card, params);
@@ -1307,7 +1315,7 @@ public final class MainActivity extends Activity {
     final boolean[] checking = {false};
     cardUpdates.add(
         () -> {
-          if (checking[0]) return;
+          if (checking[0]) { return; }
           checking[0] = true;
           io.execute(
               () -> {
