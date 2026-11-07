@@ -1,20 +1,17 @@
-# oTraiL extension modules
+# Downloadable oTraiL modules
 
-Settings → Extension modules lists planned modules. This release provides the host/interface scaffold only; no executable extension is included. Once a future bundled module is implemented, its Enable/Disable choice will apply on returning to the map and survive restarts and in-place updates (normal app preferences; not guaranteed after uninstall).
+Modules do not ship inside the app APK. The APK contains only the signed catalog manager, loader, public API and in-app worker service. Module packages use the exact extension `.oTrail0`.
 
-## Layout
+- `api/`: API v1 shared by the host, editor, compiler and publisher.
+- `src/main/java/in/otrail/`: catalog verification, password gate, package checks, version activation/rollback and isolated app-process lifecycle.
+- `mod1/`: GOD source studio implementation, compiled and downloaded separately.
+- `releases/`: signed catalog, versioned packages, source archives and compiler packs. No maps, journal data, credentials or private signing keys.
+- `plans/`: future module proposals.
 
-- `src/main/java/in/otrail/TrailModule.java`: extension API v1 and immutable read-only snapshots.
-- `ModuleCatalog.java`: stable module IDs and bundled/planned status.
-- `ModuleHost.java`: view mounting, lifecycle, preferences and error reporting.
-- `plans/`: proposals for future UI and functionality.
+A `.oTrail0` file is a ZIP with `module.json`, `classes.dex` and module-specific assets. GitHub `catalog.json` is a signed envelope containing repository/version lists and separately versioned toolchains. The host pins the publisher public key. Every module package is checked against the signed size/SHA256/identity/API before activation and again before loading. Code is read-only before loading, including Android 14+ handling. A previous installed version remains available for rollback.
 
-## Add a module
+Settings → Extension modules lets the user refresh, download with progress, enter the install password, activate/open, deactivate or roll back. GOD's first version requires the owner's install password. It generates its own SSH key on the phone; private keys are not embedded in public packages.
 
-1. Copy the plan template and define scope, controls, data, lifecycle and verification.
-2. Implement `TrailModule` in a new Java file. `createView` mounts an optional panel; `update` receives snapshots. Keep both fast: main thread only. Own any worker executor and cancel it in `close`. Do not retain Activity references after close.
-3. Register a stable ID in `ModuleCatalog.ENTRIES` and its factory in `create`. Put user-facing copy/colors/fonts in `UiConfig`.
-4. Build with `. /src/android-build-env/environment.sh` then `./gradlew assembleDebug testDebugUnitTest lintDebug`.
-5. Deliver the code through a signed app update; users enable it in Settings. This first version loads trusted bundled Java classes, rather than downloaded executable plugins. New module updates use the app's existing updater/signature path.
+Build host first with `. /src/android-build-env/environment.sh` and `./gradlew assembleDebug testDebugUnitTest lintDebug exportGodRuntime`. `scripts/build-god.py prepare` creates tool packs from pinned public dependencies; `package` compiles the separate module, packages source and signs the catalog. Publisher private material is read from `~/.local/share/otrail/` and must stay outside Git. Preserve old version files and catalog entries; bump versions for changes to published packages.
 
-The optional host supplies read-only data and display hooks; it does not modify the recorder, schema, stored GPS data, routing engines or map downloads. Bundled Java code runs in the app process and is trusted, not sandboxed. Runtime callback failures are recorded and the failing module stops updating for that map session. Process-level failures (for example out-of-memory) are not isolated. Future capabilities such as actions, map overlays, background work and downloaded declarative layouts need explicit API extensions and data-integrity review.
+Read mod1/README.md for first-toolchain limits and setup. The first engine supports app Java rebuilds, and explicitly rejects unsupported resource/build-system changes. No external app or remote compiler is used.

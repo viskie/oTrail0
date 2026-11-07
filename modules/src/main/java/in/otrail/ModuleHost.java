@@ -40,18 +40,6 @@ final class ModuleHost implements AutoCloseable {
   private void failure(RuntimeException error){CrashReports.save(activity,"Extension module",error);}
   @Override public void close(){for(TrailModule module:active)try{module.close();}catch(RuntimeException error){failure(error);}active.clear();}
   static void settings(Activity activity){
-    SharedPreferences prefs=activity.getSharedPreferences("modules",Context.MODE_PRIVATE);
-    String[] names=ModuleCatalog.ENTRIES.stream().map(e->UiConfig.text(e.titleKey())+
-        (e.available()?"":" · "+UiConfig.text("module_planned"))).toArray(String[]::new);
-    new AppDialogs(activity).setTitle(UiConfig.text("modules_title"))
-        .setItems(names,(dialog,index)->{
-          ModuleCatalog.Entry entry=ModuleCatalog.ENTRIES.get(index);
-          android.app.AlertDialog.Builder details=new AppDialogs(activity).setTitle(UiConfig.text(entry.titleKey()))
-              .setMessage(UiConfig.text(entry.summaryKey())+"\n\n"+UiConfig.text(entry.available()?"module_bundled":"module_plan_only"))
-              .setNegativeButton(UiConfig.text("close"),null);
-          if(entry.available())details.setPositiveButton(UiConfig.text(prefs.getBoolean(entry.id(),false)?"module_disable":"module_enable"),
-              (d,w)->prefs.edit().putBoolean(entry.id(),!prefs.getBoolean(entry.id(),false)).apply());
-          details.show();
-        }).setNegativeButton(UiConfig.text("close"),null).show();
+    activity.startActivity(new android.content.Intent(activity,ModuleManagerActivity.class));
   }
 }

@@ -2,8 +2,17 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 22; versionName '0.3.12'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 23; versionName '0.4.0'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
     sourceSets.main.java.srcDir('../modules/src/main/java')
+    sourceSets.main.java.srcDir('../modules/api/src/main/java')
+    if (System.getenv('OTRAIL_SIGNING_STORE')) {
+        signingConfigs.debug {
+            storeFile file(System.getenv('OTRAIL_SIGNING_STORE'))
+            storePassword System.getenv('OTRAIL_SIGNING_PASSWORD')
+            keyAlias System.getenv('OTRAIL_SIGNING_ALIAS')
+            keyPassword System.getenv('OTRAIL_SIGNING_KEY_PASSWORD')
+        }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {
@@ -43,3 +52,12 @@ def generateUiTheme = tasks.register('generateUiTheme') {
     }
 }
 tasks.named('preBuild').configure { dependsOn(generateUiTheme) }
+
+// Reproducible compiler classpath for the separately downloaded GOD toolchain.
+tasks.register('exportGodRuntime') {
+    dependsOn('assembleDebug')
+    doLast {
+        def output = layout.buildDirectory.file('god-runtime-paths.txt').get().asFile
+        output.text = configurations.debugRuntimeClasspath.files.collect { it.absolutePath }.join('\n') + '\n'
+    }
+}

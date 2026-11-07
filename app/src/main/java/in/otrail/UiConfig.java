@@ -118,14 +118,8 @@ public class UiConfig {
   public static final Map<String, Map<String,String>> TRANSLATIONS=Map.of();
   public static final Map<String,String> ENGLISH=Map.ofEntries(
       Map.entry("modules_title", "Extension modules"),
-      Map.entry("module_planned", "Planned"),
-      Map.entry("module_enable", "Enable"), Map.entry("module_disable", "Disable"),
-      Map.entry("module_bundled", "Bundled · API 1 · Applies when you return to the map. Enable choice survives app updates and restarts."),
-      Map.entry("module_plan_only", "Planning only. Implementation will arrive in an app update."),
       Map.entry("module_road_title", "Road ahead"),
-      Map.entry("module_road_summary", "Plan: extend the map with cached upcoming road landmarks and optional actions."),
       Map.entry("module_journey_title", "Journey summary"),
-      Map.entry("module_journey_summary", "Plan: extend trip history with read-only daily distance and long-stop summaries."),
       Map.entry("stop_leg_summary", "%.2f km since previous stop · avg %.1f km/h"),
       Map.entry("stop_distance_unavailable", "\nDistance since previous stop: unavailable"),
       Map.entry("gps_uncertain", "GPS uncertain"),

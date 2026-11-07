@@ -201,6 +201,18 @@ public final class AppUpdater {
     return out.toString();
   }
 
+  /** Imported phone builds must preserve package identity, signing identity and version. */
+  public static void prepareBuiltApk(Context c,File file) throws Exception {
+    PackageManager pm=c.getPackageManager();
+    PackageInfo archive=pm.getPackageArchiveInfo(file.getAbsolutePath(),PackageManager.GET_SIGNING_CERTIFICATES);
+    PackageInfo current=pm.getPackageInfo(c.getPackageName(),PackageManager.GET_SIGNING_CERTIFICATES);
+    if(archive==null||!c.getPackageName().equals(archive.packageName)||archive.getLongVersionCode()<current.getLongVersionCode()
+        ||archive.signingInfo==null||current.signingInfo==null||!signers(archive.signingInfo).equals(signers(current.signingInfo)))
+      throw new SecurityException("Build signing key, package or version differs. Import the existing signing keystore in Tools; never uninstall to replace it.");
+    File ready=new File(c.getFilesDir(),"updates/verified.apk");ready.getParentFile().mkdirs();
+    java.nio.file.Files.copy(file.toPath(),ready.toPath(),java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+  }
+
   public static void install(Activity activity, File verified) {
     if (!activity.getPackageManager().canRequestPackageInstalls()) {
       activity.startActivity(
