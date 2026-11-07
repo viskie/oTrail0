@@ -19,7 +19,7 @@ public final class CrashReports extends Application {
   }
   static void save(Context c,String stage,Throwable error) {
     try(FileOutputStream out=new FileOutputStream(new File(c.getFilesDir(),"last-crash.txt"))) {
-      out.write(("oTraiL 0.3.10"+" · "+new java.util.Date()+"\n"+stage+"\n"+android.util.Log.getStackTraceString(error)).getBytes(StandardCharsets.UTF_8));out.getFD().sync();
+      out.write(("oTraiL 0.3.11"+" · "+new java.util.Date()+"\n"+stage+"\n"+android.util.Log.getStackTraceString(error)).getBytes(StandardCharsets.UTF_8));out.getFD().sync();
     }catch(Throwable ignored){}
   }
   static String read(Context c) {

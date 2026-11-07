@@ -540,7 +540,9 @@ public final class MainActivity extends Activity {
         :uncertain?UiConfig.text("gps_uncertain")
         :last.speed()>1.5?UiConfig.text("on_the_move"):UiConfig.text("recording");
     String drive=driveMetrics==null?"":String.format(Locale.US,UiConfig.text("drive_2f_km"),driveMetrics.current().meters()/1000);
-    String speed=stale||uncertain?UiConfig.text("speed_unknown"):String.format(Locale.US,UiConfig.text("0f_km_h"),(stopped?0:last.speed()*3.6));
+    String speed=stopped?String.format(Locale.US,UiConfig.text("0f_m_hr"),0.0)
+        :stale||uncertain?UiConfig.text("speed_unknown_m_hr")
+        :String.format(Locale.US,UiConfig.text("0f_m_hr"),last.speed()*3600);
     String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
     android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
     statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

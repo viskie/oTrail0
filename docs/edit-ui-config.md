@@ -54,3 +54,5 @@ Navigation heading, instruction and summary now use solid `NAV_TEXT_COLOR` (turq
 Status/Stopped panel uses `STATUS_BACKGROUND` (black), `STATUS_TEXT_COLOR` (cyan), and `STATUS_SPEED_COLOR` (white). The speed span keeps its separate color in every movement state, including unavailable speed.
 
 The floating Locate action shows the application icon inside a hexagon. Edit `LOCATE_SIZE_DP`, `LOCATE_BACKGROUND`, `LOCATE_LOGO_COLOR`, `LOCATE_BORDER_COLOR`, and `LOCATE_RIPPLE_COLOR`; the action and accessibility description remain Locate.
+
+Live status speed uses metres per hour (`0f_m_hr`, m/s ×3600). A known stop always shows zero, even with weak/stale GPS. Uncertain movement remains unknown (`speed_unknown_m_hr`); distances and historical average-speed metrics retain their existing units.

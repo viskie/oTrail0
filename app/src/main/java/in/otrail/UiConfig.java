@@ -116,6 +116,8 @@ public class UiConfig {
       Map.entry("stop_leg_summary", "%.2f km since previous stop · avg %.1f km/h"),
       Map.entry("stop_distance_unavailable", "\nDistance since previous stop: unavailable"),
       Map.entry("gps_uncertain", "GPS uncertain"),
+      Map.entry("0f_m_hr", "  ·  %.0f m/hr"),
+      Map.entry("speed_unknown_m_hr", " · — m/hr"),
       Map.entry("speed_unknown", " · — km/h"),
       Map.entry("stop_signal_uncertain", "Weak GPS · stop retained"),
       Map.entry("0f_km_h", "  ·  %.0f km/h"),
