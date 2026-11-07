@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 17; versionName '0.3.7'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 18; versionName '0.3.8'; testInstrumentationRunner 'in.otrail.BackupInstrumentation' }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies {

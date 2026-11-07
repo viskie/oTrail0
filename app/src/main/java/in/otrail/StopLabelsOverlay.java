@@ -27,6 +27,7 @@ final class StopLabelsOverlay extends Overlay {
     }
     Paint background=new Paint(Paint.ANTI_ALIAS_FLAG);background.setColor(UiConfig.LONG_STOP_LABEL_BACKGROUND);
     Paint border=new Paint(Paint.ANTI_ALIAS_FLAG);border.setColor(UiConfig.LONG_STOP_COLOR);border.setStyle(Paint.Style.STROKE);border.setStrokeWidth(density);
+    List<RectF> occupied=new ArrayList<>();
     int shown=0;
     for(int i=stops.size()-1;i>=0&&shown<UiConfig.LONG_STOP_LABEL_LIMIT;i--){
       TrailDb.Stop stop=stops.get(i);if(!longStop(stop))continue;
@@ -48,6 +49,12 @@ final class StopLabelsOverlay extends Overlay {
       }
       if(bounds.top<0)bounds.offset(0,-bounds.top+2*density);
       if(overlap)text.setTypeface(Typeface.create(UiConfig.BODY_FONT,Typeface.BOLD_ITALIC));
+      // Automatic annotations must never pile up like open popup windows.
+      boolean crowded=false;
+      RectF padded=new RectF(bounds);padded.inset(-6*density,-6*density);
+      for(RectF used:occupied)if(RectF.intersects(padded,used)){crowded=true;break;}
+      if(crowded)continue;
+      occupied.add(padded);
       canvas.drawRoundRect(bounds,6*density,6*density,background);canvas.drawRoundRect(bounds,6*density,6*density,border);
       text.setColor(UiConfig.LONG_STOP_COLOR);
       canvas.drawText(name,bounds.left+7*density,bounds.top+text.getTextSize()+3*density,text);

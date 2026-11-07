@@ -45,6 +45,9 @@ final class NavigationControls implements AutoCloseable {
     panel = new LinearLayout(activity);
     panel.setOrientation(LinearLayout.VERTICAL);
     AppStyle.decoratePanel(panel,AppStyle.CORAL);
+    android.graphics.drawable.GradientDrawable background=new android.graphics.drawable.GradientDrawable();
+    background.setColor(UiConfig.NAV_PANEL_BACKGROUND);background.setCornerRadius(dp(9));
+    background.setStroke(dp(1),UiConfig.NAV_TEXT_SPECTRUM[0]);panel.setBackground(background);
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
@@ -113,6 +116,11 @@ final class NavigationControls implements AutoCloseable {
     v.setTextColor(AppStyle.textColor(size, size>=14));
     if(size>=14)v.setTypeface(android.graphics.Typeface.create(UiConfig.HEADING_FONT,UiConfig.HEADING_FONT_STYLE));
     v.setPadding(dp(8), dp(2), dp(8), dp(2));
+    v.setTextColor(UiConfig.NAV_TEXT_SPECTRUM[0]);
+    v.addOnLayoutChangeListener((view,l,t,r,b,ol,ot,or,ob)->{
+      float width=Math.max(1,v.getWidth()-v.getPaddingLeft()-v.getPaddingRight());
+      v.getPaint().setShader(new android.graphics.LinearGradient(0,0,width,0,UiConfig.NAV_TEXT_SPECTRUM,null,android.graphics.Shader.TileMode.CLAMP));v.invalidate();
+    });
     return v;
   }
 

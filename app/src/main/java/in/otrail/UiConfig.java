@@ -39,6 +39,8 @@ public class UiConfig {
   public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
       PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
   public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
+  public static final int NAV_PANEL_BACKGROUND=0xff000000;
+  public static final int[] NAV_TEXT_SPECTRUM={0xffbf40ff,0xffff00ff,0xffb366ff,0xff00ffff,0xff40e0d0};
   public static final int MAP_SELECTOR_SIZE_SP=BODY_SIZE_SP+2;
   public static final int TOTAL_STATS_TEXT_COLOR=0xff01ff1f, TOTAL_STATS_BACKGROUND=0xff202039;
   public static final int TOTAL_STATS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
@@ -59,7 +61,7 @@ public class UiConfig {
       LONG_STOP_LABEL_BACKGROUND=0xeefaf6ff;
   public static final String BIG_CITY_LABEL_STYLE="italic";
   public static final int LONG_STOP_MINUTES=60, LONG_STOP_LABEL_SIZE_SP=11,
-      LONG_STOP_LABEL_MIN_ZOOM=8, LONG_STOP_LABEL_LIMIT=16;
+      LONG_STOP_LABEL_MIN_ZOOM=8, LONG_STOP_LABEL_LIMIT=6;
   // Remaining offline basemap lettering (roads and POIs); INK controls default dark text.
   public static final int MAP_ROAD_LABEL_COLOR=INK, MAP_OTHER_LABEL_COLOR=INK,
       MAP_TEXT_OUTLINE_COLOR=0xffffffff;
