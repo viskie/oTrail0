@@ -13,5 +13,6 @@ final class MarkerPopups {
     marker.showInfoWindow();
     if(marker.getInfoWindow()!=null&&marker.getInfoWindow().getView()!=null)
       AppStyle.nativeTextTree(marker.getInfoWindow().getView());
+    map.invalidate();
   }
 }

@@ -14,7 +14,8 @@ final class StopLabelsOverlay extends Overlay {
   void update(List<TrailDb.Stop> stops,DriveMetrics.Result metrics,List<CityPlaces.Place> cities){this.stops=stops;this.metrics=metrics;this.cities=cities;}
   static boolean longStop(TrailDb.Stop stop){return stop.observed()-stop.arrival()>=UiConfig.LONG_STOP_MINUTES*60_000L;}
   @Override public void draw(Canvas canvas,MapView map,boolean shadow){
-    if(shadow||map.getZoomLevelDouble()<UiConfig.LONG_STOP_LABEL_MIN_ZOOM)return;
+    if(shadow||map.getZoomLevelDouble()<UiConfig.LONG_STOP_LABEL_MIN_ZOOM
+        ||!org.osmdroid.views.overlay.infowindow.InfoWindow.getOpenedInfoWindowsOn(map).isEmpty())return;
     float density=map.getResources().getDisplayMetrics().density,sp=map.getResources().getDisplayMetrics().scaledDensity;
     Paint text=new Paint(Paint.ANTI_ALIAS_FLAG);text.setTextSize(UiConfig.LONG_STOP_LABEL_SIZE_SP*sp);
     text.setTypeface(Typeface.create(UiConfig.BODY_FONT,Typeface.ITALIC));
