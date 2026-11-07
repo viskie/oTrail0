@@ -109,3 +109,7 @@ Black navigation panel with purple, magenta, violet, cyan and turquoise spectrum
 ## 0.3.9 — 2026-11-07
 
 First three navigation lines use solid turquoise text without gradients on the black panel. Single automatic stop label behavior retained. 57 JVM checks and lint pass. Same signing certificate for in-place upgrade.
+
+## 0.3.10 — 2026-11-07
+
+Status/Stopped panel is black with cyan text and a white speed value. Floating Locate text replaced with the current app logo inside a black hexagon with cyan icon and magenta edge. Recenter behavior and accessibility retained. 57 JVM checks and lint pass. Same signing certificate; upgrade in place.
