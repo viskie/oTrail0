@@ -1,8 +1,8 @@
 {
-  "versionCode": 26,
-  "versionName": "0.4.3",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.3-debug.apk",
-  "sha256": "79ea20447183ce684a5c639f2da5ea20ddac2f65727b858b43ef0e651257ca80",
-  "sizeBytes": 42154759,
-  "notes": "WTF! base-app toggle: centered live GPS dot, map rotation holds travel at upper-right slope 1/0.8, true-north indicator. Existing navigation follows same camera. Stops/weak or stale GPS hold last reliable heading; history suspends mode, disabling restores north-up. Mode/zoom/settings, journal and installed modules preserved. 78 JVM checks and lint pass. Device/on-road validation pending; ADB disconnected."
+  "versionCode": 27,
+  "versionName": "0.4.4",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.4-debug.apk",
+  "sha256": "a3418ce052aff52e743be95889f22c158ff6b11c8b23b143cee5482890ac5b8c",
+  "sizeBytes": 41711536,
+  "notes": "WTF! icon is now a regular octagon, normalized to navigation/CAM size: shared visual scale, 56dp touch target, glyph inset, bevel and ripple. Enabled/disabled colors retained. Centered GPS and upper-right travel slope 1/0.8 unchanged. Existing modules, settings and data preserved. 78 JVM checks and lint pass. Final device verification awaits ADB."
 }
