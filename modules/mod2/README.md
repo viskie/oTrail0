@@ -11,3 +11,5 @@ Default originals: Downloads/oTraiL/Photos. A persisted Storage Access Framework
 A normalized `photos` table in trails.db indexes UUID, stop foreign key, capture time, location and URI. Existing trail/stop tables are preserved by an additive v3→v4 migration. A photo and its sidecar are saved before its row is inserted. Rebuilding the index is idempotent; restored stop IDs are resolved from logged capture time/location. Folder changes and module/app updates do not delete prior photos or settings. On reinstall, restore trail logs, reselect the original folder and rebuild the photo index. Public original photos must be retained/backed up separately from trail-only backups.
 
 Validated on the connected POCO: 4000×3000 preview/capture, JPEG + sidecar persistence, stop #79 index linkage and in-app viewing with reverse stop details. Individual lens/manual control combinations still require device-specific checks. No map/GPS collector changes are included.
+
+CAM 1.0.1 restores the Capture button after an image-reader error. Install/activate this version over any pre-publication phone-test package; its photo index, folder and module settings are retained.
