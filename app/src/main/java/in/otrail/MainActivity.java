@@ -267,7 +267,7 @@ public final class MainActivity extends Activity {
     locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
     LinearLayout mapControls=new LinearLayout(this);mapControls.setGravity(Gravity.CENTER_VERTICAL);
     wtfButton=new WtfButton(this,wtfActive(),this::toggleWtf);
-    LinearLayout.LayoutParams wtfPosition=new LinearLayout.LayoutParams(dp(48),dp(48));wtfPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(wtfButton,wtfPosition);
+    LinearLayout.LayoutParams wtfPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));wtfPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(wtfButton,wtfPosition);
     if(camVisible){
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);

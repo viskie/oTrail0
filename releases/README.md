@@ -137,3 +137,7 @@ CAM uses a symmetrical regular pentagon, scaled to the hexagonal Locate icon wit
 ## 0.4.3 — 2026-11-08
 
 Base-app WTF! `!` toggle centers the live GPS dot and rotates the map so travel stays on the requested upper-right 1/0.8 slope. Existing navigation follows the same locked camera. True-north arrow, short-arc turns, weak/stopped-GPS heading hold, persistent mode/zoom and history suspension. Disabling restores north-up. Modules, data and settings retained. See docs/0.4.3-wtf-camera.md.
+
+## 0.4.4 — 2026-11-08
+
+WTF! `!` becomes a regular octagon, normalized to the navigation/CAM icon scale and 56dp touch target. Enabled/disabled state, bevel and ripple retained. Camera slope/behavior, modules and data unchanged. See docs/0.4.4-wtf-octagon.md.
