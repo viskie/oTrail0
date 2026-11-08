@@ -258,12 +258,13 @@ public final class MainActivity extends Activity {
     locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
     LinearLayout mapControls=new LinearLayout(this);mapControls.setGravity(Gravity.CENTER_VERTICAL);
     if(camVisible){
-      ImageButton camera=new ImageButton(this);camera.setImageResource(android.R.drawable.ic_menu_camera);camera.setContentDescription("CAM · Take a geotagged photo");camera.setColorFilter(UiConfig.CYAN);
-      android.graphics.drawable.GradientDrawable cameraBackground=new android.graphics.drawable.GradientDrawable();cameraBackground.setColor(android.graphics.Color.BLACK);cameraBackground.setCornerRadius(dp(12));cameraBackground.setStroke(dp(1),UiConfig.CYAN);camera.setBackground(cameraBackground);camera.setPadding(dp(9),dp(9),dp(9),dp(9));camera.setOnClickListener(v->openCam("camera",-1));
-      LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(48),dp(48));cameraPosition.setMargins(0,0,dp(8),0);mapControls.addView(camera,cameraPosition);
+      CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
+      LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
     mapControls.addView(locateButton,new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP)));
-    FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(8),dp(10),dp(10),dp(8));mapFrame.addView(mapControls,controlPosition);
+    HorizontalScrollView mapIconBar=new HorizontalScrollView(this);mapIconBar.setHorizontalScrollBarEnabled(false);mapIconBar.setFillViewport(true);mapIconBar.addView(mapControls,new HorizontalScrollView.LayoutParams(-2,-2));mapControls.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+    FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(8),dp(10),dp(10),dp(8));mapFrame.addView(mapIconBar,controlPosition);
+    mapIconBar.post(()->mapIconBar.fullScroll(View.FOCUS_RIGHT));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(

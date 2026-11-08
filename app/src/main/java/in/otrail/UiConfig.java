@@ -397,4 +397,9 @@ public class UiConfig {
     String language=UI_LANGUAGE.isEmpty()?Locale.getDefault().getLanguage():UI_LANGUAGE;
     return TRANSLATIONS.getOrDefault(language,Map.of()).getOrDefault(key,ENGLISH.getOrDefault(key,key));
   }
+  // Map toolbar: CAM shares Locate's visual scale and 56dp touch target.
+  public static final int CAM_LOGO_COLOR=LOCATE_LOGO_COLOR;
+  public static final int CAM_BACKGROUND=LOCATE_BACKGROUND;
+  public static final int CAM_BORDER_COLOR=LOCATE_BORDER_COLOR;
+  public static final int MAP_ICON_GAP_DP=6;
 }
