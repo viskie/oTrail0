@@ -1,8 +1,8 @@
 {
-  "versionCode": 25,
-  "versionName": "0.4.2",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.2-debug.apk",
-  "sha256": "26cec30987d5318906e79f99006610ab039bebcecf3c4b10096f19c225ac21df",
-  "sizeBytes": 41711536,
-  "notes": "CAM pentagon matches navigation icon size; top-right map icon bar supports future icons. Download CAM and GOD separately from Extension modules. Preserves installed modules, prior versions, private module settings/data and trail journal. GOD 1.0.2: three-column landscape controls and atomic automatic drafts. 70 JVM checks/lint pass; earlier CAM photo capture and migration validated on POCO. Final icon update awaits ADB reconnection."
+  "versionCode": 26,
+  "versionName": "0.4.3",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.3-debug.apk",
+  "sha256": "79ea20447183ce684a5c639f2da5ea20ddac2f65727b858b43ef0e651257ca80",
+  "sizeBytes": 42154759,
+  "notes": "WTF! base-app toggle: centered live GPS dot, map rotation holds travel at upper-right slope 1/0.8, true-north indicator. Existing navigation follows same camera. Stops/weak or stale GPS hold last reliable heading; history suspends mode, disabling restores north-up. Mode/zoom/settings, journal and installed modules preserved. 78 JVM checks and lint pass. Device/on-road validation pending; ADB disconnected."
 }
