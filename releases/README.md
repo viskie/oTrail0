@@ -129,3 +129,7 @@ Signed downloadable module host and separately downloadable GOD 1.0.0 (`.oTrail0
 ## 0.4.1 — 2026-11-08
 
 CAM host support with additive photo-index migration. Download CAM separately from Extension modules; no module implementations are bundled in the APK. Camera/hexagonal locate controls sit together at map top right. Photo albums are available from map stop bubbles and recorded-stop details. APK/module upgrades retain installed modules, old versions, settings, workspaces and existing journal. GOD 1.0.2 has three-column landscape buttons and atomic automatic drafts. 70 JVM checks/lint, isolated on-phone photo migration/recovery checks and real POCO camera/photo/stop-link viewing passed. See docs/0.4.1-cam.md.
+
+## 0.4.2 — 2026-11-08
+
+CAM uses a symmetrical regular pentagon, scaled to the hexagonal Locate icon with the same touch target. Both sit in the map's top-right icon bar, which scrolls when future controls exceed available width. Palette aliases and spacing are editable in UiConfig. Version code 25 allows devices on the 0.4.1 validation build to receive this update. Existing module settings/data and prior versions are retained. See docs/0.4.2-map-icons.md.
