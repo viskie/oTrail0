@@ -133,3 +133,7 @@ CAM host support with additive photo-index migration. Download CAM separately fr
 ## 0.4.2 — 2026-11-08
 
 CAM uses a symmetrical regular pentagon, scaled to the hexagonal Locate icon with the same touch target. Both sit in the map's top-right icon bar, which scrolls when future controls exceed available width. Palette aliases and spacing are editable in UiConfig. Version code 25 allows devices on the 0.4.1 validation build to receive this update. Existing module settings/data and prior versions are retained. See docs/0.4.2-map-icons.md.
+
+## 0.4.3 — 2026-11-08
+
+Base-app WTF! `!` toggle centers the live GPS dot and rotates the map so travel stays on the requested upper-right 1/0.8 slope. Existing navigation follows the same locked camera. True-north arrow, short-arc turns, weak/stopped-GPS heading hold, persistent mode/zoom and history suspension. Disabling restores north-up. Modules, data and settings retained. See docs/0.4.3-wtf-camera.md.

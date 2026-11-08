@@ -35,6 +35,12 @@ public final class MainActivity extends Activity {
   private NavigationControls navigation;
   private UpdateControls updates;
   private boolean navigationFollow = true;
+  private boolean wtfEnabled,wtfRecentering;
+  private float wtfCourse=Float.NaN;
+  private GeoPoint wtfTarget;
+  private WtfButton wtfButton;
+  private WtfNorthView wtfNorth;
+  private android.animation.ValueAnimator wtfTurn;
   private long routeFitRevision = -1;
   private MapPacks packs;
   private MapView map;
@@ -103,6 +109,8 @@ public final class MainActivity extends Activity {
     MapsForgeTileSource.createInstance(getApplication());
     offlineOnly = getPreferences(0).getBoolean("offline", false);
     provider = getPreferences(0).getInt("provider", 0);
+    wtfEnabled=getPreferences(0).getBoolean("wtf_mode",false);
+    wtfCourse=getPreferences(0).getFloat("wtf_course",Float.NaN);
     showMap();
     if (AppUpdater.ACTION.equals(getIntent().getAction())) handler.post(() -> updates.show());
     if (!TrackingStartup.hasLocation(this))
@@ -180,6 +188,7 @@ public final class MainActivity extends Activity {
   }
 
   private void showMap() {
+    if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}wtfTarget=null;
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     if (map != null) {
       org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
@@ -244,11 +253,11 @@ public final class MainActivity extends Activity {
         (v, event) -> {
           if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN
               || event.getActionMasked() == android.view.MotionEvent.ACTION_MOVE) {
-            navigationFollow = false;follow=false;
+            if(!wtfActive()){navigationFollow = false;follow=false;}
           }
           return false;
         });
-    map.getController().setZoom(5.0);
+    map.getController().setZoom(wtfActive()?getPreferences(0).getFloat("wtf_zoom",16f):5.0);
     map.getController().setCenter(new GeoPoint(22.5, 79));
     map.setMinZoomLevel(4.0);
     map.setScrollableAreaLimitDouble(new BoundingBox(38, 98, 6, 68));
@@ -257,6 +266,8 @@ public final class MainActivity extends Activity {
     LocateLogoButton locateButton=new LocateLogoButton(this,this::locate);
     locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
     LinearLayout mapControls=new LinearLayout(this);mapControls.setGravity(Gravity.CENTER_VERTICAL);
+    wtfButton=new WtfButton(this,wtfActive(),this::toggleWtf);
+    LinearLayout.LayoutParams wtfPosition=new LinearLayout.LayoutParams(dp(48),dp(48));wtfPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(wtfButton,wtfPosition);
     if(camVisible){
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
@@ -265,6 +276,10 @@ public final class MainActivity extends Activity {
     HorizontalScrollView mapIconBar=new HorizontalScrollView(this);mapIconBar.setHorizontalScrollBarEnabled(false);mapIconBar.setFillViewport(true);mapIconBar.addView(mapControls,new HorizontalScrollView.LayoutParams(-2,-2));mapControls.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
     FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(8),dp(10),dp(10),dp(8));mapFrame.addView(mapIconBar,controlPosition);
     mapIconBar.post(()->mapIconBar.fullScroll(View.FOCUS_RIGHT));
+    wtfNorth=new WtfNorthView(this);wtfNorth.setVisibility(wtfActive()?View.VISIBLE:View.GONE);
+    FrameLayout.LayoutParams northPosition=new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.BOTTOM|Gravity.START);northPosition.setMargins(dp(10),0,0,dp(10));mapFrame.addView(wtfNorth,northPosition);
+    map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
+    if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -447,6 +462,7 @@ public final class MainActivity extends Activity {
             long trip = viewHistory ? chosen : -1;
             List<TrailDb.Fix> fixes = db.fixes(trip);
             List<TrailDb.Stop> stops = db.stops(trip);
+            Float course=!viewHistory&&!fixes.isEmpty()?db.course(fixes.get(fixes.size()-1).id()):null;
             List<TrailSegments.Sample> samples = new ArrayList<>();
             for (TrailDb.Fix f : fixes)
               samples.add(new TrailSegments.Sample(f.id(), f.trip(), f.time(), f.lat(), f.lon()));
@@ -488,7 +504,7 @@ public final class MainActivity extends Activity {
                   if (downloads || history != viewHistory || viewHistory && selectedTrip != chosen)
                     return;
                   if (map == null || isFinishing() || isDestroyed()) return;
-                  try { driveMetrics = metrics; stopLabels.update(stops,metrics,visibleCities); render(active, trip, fixes, stops, segments, places, colored, trailMeters); }
+                  try { driveMetrics = metrics; stopLabels.update(stops,metrics,visibleCities); render(active, trip, fixes, stops, segments, places, colored, trailMeters,course); }
                   catch (RuntimeException e) {
                     CrashReports.save(this, "Trail render · provider=" + provider + UiConfig.text("history_2") + history, e);
                     android.util.Log.e("oTraiL", "Trail render failed", e);
@@ -514,7 +530,7 @@ public final class MainActivity extends Activity {
       List<TrailSegments.Segment> segments,
       List<HistoricPlaces.Place> places,
       List<TrailPalette.Stroke> colored,
-      double trailMeters) {
+      double trailMeters, Float course) {
     historicPlaces = places;
     if (fixes.isEmpty()) {
       if (lastHeritageSignature != places.hashCode()) {
@@ -572,6 +588,19 @@ public final class MainActivity extends Activity {
             + UiConfig.text("m")
             + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time())));
     if(moduleHost!=null)moduleHost.update(new TrailModule.Snapshot(System.currentTimeMillis(),last.time(),last.lat(),last.lon(),last.accuracy(),driveMetrics==null?0:driveMetrics.totalMeters(),stops.size(),history));
+    if(wtfActive()){
+      wtfTarget=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());
+      if(!uncertain&&WtfCamera.reliable(System.currentTimeMillis(),last.time(),last.accuracy(),last.speed(),stopped)){
+        Float reliableCourse=course;
+        if(reliableCourse==null||!Float.isFinite(reliableCourse))for(int i=fixes.size()-2;i>=0;i--){TrailDb.Fix previous=fixes.get(i);if(last.time()-previous.time()>60000)break;
+          reliableCourse=WtfCamera.displacementCourse(last.time(),previous.time(),last.lat(),last.lon(),previous.lat(),previous.lon(),last.accuracy(),previous.accuracy());if(reliableCourse!=null)break;
+        }
+        if(reliableCourse!=null&&Float.isFinite(reliableCourse)&&(!Float.isFinite(wtfCourse)||Math.abs(WtfCamera.shortestTurn(wtfCourse,reliableCourse))>=1)){
+          wtfCourse=WtfCamera.normalize(reliableCourse);getPreferences(0).edit().putFloat("wtf_course",wtfCourse).apply();wtfRotate(WtfCamera.rotation(wtfCourse));
+        }
+      }
+      fitTrail=false;follow=false;wtfCenter();
+    }
     int stopSignature = stops.hashCode(), heritageSignature = places.hashCode();
     if (lastFixId == last.id()
         && lastState.equals(state)
@@ -662,7 +691,7 @@ public final class MainActivity extends Activity {
     Marker reopen = visibleMarkers.get(openMarkerKey);
     if (reopen != null) MarkerPopups.openOnly(map,reopen);
     if (NavigationManager.get(this).state().route() != null && !history) fitTrail = false;
-    if (fitTrail) {
+    if (wtfActive()) { fitTrail=false;wtfTarget=dot.getPosition();wtfCenter(); } else if (fitTrail) {
       fitTrail = false;
       follow = false;
       double north = -90, south = 90, east = -180, west = 180;
@@ -825,7 +854,7 @@ public final class MainActivity extends Activity {
           m.setSnippet("±" + Math.round(l.getAccuracy()) + UiConfig.text("m_2"));
           registerMarker("live", m);
           map.getController().setZoom(16.0);
-          map.getController().setCenter(m.getPosition());
+          if(wtfActive()){wtfTarget=m.getPosition();wtfCenter();}else map.getController().setCenter(m.getPosition());
         });
   }
 
@@ -1073,7 +1102,7 @@ public final class MainActivity extends Activity {
 
   private void fitBounds(MapView view, BoundingBox bounds) {
     Runnable fit = () -> {
-      if (view != map || view.getWidth() <= dp(60) || view.getHeight() <= dp(60)) return;
+      if (wtfActive() || view != map || view.getWidth() <= dp(60) || view.getHeight() <= dp(60)) return;
       try { view.zoomToBoundingBox(bounds, false, dp(30)); }
       catch (RuntimeException e) {
         android.util.Log.e("oTraiL", "Trail viewport failed", e);
@@ -1481,6 +1510,8 @@ public final class MainActivity extends Activity {
                   () -> {
                     TrackingStartup.start(this, false);
                     provider = getPreferences(0).getInt("provider", 0);
+    wtfEnabled=getPreferences(0).getBoolean("wtf_mode",false);
+    wtfCourse=getPreferences(0).getFloat("wtf_course",Float.NaN);
                     offlineOnly = getPreferences(0).getBoolean("offline", false);
                     lastFixId = -1;
                     lastStopSignature = 0;
@@ -1544,6 +1575,23 @@ public final class MainActivity extends Activity {
     return best;
   }
 
+  private boolean wtfActive(){return wtfEnabled&&!history;}
+  private void toggleWtf(){
+    wtfEnabled=history||!wtfEnabled;getPreferences(0).edit().putBoolean("wtf_mode",wtfEnabled).apply();
+    if(wtfEnabled&&history){history=false;showMap();}
+    if(wtfButton!=null)wtfButton.update(wtfActive());if(wtfNorth!=null)wtfNorth.setVisibility(wtfActive()?View.VISIBLE:View.GONE);
+    if(wtfEnabled){fitTrail=false;follow=true;navigationFollow=true;if(Float.isFinite(wtfCourse))wtfRotate(WtfCamera.rotation(wtfCourse));if(map.getZoomLevelDouble()<14)map.getController().setZoom(16.0);}
+    else{wtfTarget=null;if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}map.setMapOrientation(0);map.invalidate();}
+    lastFixId=-1;refresh();navigationTick();toast(wtfEnabled?"WTF! enabled · GPS centered · travel follows diagonal":"WTF! disabled · north-up restored");
+  }
+  private void wtfCenter(){
+    if(!wtfActive()||map==null||wtfTarget==null||wtfRecentering)return;
+    wtfRecentering=true;try{map.getController().setCenter(wtfTarget);if(wtfNorth!=null)wtfNorth.rotation(map.getMapOrientation());}finally{wtfRecentering=false;}
+  }
+  private void wtfRotate(float target){
+    if(!wtfActive()||map==null)return;if(wtfTurn!=null)wtfTurn.cancel();MapView view=map;float start=view.getMapOrientation(),turn=WtfCamera.shortestTurn(start,target);
+    wtfTurn=android.animation.ValueAnimator.ofFloat(start,start+turn);wtfTurn.setDuration(UiConfig.WTF_TURN_ANIMATION_MS);wtfTurn.addUpdateListener(animation->{if(view!=map||!wtfActive())return;float angle=WtfCamera.normalize((Float)animation.getAnimatedValue());view.setMapOrientation(angle);wtfCenter();view.invalidate();});wtfTurn.start();
+  }
   private void navigationChanged() {
     routeFitRevision = -1;
     if ("ACTIVE".equals(NavigationManager.get(this).state().mode())) {
@@ -1562,10 +1610,11 @@ public final class MainActivity extends Activity {
     if (downloads || map == null) return;
     navigation.refresh(map);
     NavigationManager.State state = NavigationManager.get(this).state();
-    if (!history && state.route() != null && routeFitRevision != state.revision()) {
+    if (!wtfActive()&&!history && state.route() != null && routeFitRevision != state.revision()) {
       if (!"PREVIEW".equals(state.mode()) || navigation.fit(map))
         routeFitRevision = state.revision();
     }
+    if(wtfActive()){Marker live=visibleMarkers.get("live");if(live!=null)wtfTarget=live.getPosition();wtfCenter();return;}
     if (!history && "ACTIVE".equals(state.mode()) && navigationFollow) {
       Location fix = navigationOrigin();
       if (fix != null) {
@@ -1613,6 +1662,7 @@ public final class MainActivity extends Activity {
     TrackingStartup.start(this, false);
     StopGeocoder.backfill(this);
     if (map != null) map.onResume();
+    if(wtfActive()&&Float.isFinite(wtfCourse))wtfRotate(WtfCamera.rotation(wtfCourse));
     boolean camNow=new ModuleStore(this).enabled("mod2");if(map!=null&&!downloads&&camNow!=camVisible){camVisible=camNow;showMap();}
     updates.resume();
     handler.post(ticker);
@@ -1621,6 +1671,8 @@ public final class MainActivity extends Activity {
   @Override
   protected void onPause() {
     handler.removeCallbacks(ticker);
+    if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
+    if(wtfActive()&&map!=null)getPreferences(0).edit().putFloat("wtf_zoom",(float)map.getZoomLevelDouble()).apply();
     if (map != null) map.onPause();
     super.onPause();
   }
@@ -1637,6 +1689,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onDestroy() {
     handler.removeCallbacks(ticker);
+    if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if (map != null) map.onDetach();
     io.shutdown();
     heritageIo.shutdownNow();

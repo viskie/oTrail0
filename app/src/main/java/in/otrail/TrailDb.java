@@ -332,6 +332,11 @@ public final class TrailDb implements AutoCloseable {
         c.getLong(15));
   }
 
+  public Float course(long fixId) {
+    try(Cursor c=getReadableDatabase().rawQuery("SELECT bearing_deg FROM fixes WHERE id=?",new String[]{Long.toString(fixId)})){
+      return c.moveToFirst()&&!c.isNull(0)?c.getFloat(0):null;
+    }
+  }
   public Fix latestFix() {
     try (Cursor c =
         getReadableDatabase()
