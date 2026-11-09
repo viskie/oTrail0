@@ -145,3 +145,7 @@ WTF! `!` becomes a regular octagon, normalized to the navigation/CAM icon scale 
 ## 0.4.5 — 2026-11-09
 
 Persistent GPS status popup above the live dot with speed, four-decimal coordinates, locality/road and cached/online nearby worship distances. Strongly bold destination heading. Solid rounded route/trail strokes. WTF! diagonal mirrored toward upper-left. Journal, modules, settings and map downloads retained. See docs/0.4.5-live-gps-bubble.md.
+
+## 0.4.6 — 2026-11-09
+
+Zero-padding compact GPS bubble, uniform 11sp text and available values only; lookup diagnostics move to the side-panel notes box. Fresh accurate GPS gets a subtle smile without changing position/size. Five navigation actions move into a collapsible left drawer with matching gradient shading and a top-left floating menu icon. Place name alone remains bold. See docs/0.4.6-compact-popup-menu.md.

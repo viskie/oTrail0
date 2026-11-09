@@ -56,6 +56,8 @@ public final class MainActivity extends Activity {
   private RoadControls roadControls;
   private LiveLocationContext liveContext;
   private GpsBubble liveBubble;
+  private MapMenu mapMenu;
+  private TextView lookupNotes;
   private GeoPoint liveBubblePoint;
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
@@ -222,7 +224,7 @@ public final class MainActivity extends Activity {
     row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
     camVisible=new ModuleStore(this).enabled("mod2");
-    row.addView(button(UiConfig.text("settings"), this::showDownloads));
+
     AppStyle.spaceButtons(row);
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
@@ -280,13 +282,14 @@ public final class MainActivity extends Activity {
     }
     mapControls.addView(locateButton,new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP)));
     HorizontalScrollView mapIconBar=new HorizontalScrollView(this);mapIconBar.setHorizontalScrollBarEnabled(false);mapIconBar.setFillViewport(true);mapIconBar.addView(mapControls,new HorizontalScrollView.LayoutParams(-2,-2));mapControls.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
-    FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(8),dp(10),dp(10),dp(8));mapFrame.addView(mapIconBar,controlPosition);
+    FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(76),dp(10),dp(10),dp(8));mapFrame.addView(mapIconBar,controlPosition);
     mapIconBar.post(()->mapIconBar.fullScroll(View.FOCUS_RIGHT));
     wtfNorth=new WtfNorthView(this);wtfNorth.setVisibility(wtfActive()?View.VISIBLE:View.GONE);
     FrameLayout.LayoutParams northPosition=new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.BOTTOM|Gravity.START);northPosition.setMargins(dp(10),0,0,dp(10));mapFrame.addView(wtfNorth,northPosition);
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
+    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showDownloads);mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -340,6 +343,7 @@ public final class MainActivity extends Activity {
     status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
+    lookupNotes=text("",UiConfig.BODY_SIZE_SP,UiConfig.STATUS_TEXT_COLOR);lookupNotes.setBackground(bg(UiConfig.STATUS_BACKGROUND,9));lookupNotes.setVisibility(View.GONE);body.addView(lookupNotes);
     moduleHost=new ModuleHost(this);body.addView(moduleHost.view());
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
@@ -349,17 +353,6 @@ public final class MainActivity extends Activity {
     totalBackground.setStroke(dp(1),UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setBackground(totalBackground);
     body.addView(stats);
-    LinearLayout actions = new LinearLayout(this);
-    actions.addView(
-        button(UiConfig.text("tracker"), this::trackerStatus), new LinearLayout.LayoutParams(0, dp(44), 1));
-    actions.addView(
-        button(UiConfig.text("places"), this::oldPlaces), new LinearLayout.LayoutParams(0, dp(44), 1));
-    actions.addView(button(UiConfig.text("stops"), this::showStops), new LinearLayout.LayoutParams(0, dp(44), 1));
-    actions.addView(
-        button(history ? UiConfig.text("live") : UiConfig.text("history"), this::history),
-        new LinearLayout.LayoutParams(0, dp(44), 1));
-    AppStyle.spaceButtons(actions);
-    body.addView(actions);
     TextView legend =
         text(UiConfig.text("green_ready_blue_moving_turquoise_stopped_cyan_history"), 10, MUTED);
     legend.setVisibility(View.GONE);
@@ -687,7 +680,7 @@ public final class MainActivity extends Activity {
     Marker dot = new Marker(map);
     dot.setPosition(stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon()));
     dot.setAnchor(.5f, .5f);
-    dot.setIcon(dot(color, 22));
+    LayerDrawable liveIcon=dot(color,22);if(!recorded&&!stale&&!uncertain&&last.accuracy()>0&&last.accuracy()<=UiConfig.GPS_SMILE_MAX_ACCURACY_M)liveIcon.addLayer(new HappyGpsFace());dot.setIcon(liveIcon);
     dot.setTitle(state);
     dot.setSnippet(
         String.format(
@@ -1589,7 +1582,11 @@ public final class MainActivity extends Activity {
     return best;
   }
 
-  private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){String address=liveContext.address();String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+="\n"+road;liveBubble.update(liveBubblePoint,status.getText(),address,liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude()));}}
+  private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){
+    String address=liveContext.address(),addressNote="";if(LivePopupText.addressPending(address)){addressNote=address;address="";}String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?"":"\n")+road;
+    LivePopupText.Parts worship=LivePopupText.worship(liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude()));liveBubble.update(liveBubblePoint,status.getText(),address,worship.values());
+    if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+worship.notes();lookupNotes.setText(note.trim());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
+  }}
   private boolean wtfActive(){return wtfEnabled&&!history;}
   private void toggleWtf(){
     wtfEnabled=history||!wtfEnabled;getPreferences(0).edit().putBoolean("wtf_mode",wtfEnabled).apply();
@@ -1694,6 +1691,7 @@ public final class MainActivity extends Activity {
 
   @Override
   public void onBackPressed() {
+    if(mapMenu!=null&&mapMenu.closeIfOpen())return;
     if (downloads) {
       showMap();
       return;
