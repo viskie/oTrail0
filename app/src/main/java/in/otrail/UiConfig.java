@@ -52,7 +52,7 @@ public class UiConfig {
   public static final int LOCATE_BEVEL_LIGHT=0xff656180, LOCATE_BEVEL_SHADOW=0xff170d25;
   public static final boolean NAV_TITLE_BOLD=true;
   public static final String DEFAULT_GPS_MARKER_STYLE="robot-snake";
-  public static final int GPS_ART_MARKER_SIZE_DP=48;
+  public static final int GPS_ART_MARKER_SIZE_DP=35;
   public static final int LIVE_TRAIL_COLOR=0xffff1493;
   public static final int LOCATE_SIZE_DP=56, LOCATE_BACKGROUND=0xff000000,
       LOCATE_LOGO_COLOR=0xff00ffff, LOCATE_BORDER_COLOR=0xffff00ff, LOCATE_RIPPLE_COLOR=0x6640e0d0;
@@ -87,6 +87,7 @@ public class UiConfig {
   // Remaining offline basemap lettering (roads and POIs); INK controls default dark text.
   public static final int MAP_ROAD_LABEL_COLOR=0xff243149, MAP_OTHER_LABEL_COLOR=INK,
       MAP_TEXT_OUTLINE_COLOR=0xffffffff;
+  public static final float MAP_ROAD_WIDTH_FAR=.38f, MAP_ROAD_WIDTH_MID=.55f, MAP_ROAD_WIDTH_STREET=.72f, MAP_ROAD_WIDTH_CLOSE=.88f;
   public static final int MAP_ROAD_CASING=0xff111111, MAP_ROAD_MOTORWAY=0xff162744,
       MAP_ROAD_TRUNK=0xff20212a, MAP_ROAD_PRIMARY=0xff2b243b,
       MAP_ROAD_SECONDARY=0xff493a2c, MAP_ROAD_TERTIARY=0xff41464d,

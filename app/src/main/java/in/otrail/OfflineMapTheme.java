@@ -16,7 +16,7 @@ final class OfflineMapTheme implements XmlRenderTheme {
     return Integer.toHexString(Objects.hash(UiConfig.CITY_LABEL_FONT,UiConfig.CITY_LABEL_STYLE,
         UiConfig.CITY_LABEL_COLOR,UiConfig.CITY_LABEL_OUTLINE_COLOR,
         UiConfig.CITY_LABEL_OUTLINE_WIDTH,UiConfig.CITY_LABEL_SIZE_SCALE,UiConfig.CITY_LABEL_MIN_SIZE,UiConfig.CITY_LABEL_MAX_SIZE,UiConfig.BIG_CITY_LABEL_COLOR,UiConfig.BIG_CITY_LABEL_STYLE,UiConfig.MAP_ROAD_LABEL_COLOR,UiConfig.MAP_OTHER_LABEL_COLOR,UiConfig.MAP_TEXT_OUTLINE_COLOR,UiConfig.MAP_TEXT_FONT,
-        UiConfig.MAP_ROAD_CASING,UiConfig.MAP_ROAD_MOTORWAY,UiConfig.MAP_ROAD_TRUNK,UiConfig.MAP_ROAD_PRIMARY,UiConfig.MAP_ROAD_SECONDARY,UiConfig.MAP_ROAD_TERTIARY,UiConfig.MAP_ROAD_MINOR,UiConfig.MAP_ROAD_PATH));
+        UiConfig.MAP_ROAD_CASING,UiConfig.MAP_ROAD_MOTORWAY,UiConfig.MAP_ROAD_TRUNK,UiConfig.MAP_ROAD_PRIMARY,UiConfig.MAP_ROAD_SECONDARY,UiConfig.MAP_ROAD_TERTIARY,UiConfig.MAP_ROAD_MINOR,UiConfig.MAP_ROAD_PATH,UiConfig.MAP_ROAD_WIDTH_FAR,UiConfig.MAP_ROAD_WIDTH_MID,UiConfig.MAP_ROAD_WIDTH_STREET,UiConfig.MAP_ROAD_WIDTH_CLOSE));
   }
   @Override public InputStream getRenderThemeAsStream() throws IOException {
     try (InputStream input=base.getRenderThemeAsStream()) {
@@ -24,12 +24,18 @@ final class OfflineMapTheme implements XmlRenderTheme {
       factory.setNamespaceAware(true);
       Document document=factory.newDocumentBuilder().parse(input);
       NodeList roads=document.getElementsByTagName("line");
-      for(int i=0;i<roads.getLength();i++){
-        Element line=(Element)roads.item(i);String highway=highway(line);
+      List<Element> roadLines=new ArrayList<>();for(int i=0;i<roads.getLength();i++)roadLines.add((Element)roads.item(i));
+      for(Element line:roadLines){
+        String highway=highway(line);
         if(highway==null||!line.hasAttribute("stroke"))continue;
         String old=line.getAttribute("stroke");
         boolean casing=old.equalsIgnoreCase("#707070")||old.equalsIgnoreCase("#000000");
         line.setAttribute("stroke",color(casing?UiConfig.MAP_ROAD_CASING:roadColor(highway)));
+        if(line.hasAttribute("stroke-width")){
+          float width=Float.parseFloat(line.getAttribute("stroke-width"));Element parent=(Element)line.getParentNode();
+          int[][] bands={{0,10},{11,13},{14,16},{17,22}};
+          for(int[] band:bands){Element rule=document.createElement("rule");rule.setAttribute("e","way");rule.setAttribute("k","*");rule.setAttribute("v","*");rule.setAttribute("zoom-min",Integer.toString(band[0]));rule.setAttribute("zoom-max",Integer.toString(band[1]));Element scaled=(Element)line.cloneNode(true);scaled.setAttribute("stroke-width",Float.toString(width*roadWidthScale(band[1])));rule.appendChild(scaled);parent.insertBefore(rule,line);}parent.removeChild(line);
+        }
       }
       NodeList captions=document.getElementsByTagName("caption");
       List<Element> originalCaptions=new ArrayList<>();
@@ -78,6 +84,7 @@ final class OfflineMapTheme implements XmlRenderTheme {
     float factor=zoom<=7?.36f:zoom<=10?.40f:zoom<=13?.48f:.56f;
     return Math.max(UiConfig.CITY_LABEL_MIN_SIZE,Math.min(UiConfig.CITY_LABEL_MAX_SIZE,original*factor))*UiConfig.CITY_LABEL_SIZE_SCALE;
   }
+  static float roadWidthScale(int zoom){return zoom<=10?UiConfig.MAP_ROAD_WIDTH_FAR:zoom<=13?UiConfig.MAP_ROAD_WIDTH_MID:zoom<=16?UiConfig.MAP_ROAD_WIDTH_STREET:UiConfig.MAP_ROAD_WIDTH_CLOSE;}
   static String highway(Element element){
     for(Node node=element.getParentNode();node instanceof Element;node=node.getParentNode()){
       Element rule=(Element)node;if(!"rule".equals(rule.getTagName()))continue;

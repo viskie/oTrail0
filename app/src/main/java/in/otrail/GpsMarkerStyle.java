@@ -27,7 +27,7 @@ public final class GpsMarkerStyle {
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG);private final Bitmap bitmap;private final int size,color;private final float density;
     private int alpha=255;private ColorFilter filter;
     ArtMarker(Context context,Option option,int color){density=context.getResources().getDisplayMetrics().density;size=Math.round(option.sizeDp()*density);this.color=color;bitmap=image(context,option.resource());}
-    @Override public void draw(Canvas canvas){Rect b=getBounds();float cx=b.exactCenterX(),cy=b.exactCenterY(),radius=Math.min(b.width(),b.height())*.45f;paint.setColorFilter(null);paint.setStyle(Paint.Style.STROKE);paint.setColor(Color.BLACK);paint.setAlpha(alpha);paint.setStrokeWidth(4*density);canvas.drawCircle(cx,cy,radius,paint);paint.setColor(color);paint.setAlpha(alpha);paint.setStrokeWidth(2*density);canvas.drawCircle(cx,cy,radius,paint);
+    @Override public void draw(Canvas canvas){Rect b=getBounds();float cx=b.exactCenterX(),cy=b.exactCenterY();
       if(bitmap==null)return;float scale=Math.min(b.width()*.94f/bitmap.getWidth(),b.height()*.94f/bitmap.getHeight()),w=bitmap.getWidth()*scale,h=bitmap.getHeight()*scale;paint.setStyle(Paint.Style.FILL);paint.setAlpha(alpha);paint.setColorFilter(filter);canvas.drawBitmap(bitmap,null,new RectF(cx-w/2,cy-h/2,cx+w/2,cy+h/2),paint);
     }
     @Override public int getIntrinsicWidth(){return size;}@Override public int getIntrinsicHeight(){return size;}

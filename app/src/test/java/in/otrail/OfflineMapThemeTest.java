@@ -39,4 +39,7 @@ public class OfflineMapThemeTest {
       assertTrue(roads>30);assertTrue(water);
     }
   }
+  @Test public void roadWidthProgressivelyGainsDetailWithoutReturningToOriginalHeavyWidth(){
+    assertTrue(OfflineMapTheme.roadWidthScale(9)<OfflineMapTheme.roadWidthScale(12));assertTrue(OfflineMapTheme.roadWidthScale(12)<OfflineMapTheme.roadWidthScale(15));assertTrue(OfflineMapTheme.roadWidthScale(15)<OfflineMapTheme.roadWidthScale(18));assertTrue(OfflineMapTheme.roadWidthScale(18)<1);
+  }
 }
