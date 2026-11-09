@@ -1,8 +1,8 @@
 {
-  "versionCode": 27,
-  "versionName": "0.4.4",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.4-debug.apk",
-  "sha256": "a3418ce052aff52e743be95889f22c158ff6b11c8b23b143cee5482890ac5b8c",
-  "sizeBytes": 41711536,
-  "notes": "WTF! icon is now a regular octagon, normalized to navigation/CAM size: shared visual scale, 56dp touch target, glyph inset, bevel and ripple. Enabled/disabled colors retained. Centered GPS and upper-right travel slope 1/0.8 unchanged. Existing modules, settings and data preserved. 78 JVM checks and lint pass. Final device verification awaits ADB."
+  "versionCode": 30,
+  "versionName": "0.4.7",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.7-debug.apk",
+  "sha256": "7d2a635de752f36e9f9a6de08c00a192c7a4a71f7c3158b667a41f4aecf43837",
+  "sizeBytes": 42247659,
+  "notes": "Compact GPS bubble with thicker border. Named nearby worship places and nearest police station together, cached with straight-line distance and confirmed tap-to-navigate. Navigation history in left menu. Uniform GPS text, accurate-fix smile, city-only bold destination and mirrored WTF diagonal. Journal, settings, modules and downloads retained. Build, 90 JVM checks, lint and isolated device checks passed."
 }
