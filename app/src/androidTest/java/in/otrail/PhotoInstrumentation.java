@@ -12,7 +12,7 @@ import org.json.*;
 public final class PhotoInstrumentation extends Instrumentation {
   @Override public void onCreate(Bundle args){super.onCreate(args);start();}
   private static void require(boolean ok,String message){if(!ok)throw new AssertionError(message);}
-  @Override public void onStart(){Bundle result=new Bundle();Context target=getTargetContext();File root=new File(target.getCacheDir(),"cam-test-db");root.mkdirs();
+  @Override public void onStart(){Bundle result=new Bundle();Context target=getTargetContext();File root=new File(target.getCacheDir(),"cam-test-db");root.mkdirs();File[] oldFixture=root.listFiles();if(oldFixture!=null)for(File file:oldFixture)file.delete();
     Context c=new ContextWrapper(target){@Override public Context getApplicationContext(){return this;}@Override public File getDatabasePath(String name){return new File(root,name);}@Override public SQLiteDatabase openOrCreateDatabase(String name,int mode,SQLiteDatabase.CursorFactory factory){return SQLiteDatabase.openOrCreateDatabase(getDatabasePath(name),factory);}@Override public SQLiteDatabase openOrCreateDatabase(String name,int mode,SQLiteDatabase.CursorFactory factory,android.database.DatabaseErrorHandler errors){return SQLiteDatabase.openOrCreateDatabase(getDatabasePath(name).getPath(),factory,errors);}};
     try{
       String before;
