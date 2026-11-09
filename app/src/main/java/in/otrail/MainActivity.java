@@ -541,6 +541,7 @@ public final class MainActivity extends Activity {
       double trailMeters, Float course) {
     historicPlaces = places;
     if (fixes.isEmpty()) {
+      status.setVisibility(View.VISIBLE);
       if (lastHeritageSignature != places.hashCode()) {
         lastHeritageSignature = places.hashCode();
         org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
@@ -581,6 +582,7 @@ public final class MainActivity extends Activity {
     String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
     android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
     statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    status.setVisibility(history?View.VISIBLE:View.GONE);
     status.setText(statusText);
     if(!history){liveBubblePoint=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());liveContext.update(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude(),roadControls.roadName());refreshLiveBubble();}
     else if(liveBubble!=null)liveBubble.setVisibility(View.GONE);

@@ -402,7 +402,7 @@ public class UiConfig {
   public static final int CAM_BACKGROUND=LOCATE_BACKGROUND;
   public static final int CAM_BORDER_COLOR=LOCATE_BORDER_COLOR;
   public static final int MAP_ICON_GAP_DP=6;
-  // WTF! base-app camera. Travel vector: x=0.8 right, y=1 up.
+  // WTF! base-app camera. Travel vector: x=-0.8 left, y=1 up.
   public static final String WTF_LABEL="WTF! mode", WTF_ICON_TEXT="!";
   public static final int WTF_ICON_SIZE_SP=24;
   public static final float WTF_DIAGONAL_X=-.8f, WTF_DIAGONAL_Y=1f;
@@ -414,4 +414,5 @@ public class UiConfig {
   public static final String NAV_TITLE_FONT="sans-serif", LIVE_BUBBLE_FONT="sans-serif-medium";
   public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
   public static final int LIVE_BUBBLE_WIDTH_DP=300, LIVE_WORSHIP_RADIUS_M=25000;
+  public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};
 }

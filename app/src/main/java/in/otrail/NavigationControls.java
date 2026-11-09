@@ -227,8 +227,10 @@ final class NavigationControls implements AutoCloseable {
       draw(map, s);
       return;
     }
-    android.text.SpannableString destination=new android.text.SpannableString(DestinationLabel.format(pending != null ? pending.name() : s.name()));destination.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),0,destination.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);title.setText(destination);
-    title.setTypeface(android.graphics.Typeface.create(UiConfig.NAV_TITLE_FONT,android.graphics.Typeface.BOLD));title.getPaint().setFakeBoldText(true);
+    android.text.SpannableString destination=new android.text.SpannableString(DestinationLabel.format(pending != null ? pending.name() : s.name()));
+    int placeEnd=destination.toString().indexOf(':');if(placeEnd<0)placeEnd=destination.length();
+    if(UiConfig.NAV_TITLE_BOLD)destination.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),0,placeEnd,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    title.setTypeface(android.graphics.Typeface.create(UiConfig.NAV_TITLE_FONT,android.graphics.Typeface.NORMAL));title.getPaint().setFakeBoldText(false);title.setText(destination);
     NavigationProgress.Guidance g = s.guidance();
     boolean active = "ACTIVE".equals(s.mode());
     boolean stale =
