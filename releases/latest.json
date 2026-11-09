@@ -1,8 +1,8 @@
 {
-  "versionCode": 32,
-  "versionName": "0.4.9",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.9-debug.apk",
-  "sha256": "d2290e04e8a514ccfdd2b9de43d956f92ab70f43807895c161f42ab38641853b",
-  "sizeBytes": 42282851,
-  "notes": "Resonations compact player above total/status panel. Multi-select MP3, MP4 audio and common recordings. First three filenames plus fourth-line ellipsis for larger playlists. Repeat entire playlist, pause/resume and clear. Saved document access and playlist survive restart/upgrades. Independent foreground playback with audio-focus handling and notification pause controls. No trail/module/settings/download migration. Build, 95 JVM tests and lint passed; actual phone audio checks pending ADB reconnection."
+  "versionCode": 33,
+  "versionName": "0.4.10",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.10-debug.apk",
+  "sha256": "89d55303c9d95598f004e6a06508bfdac231ed85372c22f747dd5baa49eabab9",
+  "sizeBytes": 42286507,
+  "notes": "Reusable NeonBorderDrawable with current turquoise, lime, bright orange and bright yellow palettes. Bijnor destination panel lime; Resonations orange; GPS popup yellow. Brighter innermost top rim against black. Manual button typography, text colors, sizing and turquoise glow retained; manual menu, swatch and Resonations edits included. No journal/module/settings/download migration. Build, 95 JVM checks and lint passed. Phone visual check pending ADB."
 }
