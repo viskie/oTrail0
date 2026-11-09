@@ -22,7 +22,8 @@ public final class NeonBorderDrawable extends Drawable {
     color=switch(palette){case CURRENT->UiConfig.NEON_CURRENT;case LIME->UiConfig.NEON_LIME;case BRIGHT_ORANGE->UiConfig.NEON_BRIGHT_ORANGE;case BRIGHT_YELLOW->UiConfig.NEON_BRIGHT_YELLOW;};
     reflection=palette==Palette.CURRENT?UiConfig.NEON_CURRENT_REFLECTION:withAlpha(color,153);
   }
-  public static NeonBorderDrawable button(View view){return new NeonBorderDrawable(view,Palette.CURRENT,true,0);}
+  public static NeonBorderDrawable button(View view){return button(view,Palette.CURRENT);}
+  public static NeonBorderDrawable button(View view,Palette palette){return new NeonBorderDrawable(view,palette,true,0);}
   public static NeonBorderDrawable panel(View view,Palette palette,float cornerDp){return new NeonBorderDrawable(view,palette,false,cornerDp);}
   private static int withAlpha(int color,int alpha){return(color&0xffffff)|(alpha<<24);}
   private static int lighter(int color){return Color.rgb((Color.red(color)*3+255)/4,(Color.green(color)*3+255)/4,(Color.blue(color)*3+255)/4);}
