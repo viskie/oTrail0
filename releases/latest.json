@@ -1,8 +1,8 @@
 {
-  "versionCode": 35,
-  "versionName": "0.4.12",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.12-debug.apk",
-  "sha256": "4afe6908ca19d97d86f729e3fe247c1cce8f5aa07cd03b11ac9d15b8de570db6",
+  "versionCode": 36,
+  "versionName": "0.4.13",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.13-debug.apk",
+  "sha256": "18dea89e7a0aada2711a9a9012695a2b6f807e41824f84c2b4d755a5846b88f0",
   "sizeBytes": 41793548,
-  "notes": "Zoom-aware saved-stop density and sizes uncover the continuous trail when zoomed out. Prioritize long/newer stops and keep GPS dot clear; all stops remain saved and accessible. Single-line scrolling total strip floats beside map copyright with bottom gap. Bijnor/nearby info centered in landscape sidebar; Resonations bottom-pinned. Fully rounded outer neon glow with natural insets, no outer clipping mask. Build, 101 JVM checks and lint passed. Final phone visual check pending ADB reconnection. Existing data, modules, maps and playlists retained."
+  "notes": "Centered Resonations title, filename font reduced 1sp. Removed extra gap between destination instruction and summary. Floating map totals gain 1 physical pixel with padded || delimiters. Top-row menu/WTF/camera/Locate icons glow along existing borders in their own colors. Includes zoom-aware stop decluttering, rounded unclipped panel glows and centered sidebar with bottom-pinned Resonations. Build, 101 JVM checks and lint passed. Installed and UI checked on POCO; full-trail overview verified clearer lines and fewer dots without crashing. Live view restored with recorder running and data retained."
 }
