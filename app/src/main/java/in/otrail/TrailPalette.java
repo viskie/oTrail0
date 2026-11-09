@@ -6,7 +6,9 @@ import java.util.*;
 public final class TrailPalette {
   public static final int CONTINUITY=UiConfig.CONTINUITY;
   public static final int[] COLORS=UiConfig.TRAIL_COLORS;
-  public record Stroke(int color,int pass,List<TrailSegments.Sample> points){}
+  public record Stroke(int color,int pass,List<TrailSegments.Sample> points,boolean ongoing){
+    public Stroke(int color,int pass,List<TrailSegments.Sample> points){this(color,pass,points,false);}
+  }
   private record Cell(int x,int y){}
   private record Visit(int pass,long time,double x,double y,double dx,double dy){}
   private static Cell cell(double x,double y){return new Cell((int)Math.floor(x/35),(int)Math.floor(y/35));}
@@ -20,7 +22,7 @@ public final class TrailPalette {
       int split=1;while(split<points.size()&&points.get(split).time()<start)split++;
       if(split==points.size()){result.add(stroke);continue;}
       if(split>1)result.add(new Stroke(stroke.color(),stroke.pass(),List.copyOf(points.subList(0,split))));
-      result.add(new Stroke(UiConfig.LIVE_TRAIL_COLOR,stroke.pass(),List.copyOf(points.subList(split-1,points.size()))));
+      result.add(new Stroke(UiConfig.LIVE_TRAIL_COLOR,stroke.pass(),List.copyOf(points.subList(split-1,points.size())),true));
     }
     return result;
   }

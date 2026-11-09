@@ -668,7 +668,7 @@ public final class MainActivity extends Activity {
     for (TrailPalette.Stroke stroke : recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart)) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
-      line(points, stroke.color());
+      line(points, stroke.color(), stroke.ongoing());
     }
     for (TrailDb.Stop s : stops) {
       Marker m = new Marker(map);
@@ -783,7 +783,7 @@ public final class MainActivity extends Activity {
       out.append(label).append(": ").append(value).append("\n");
   }
 
-  private void line(ArrayList<GeoPoint> pts, int color) {
+  private void line(ArrayList<GeoPoint> pts, int color, boolean ongoing) {
     if (pts.size() < 2) return;
     Polyline p = new Polyline(map);
     p.setPoints(pts);
@@ -796,7 +796,7 @@ public final class MainActivity extends Activity {
     android.graphics.Paint stroke = p.getOutlinePaint();
     stroke.setStyle(android.graphics.Paint.Style.STROKE);stroke.setStrokeCap(android.graphics.Paint.Cap.ROUND);stroke.setStrokeJoin(android.graphics.Paint.Join.ROUND);stroke.setAntiAlias(true);stroke.setPathEffect(null);
     android.graphics.Paint halo = new android.graphics.Paint(stroke);
-    halo.setColor(UiConfig.TRAIL_OUTLINE); halo.setStrokeWidth(dp(6));
+    halo.setColor(ongoing?UiConfig.LIVE_TRAIL_OUTLINE:UiConfig.TRAIL_OUTLINE); halo.setStrokeWidth(dp(6));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(stroke));
     map.getOverlays().add(p);

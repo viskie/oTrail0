@@ -116,8 +116,10 @@ public class UiConfig {
   // Border shared wby location and saved-stop dots (width in dp).
   public static final int DOT_OUTLINE_COLOR=0xffffffff;
   public static final int DOT_OUTLINE_WIDTH_DP=3;
-  // Dark translucent border behind trail lines to keep them visible on maps.
-  public static final int TRAIL_OUTLINE=0xff17deee;
+  // Recorded trail casing is black regardless of pass/continuity color.
+  public static final int TRAIL_OUTLINE=0xff000000;
+  // Ongoing ride retains its previous outline; navigation styles are independent.
+  public static final int LIVE_TRAIL_OUTLINE=0xff17deee;
 
   /** Empty follows the phone language. Set e.g. "en" or "hi" to pin UI copy.
    * Add translated keys below; missing translations fall back to ENGLISH.
