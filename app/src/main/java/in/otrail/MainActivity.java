@@ -87,7 +87,7 @@ public final class MainActivity extends Activity {
             refresh();
             navigationTick();
           }
-          handler.postDelayed(this, 2500);
+          handler.postDelayed(this, downloads ? 2500 : TrackingService.FIX_INTERVAL_MS);
         }
       };
 
@@ -608,13 +608,15 @@ public final class MainActivity extends Activity {
       }
       fitTrail=false;follow=false;wtfCenter();
     }
+    // Duration text changes independently of geographic overlays.
+    String mapState = recorded+":"+stopped+":"+uncertain+":"+stale+":"+color;
     int stopSignature = stops.hashCode(), heritageSignature = places.hashCode();
     if (lastFixId == last.id()
-        && lastState.equals(state)
+        && lastState.equals(mapState)
         && lastStopSignature == stopSignature
         && lastHeritageSignature == heritageSignature) return;
     lastFixId = last.id();
-    lastState = state;
+    lastState = mapState;
     lastStopSignature = stopSignature;
     lastHeritageSignature = heritageSignature;
     Marker selected = visibleMarkers.get(openMarkerKey);

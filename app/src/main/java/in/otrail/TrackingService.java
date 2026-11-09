@@ -8,7 +8,7 @@ import android.location.*;
 import android.os.*;
 
 public final class TrackingService extends Service implements LocationListener {
-  public static final long FIX_INTERVAL_MS = 5000;
+  public static final long FIX_INTERVAL_MS = 13000;
   private LocationManager manager;
   private TrailDb db;
   private long trip = -1;
@@ -46,7 +46,7 @@ public final class TrackingService extends Service implements LocationListener {
     Notification n =
         new Notification.Builder(this, "tracking")
             .setContentTitle("oTraiL · always recording")
-            .setContentText("GPS every 5 seconds · recording continues when the app is closed")
+            .setContentText("High-accuracy GPS every 13 seconds · recording continues when the app is closed")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(open)
             .setOngoing(true)
@@ -73,8 +73,18 @@ public final class TrackingService extends Service implements LocationListener {
           java.util.concurrent.TimeUnit.SECONDS);
       db.restoreDetector(trip, detector);
       try {
-        manager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER, FIX_INTERVAL_MS, 0, this, Looper.getMainLooper());
+        if (Build.VERSION.SDK_INT >= 31) {
+          LocationRequest request = new LocationRequest.Builder(FIX_INTERVAL_MS)
+              .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
+              .setMinUpdateIntervalMillis(FIX_INTERVAL_MS)
+              .setMaxUpdateDelayMillis(0)
+              .build();
+          manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, request,
+              getMainExecutor(), this);
+        } else {
+          manager.requestLocationUpdates(
+              LocationManager.GPS_PROVIDER, FIX_INTERVAL_MS, 0, this, Looper.getMainLooper());
+        }
       } catch (SecurityException | IllegalArgumentException e) {
         db.log("GPS", "ERROR", e.toString());
         db.finish(trip);

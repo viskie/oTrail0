@@ -46,7 +46,7 @@ final class NavigationControls implements AutoCloseable {
     panel.setOrientation(LinearLayout.VERTICAL);
     AppStyle.decoratePanel(panel,AppStyle.CORAL);
     android.graphics.drawable.GradientDrawable background=new android.graphics.drawable.GradientDrawable();
-    background.setColor(UiConfig.NAV_PANEL_BACKGROUND);background.setCornerRadius(dp(9));
+    background.setColor(UiConfig.NAV_PANEL_BACKGROUND);background.setCornerRadius(UiConfig.NAV_BOX_CORNER_DP*activity.getResources().getDisplayMetrics().density);
     background.setStroke(dp(1),UiConfig.NAV_TEXT_SPECTRUM[0]);panel.setBackground(background);
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);

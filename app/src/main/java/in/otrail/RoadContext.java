@@ -63,7 +63,7 @@ public final class RoadContext extends SQLiteOpenHelper {
       }
       if(same>100||other+20<same)continue;
       String religion=t.optString("religion"),kind=t.optString("amenity",t.optString("tourism",t.optString("historic","landmark")));
-      if(kind.equals("place_of_worship"))kind=religion.isBlank()?"Place of worship":religion.equals("hindu")?"Temple":religion.equals("muslim")?"Mosque":religion.equals("christian")?"Church":religion.equals("sikh")?"Gurdwara":religion+" place of worship";
+      if(kind.equals("place_of_worship"))kind=religion.isBlank()?"Religious place":religion.equals("hindu")?"Temple":religion.equals("muslim")?"Mosque":religion.equals("christian")?"Church":religion.equals("sikh")?"Gurdwara":religion+" religious place";
       String key=e.optString("type")+"/"+e.optLong("id"),name=t.optString("name",t.optString("name:en",kind));
       if(seen.add(key))pois.add(new Landmark(key,name,kind,y,x,distance));
     }

@@ -22,8 +22,9 @@ public class UiConfig {
   public static final float BUTTON_GRADIENT_MIX=.24f, PANEL_TINT_MIX=.26f;
   public static final int BUTTON_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final boolean PSYCHEDELIC_GRADIENTS=true;
-  public static final int[] BUTTON_SPECTRUM={BUTTON,LIME,YELLOW,ORANGE};
-  public static final int[] CANVAS_SPECTRUM={CYAN,SECONDARY,PURPLE,ORANGE};
+  public static final int GRADIENT_BRIGHT_ORANGE=0xffffb000;
+  public static final int[] BUTTON_SPECTRUM={BUTTON,LIME,YELLOW,GRADIENT_BRIGHT_ORANGE};
+  public static final int[] CANVAS_SPECTRUM={CYAN,SECONDARY,PURPLE,GRADIENT_BRIGHT_ORANGE};
   public static final float CANVAS_COLOR_STRENGTH=.62f;
   public static final int BODY_FONT_STYLE=android.graphics.Typeface.ITALIC,
       STATUS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
@@ -33,7 +34,7 @@ public class UiConfig {
   public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="casual",
       STATUS_FONT="sans-serif-medium", MAP_LABEL_FONT="sans-serif";
   public static final int BUTTON_SIZE_SP=12, BODY_SIZE_SP=10, STATUS_SIZE_SP=13,
-      NAV_TITLE_SIZE_SP=18, NAV_INSTRUCTION_SIZE_SP=14, NAV_SUMMARY_SIZE_SP=11,
+      NAV_TITLE_SIZE_SP=19, NAV_INSTRUCTION_SIZE_SP=15, NAV_SUMMARY_SIZE_SP=12,
       MAP_LABEL_SIZE_SP=11, MAP_LABEL_STYLE=android.graphics.Typeface.BOLD; // 0 normal, 1 bold, 2 italic
   public static final int BUTTON_INNER_PADDING_DP=4, BUTTON_GAP_DP=4, CONTROL_ROW_PADDING_DP=2;
   public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
@@ -135,7 +136,7 @@ public class UiConfig {
       Map.entry("afterwards_sizes_are_estimates_until_the_server_reports_the_tota", " afterwards. Sizes are estimates until the server reports the total."),
       Map.entry("age_from_source_date", "Age from epoch: "),
       Map.entry("ago", " ago"),
-      Map.entry("always_on_gps_every_5_seconds", "Always-on GPS · every 5 seconds"),
+      Map.entry("always_on_gps_every_5_seconds", "Always-on GPS · every 13 seconds"),
       Map.entry("always_on_recording", "Always-on recording"),
       Map.entry("always_on_trail_recording", "Always-on trail recording"),
       Map.entry("always_recording_waiting_for_gps", "Always recording · waiting for GPS"),
@@ -207,8 +208,8 @@ public class UiConfig {
       Map.entry("gps_6f_6f_2", "GPS: %.6f, %.6f"),
       Map.entry("gps_gaps_present_recorded_distance_only", "\nGPS gaps present; recorded distance only"),
       Map.entry("gps_needs_a_clear_view_of_the_sky_stops_logged_after_2_min", "GPS needs a clear view of the sky · stops logged after 2 min"),
-      Map.entry("gps_request_every_5_seconds_recording_starts_automatically_after", "GPS request: every 5 seconds. Recording starts automatically after permission is granted"),
-      Map.entry("gps_request_interval_5_seconds_recording_runs_independently_of_l", "GPS request interval: 5 seconds. Recording runs independently of Live / History.\n\n"),
+      Map.entry("gps_request_every_5_seconds_recording_starts_automatically_after", "GPS request: every 13 seconds, high accuracy. Recording starts automatically after permission is granted"),
+      Map.entry("gps_request_interval_5_seconds_recording_runs_independently_of_l", "GPS request interval: 13 seconds, high accuracy. Recording runs independently of Live / History.\n\n"),
       Map.entry("gps_signal_stale", "GPS signal stale"),
       Map.entry("gps_stale_waiting_for_location", "GPS stale · waiting for location"),
       Map.entry("graph_import_failed", "Graph import failed: "),
@@ -415,7 +416,9 @@ public class UiConfig {
   public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
   public static final int LIVE_BUBBLE_WIDTH_DP=132, LIVE_WORSHIP_RADIUS_M=25000;
   public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};
-  public static final int LIVE_BUBBLE_SIZE_SP=11, GPS_SMILE_COLOR=0xffffffff;
+  // 0.8 of a 16dp base corner, shared by navigation and GPS panels.
+  public static final float NAV_BOX_CORNER_DP=12.8f;
+  public static final int LIVE_BUBBLE_SIZE_SP=12, GPS_SMILE_COLOR=0xffffffff;
   public static final float GPS_SMILE_MAX_ACCURACY_M=15;
   public static final int LIVE_BUBBLE_BORDER_DP=4;
 }

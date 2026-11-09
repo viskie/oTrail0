@@ -21,4 +21,12 @@ public class StopDetectorTest {
     }
     @Test public void falseSpeedAtSamePointDoesNotEndStop(){StopDetector d=new StopDetector();d.restore(5000,130000,20,77,true);assertNull(d.accept(135000,20,77,15,35));assertTrue(d.isStopped());assertTrue(d.isUncertain());}
     @Test public void realDriveInReducedAccuracyEventuallyConfirmsDeparture(){StopDetector d=new StopDetector();d.restore(5000,130000,20,77,true);StopDetector.Event event=null;for(int i=0;i<=18;i++)event=d.accept(135000+i*5000,20.001+i*.0003,77,15,6.5f);assertNotNull(event);assertTrue(event.closed());assertFalse(d.isStopped());}
+    @Test public void thirteenSecondFixesPreserveStopArrivalAcrossPoorReception(){
+      StopDetector d=new StopDetector();StopDetector.Event opened=null;
+      for(int i=1;i<=11;i++){StopDetector.Event e=d.accept(i*13000L,20,77,6,0);if(e!=null)opened=e;}
+      assertNotNull(opened);assertTrue(opened.opened());assertEquals(13000L,d.arrival());
+      assertNull(d.accept(156000L,20.002,77,80,15));assertTrue(d.isStopped());
+      for(int i=13;i<=15;i++)assertNull(d.accept(i*13000L,20,77,6,0));
+      assertTrue(d.isStopped());assertFalse(d.isUncertain());assertEquals(13000L,d.arrival());
+    }
 }

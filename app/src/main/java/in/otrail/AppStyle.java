@@ -72,7 +72,7 @@ public final class AppStyle extends UiConfig {
   public static android.graphics.drawable.Drawable canvas(){
     if(!VIBRANT_FINISH)return new ColorDrawable(BACKGROUND);
     int[] colors=new int[CANVAS_SPECTRUM.length];
-    for(int i=0;i<colors.length;i++)colors[i]=mix(BACKGROUND,CANVAS_SPECTRUM[i],CANVAS_COLOR_STRENGTH);
+    for(int i=0;i<colors.length;i++)colors[i]=mix(BACKGROUND,CANVAS_SPECTRUM[i],i==colors.length-1?.90f:CANVAS_COLOR_STRENGTH);
     return new GradientDrawable(GradientDrawable.Orientation.TL_BR,PSYCHEDELIC_GRADIENTS?colors:
         new int[]{mix(BACKGROUND,CYAN,.12f),BACKGROUND,mix(BACKGROUND,SECONDARY,.10f)});
   }
