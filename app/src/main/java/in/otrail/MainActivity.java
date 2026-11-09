@@ -231,7 +231,7 @@ public final class MainActivity extends Activity {
 
     modeParams.gravity = Gravity.START;
     row.addView(mode, modeParams);
-    
+
     // Flexible empty space in the middle
     View spacer = new View(this);
     row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
@@ -1103,7 +1103,7 @@ public final class MainActivity extends Activity {
     LinearLayout rows=new LinearLayout(this);rows.setOrientation(LinearLayout.VERTICAL);
     for(int i=0;i<TrailPalette.COLORS.length;i++) {
       LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(12),dp(3),dp(12),dp(3));
-      View swatch=new View(this);swatch.setBackgroundColor(TrailPalette.COLORS[i]);row.addView(swatch,new LinearLayout.LayoutParams(dp(36),dp(22)));
+      View swatch=new View(this);swatch.setBackgroundColor(TrailPalette.COLORS[i]);row.addView(swatch,new LinearLayout.LayoutParams(dp(36),dp(32)));
       row.addView(text(String.format(Locale.US,UiConfig.text("pass_02d_06x"),i+1,TrailPalette.COLORS[i]&0xffffff),14,INK));rows.addView(row);
     }
     rows.addView(text(String.format(Locale.US,UiConfig.text("continuity_06x"),TrailPalette.CONTINUITY&0xffffff),14,INK));ScrollView scroll=new ScrollView(this);scroll.addView(rows);

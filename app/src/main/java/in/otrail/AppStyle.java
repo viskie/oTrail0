@@ -9,25 +9,59 @@ import android.widget.*;
 public final class AppStyle extends UiConfig {
   private static int dp(android.view.View v,float n){return (int)(v.getResources().getDisplayMetrics().density*n+.5f);}
   public static void button(Button b){button(b,0);}
-  public static void button(Button b,int emphasis) {
-    b.setGravity(android.view.Gravity.CENTER);b.setAllCaps(false);b.setTypeface(Typeface.create(BUTTON_FONT,BUTTON_FONT_STYLE));b.setTextSize(BUTTON_SIZE_SP);b.setShadowLayer(dp(b,.6f),0,0,Color.WHITE);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setLetterSpacing(.01f);
-    b.setMinHeight(dp(b,12));b.setMinimumHeight(dp(b,12));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);b.setStateListAnimator(null);
-    int fill=BUTTON;
-    GradientDrawable shape=VIBRANT_FINISH
-        ?new GradientDrawable(GradientDrawable.Orientation.TL_BR,PSYCHEDELIC_GRADIENTS?BUTTON_SPECTRUM:new int[]{fill,mix(fill,BUTTON_GRADIENT_ACCENT,BUTTON_GRADIENT_MIX)})
-        :new GradientDrawable();
-    if(!VIBRANT_FINISH)shape.setColor(fill);
-    shape.setCornerRadius(dp(b,10));shape.setStroke(dp(b,1),BUTTON_BORDER);
-    android.graphics.drawable.Drawable face=shape;
-    if(VIBRANT_FINISH){
-      GradientDrawable edge=new GradientDrawable();edge.setColor(BUTTON_EDGE_ACCENT);edge.setCornerRadius(dp(b,11));
-      LayerDrawable layers=new LayerDrawable(new android.graphics.drawable.Drawable[]{edge,shape});
-      layers.setLayerInset(1,dp(b,1),dp(b,1),dp(b,1),dp(b,3));face=layers;
-    }
-    b.setBackgroundTintList(null);b.setBackground(new RippleDrawable(ColorStateList.valueOf(BUTTON_RIPPLE),face,null));
-    b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);
-    b.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{BUTTON_DISABLED_TEXT,BUTTON_TEXT}));
-  }
+
+
+
+
+public static void button(Button b, int emphasis) {
+    b.setGravity(android.view.Gravity.CENTER);
+    b.setAllCaps(false);
+    b.setTypeface(Typeface.create(BUTTON_FONT, BUTTON_FONT_STYLE));
+    b.setTextSize(BUTTON_SIZE_SP);
+    b.setSingleLine(true);
+    b.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    b.setLetterSpacing(.01f);
+    b.setStateListAnimator(null);
+
+    b.setMinHeight(dp(b, 34));
+    b.setMinimumHeight(dp(b, 34));
+    b.setMinWidth(0);
+    b.setMinimumWidth(0);
+
+    android.graphics.drawable.Drawable neon = NeonBorderDrawable.button(b);
+
+    b.setBackgroundTintList(null);
+
+    b.setBackground(
+        new RippleDrawable(
+            ColorStateList.valueOf(BUTTON_RIPPLE),
+            neon,
+            null
+        )
+    );
+
+    b.setPadding(
+        dp(b, BUTTON_INNER_PADDING_DP + 6),
+        0,
+        dp(b, BUTTON_INNER_PADDING_DP + 6),
+        0
+    );
+
+    b.setTextColor(
+        new ColorStateList(
+            new int[][]{
+                new int[]{-android.R.attr.state_enabled},
+                new int[]{}
+            },
+            new int[]{
+                BUTTON_DISABLED_TEXT,
+                BUTTON_TEXT
+            }
+        )
+    );
+}
+
+
   public static void text(TextView t){t.setTypeface(Typeface.create(BODY_FONT,BODY_FONT_STYLE));t.setTextColor(ACCENT_TEXT);t.setIncludeFontPadding(false);}
   public static int textColor(int size,boolean bold){return bold||size>=18?HEADING:size<=11?SECONDARY:ACCENT_TEXT;}
   public static void nativeTextTree(android.view.View view) {
@@ -99,10 +133,10 @@ public final class AppStyle extends UiConfig {
       android.view.View child=row.getChildAt(i);
       if(child instanceof Button && !(child instanceof CompoundButton)){
         LinearLayout.LayoutParams params=child.getLayoutParams() instanceof LinearLayout.LayoutParams current
-            ?current:new LinearLayout.LayoutParams(-2,dp(row,22));
-        params.height=dp(row,22);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
+            ?current:new LinearLayout.LayoutParams(-2,dp(row,32));
+        params.height=dp(row,32);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
       }else if(child instanceof TextView label && !(child instanceof CompoundButton)){
-        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,22));
+        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,32));
       }
     }
   }

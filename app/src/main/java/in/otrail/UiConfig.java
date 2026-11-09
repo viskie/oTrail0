@@ -10,9 +10,16 @@ public class UiConfig {
   protected UiConfig() {}
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
   public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffff4162,SECONDARY=0xffFF00FF;
-  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffbd00ff;
+  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xff01ff1f;
   public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff17deee,MUTED=0xffff7f50;
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2, BLACK=0xff000000;
+  // Shared neon border palettes; button typography and ripple colors remain separate.
+  public static final int NEON_CURRENT=0xff00eaff, NEON_LIME=LIME,
+      NEON_BRIGHT_ORANGE=0xffff9d00, NEON_BRIGHT_YELLOW=0xffffff00;
+  public static final int[] NEON_CURRENT_STOPS={0x3300a9c8,0x7700c9e7,NEON_CURRENT,0xff00bce5};
+  public static final int[] NEON_INTERIOR={0xff080d13,0xff020508,0xff000000};
+  public static final int NEON_CURRENT_REFLECTION=0x9900ffff, NEON_INNER_TOP_ALPHA=235;
+  public static final float NEON_INNER_TOP_WIDTH_DP=1f;
   public static final int BUTTON_BORDER=0xff17deee, BUTTON_RIPPLE=0xff17deee,
       BUTTON_DISABLED_TEXT=0x99ff00ff;
   // Vibrant finish. Existing manually edited base colors above remain authoritative.

@@ -21,17 +21,7 @@ final class ResonationsWidget extends LinearLayout {
     setOrientation(VERTICAL);
     setPadding(dp(5), dp(3), dp(5), dp(3));
 
-    AppStyle.decoratePanel(this, UiConfig.CYAN);
-
-    // Black background with cyan border
-    android.graphics.drawable.GradientDrawable bg =
-        new android.graphics.drawable.GradientDrawable();
-
-    bg.setColor(0xff000000);
-    bg.setCornerRadius(dp(7));
-    bg.setStroke(dp(1), UiConfig.CYAN);
-
-    setBackground(bg);
+    setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_ORANGE,7));
 
     title = new TextView(activity);
     AppStyle.text(title);
@@ -47,9 +37,9 @@ final class ResonationsWidget extends LinearLayout {
     names.setOrientation(VERTICAL);
     addView(names);
     LinearLayout controls=new LinearLayout(activity);
-    Button choose=button(UiConfig.text("resonations_files"),this::pick);controls.addView(choose,new LayoutParams(0,dp(22),1));
-    play=button(UiConfig.text("resonations_play"),()->{Intent intent=new Intent(activity,ResonationsService.class).setAction(ResonationsService.active?ResonationsService.PAUSE:ResonationsService.PLAY);try{if(ResonationsService.active)activity.startService(intent);else activity.startForegroundService(intent);}catch(RuntimeException error){Toast.makeText(activity,"Cannot start audio: "+error.getMessage(),Toast.LENGTH_LONG).show();}});controls.addView(play,new LayoutParams(0,dp(22),1));
-    Button clear=button(UiConfig.text("resonations_clear"),()->{activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist","[]").putInt("position",0).putInt("index",0).apply();ResonationsService.message="";refresh();});controls.addView(clear,new LayoutParams(0,dp(22),1));
+    Button choose=button(UiConfig.text("resonations_files"),this::pick);controls.addView(choose,new LayoutParams(0,dp(32),1));
+    play=button(UiConfig.text("resonations_play"),()->{Intent intent=new Intent(activity,ResonationsService.class).setAction(ResonationsService.active?ResonationsService.PAUSE:ResonationsService.PLAY);try{if(ResonationsService.active)activity.startService(intent);else activity.startForegroundService(intent);}catch(RuntimeException error){Toast.makeText(activity,"Cannot start audio: "+error.getMessage(),Toast.LENGTH_LONG).show();}});controls.addView(play,new LayoutParams(0,dp(32),1));
+    Button clear=button(UiConfig.text("resonations_clear"),()->{activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist","[]").putInt("position",0).putInt("index",0).apply();ResonationsService.message="";refresh();});controls.addView(clear,new LayoutParams(0,dp(32),1));
     for(int i=0;i<controls.getChildCount();i++){LayoutParams p=(LayoutParams)controls.getChildAt(i).getLayoutParams();p.setMargins(dp(2),dp(2),dp(2),0);}addView(controls);refresh();
   }
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
@@ -60,7 +50,69 @@ final class ResonationsWidget extends LinearLayout {
     List<ResonationsPlaylist.Track> selected=new ArrayList<>();for(Uri uri:uris){if(!"content".equals(uri.getScheme()))continue;try{activity.getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(SecurityException error){Toast.makeText(activity,"Cannot retain this file · choose from local storage",Toast.LENGTH_LONG).show();continue;}String name="Audio";try(Cursor c=activity.getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst()&&!c.isNull(0))name=c.getString(0);}catch(RuntimeException ignored){}selected.add(new ResonationsPlaylist.Track(uri.toString(),name));}
     if(selected.isEmpty())return;activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist",ResonationsPlaylist.encode(selected)).putInt("index",0).putInt("position",0).apply();ResonationsService.message="";refresh();
   }
-  private void refresh(){List<ResonationsPlaylist.Track> tracks=ResonationsService.tracks(activity);title.setText(UiConfig.text("resonations_title")+(ResonationsService.active?" · ↻":""));title.setContentDescription(ResonationsService.message);names.removeAllViews();List<String> lines=ResonationsPlaylist.visibleNames(tracks);if(lines.isEmpty())lines=List.of(UiConfig.text("resonations_empty"));for(String name:lines){TextView line=new TextView(activity);line.setText(name);line.setTextColor(UiConfig.RESONATIONS_TEXT);line.setTextSize(UiConfig.RESONATIONS_TEXT_SP);line.setSingleLine(true);line.setEllipsize(android.text.TextUtils.TruncateAt.END);line.setIncludeFontPadding(false);names.addView(line);}play.setText(UiConfig.text(ResonationsService.active?"resonations_pause":"resonations_play"));play.setEnabled(!tracks.isEmpty());if(!ResonationsService.message.isBlank()&&!ResonationsService.active)title.setText(UiConfig.text("resonations_title")+" · "+ResonationsService.message);}
+
+  private void refresh() {
+      List<ResonationsPlaylist.Track> tracks =
+          ResonationsService.tracks(activity);
+
+      title.setText(
+          UiConfig.text("resonations_title")
+              + (ResonationsService.active ? " · ↻" : "")
+      );
+
+      title.setContentDescription(ResonationsService.message);
+
+      names.removeAllViews();
+
+      List<String> lines = ResonationsPlaylist.visibleNames(tracks);
+
+      if (lines.isEmpty()) {
+          lines = List.of(UiConfig.text("resonations_empty"));
+      }
+
+      for (String name : lines) {
+          TextView line = new TextView(activity);
+
+          line.setText(name);
+          line.setTextColor(UiConfig.RESONATIONS_TEXT);
+
+          // Match navigation instruction font and size
+          line.setTextSize(UiConfig.NAV_SUMMARY_SIZE_SP);
+          line.setTypeface(
+              android.graphics.Typeface.create(
+                  UiConfig.HEADING_FONT,
+                  UiConfig.HEADING_FONT_STYLE
+              )
+          );
+
+          line.setSingleLine(true);
+          line.setEllipsize(
+              android.text.TextUtils.TruncateAt.END
+          );
+          line.setIncludeFontPadding(false);
+
+          names.addView(line);
+      }
+
+      play.setText(
+          UiConfig.text(
+              ResonationsService.active
+                  ? "resonations_pause"
+                  : "resonations_play"
+          )
+      );
+
+      play.setEnabled(!tracks.isEmpty());
+
+      if (!ResonationsService.message.isBlank()
+              && !ResonationsService.active) {
+          title.setText(
+              UiConfig.text("resonations_title")
+                  + " · "
+                  + ResonationsService.message
+          );
+      }
+  }
   @Override protected void onAttachedToWindow(){super.onAttachedToWindow();ResonationsService.listeners.add(listener);refresh();}
   @Override protected void onDetachedFromWindow(){ResonationsService.listeners.remove(listener);super.onDetachedFromWindow();}
 }
