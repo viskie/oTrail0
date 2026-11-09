@@ -53,6 +53,7 @@ public class UiConfig {
   public static final int MAP_SELECTOR_SIZE_SP=BODY_SIZE_SP+2;
   public static final int TOTAL_STATS_TEXT_COLOR=0xff01ff1f, TOTAL_STATS_BACKGROUND=0xff202039;
   public static final int TOTAL_STATS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
+  public static final int RESONATIONS_TITLE_SP=12, RESONATIONS_TEXT_SP=11, RESONATIONS_TEXT=0xff00ffff;
   public static final float TEXT_SCALE=1f;
   public static final int CAPTION_SIZE_SP=11, SECONDARY_SIZE_SP=12, MODE_SIZE_SP=13,
       SUBHEADING_SIZE_SP=14, HEADING_SIZE_SP=18, CARD_TITLE_SIZE_SP=19,
@@ -137,6 +138,12 @@ public class UiConfig {
       Map.entry("age_from_source_date", "Age from epoch: "),
       Map.entry("ago", " ago"),
       Map.entry("always_on_gps_every_5_seconds", "Always-on GPS · every 13 seconds"),
+      Map.entry("resonations_title", "Resonations"),
+      Map.entry("resonations_files", "Files"),
+      Map.entry("resonations_play", "Play ↻"),
+      Map.entry("resonations_pause", "Pause"),
+      Map.entry("resonations_clear", "Clear"),
+      Map.entry("resonations_empty", "Select audio to loop"),
       Map.entry("always_on_recording", "Always-on recording"),
       Map.entry("always_on_trail_recording", "Always-on trail recording"),
       Map.entry("always_recording_waiting_for_gps", "Always recording · waiting for GPS"),

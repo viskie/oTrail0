@@ -58,6 +58,7 @@ public final class MainActivity extends Activity {
   private GpsBubble liveBubble;
   private MapMenu mapMenu;
   private TextView lookupNotes;
+  private ResonationsWidget resonations;
   private GeoPoint liveBubblePoint;
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
@@ -346,6 +347,7 @@ public final class MainActivity extends Activity {
     body.addView(status);
     lookupNotes=text("",UiConfig.BODY_SIZE_SP,UiConfig.STATUS_TEXT_COLOR);GradientDrawable notesBackground=bg(UiConfig.STATUS_BACKGROUND,9);notesBackground.setStroke(dp(1),UiConfig.STATUS_TEXT_COLOR);lookupNotes.setBackground(notesBackground);lookupNotes.setVisibility(View.GONE);body.addView(lookupNotes);
     moduleHost=new ModuleHost(this);body.addView(moduleHost.view());
+    resonations=new ResonationsWidget(this);body.addView(resonations);
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
     stats.setMaxLines(2);
@@ -378,7 +380,7 @@ public final class MainActivity extends Activity {
       stack.setOrientation(LinearLayout.VERTICAL);
       stack.setPadding(0,dp(UiConfig.PANEL_GAP_DP),0,dp(UiConfig.PANEL_GAP_DP));
       for(View child:controls) {
-        if(child==stats)continue;
+        if(child==stats||child==resonations)continue;
         LinearLayout.LayoutParams space=new LinearLayout.LayoutParams(-1,-2);
         space.setMargins(0,dp(UiConfig.PANEL_GAP_DP)/2,0,dp(UiConfig.PANEL_GAP_DP)/2);
         stack.addView(child,space);
@@ -387,6 +389,8 @@ public final class MainActivity extends Activity {
       sidebar.addView(panel,new LinearLayout.LayoutParams(-1,0,1));
       LinearLayout.LayoutParams footer=new LinearLayout.LayoutParams(-1,-2);
       footer.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
+      LinearLayout.LayoutParams audioFooter=new LinearLayout.LayoutParams(-1,-2);audioFooter.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
+      sidebar.addView(resonations,audioFooter);
       sidebar.addView(stats,footer);
       body.addView(sidebar,new LinearLayout.LayoutParams(dp(UiConfig.SIDEBAR_WIDTH_DP),-1));
     }
@@ -1498,6 +1502,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
+    if(request==ResonationsWidget.PICK_FILES){if(result==RESULT_OK&&data!=null&&resonations!=null)resonations.selected(data);return;}
     if (result != RESULT_OK || data == null || data.getData() == null) return;
     Uri uri = data.getData();
     if (request == 31) {
