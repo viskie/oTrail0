@@ -51,6 +51,8 @@ public class UiConfig {
   public static final float LOCATE_VISUAL_SCALE=.60f;
   public static final int LOCATE_BEVEL_LIGHT=0xff656180, LOCATE_BEVEL_SHADOW=0xff170d25;
   public static final boolean NAV_TITLE_BOLD=true;
+  public static final String DEFAULT_GPS_MARKER_STYLE="robot-snake";
+  public static final int GPS_ART_MARKER_SIZE_DP=48;
   public static final int LIVE_TRAIL_COLOR=0xffff1493;
   public static final int LOCATE_SIZE_DP=56, LOCATE_BACKGROUND=0xff000000,
       LOCATE_LOGO_COLOR=0xff00ffff, LOCATE_BORDER_COLOR=0xffff00ff, LOCATE_RIPPLE_COLOR=0x6640e0d0;
@@ -73,18 +75,22 @@ public class UiConfig {
   // Mapsforge families: default, sans_serif, serif, monospace.
   // Styles: normal, bold, italic, bold_italic. Size multiplier preserves zoom rules.
   public static final String CITY_LABEL_FONT="sans_serif", CITY_LABEL_STYLE="bold_italic";
-  public static final int CITY_LABEL_COLOR=0xffFF00FF, CITY_LABEL_OUTLINE_COLOR=0xffFF00FF;
+  public static final int CITY_LABEL_COLOR=0xff6b3f20, CITY_LABEL_OUTLINE_COLOR=0xfffff7e8;
   public static final float CITY_LABEL_SIZE_SCALE=1f, CITY_LABEL_OUTLINE_WIDTH=.35f;
   // Theme pixels before screen density; city names get progressively larger with zoom.
   public static final float CITY_LABEL_MIN_SIZE=8f, CITY_LABEL_MAX_SIZE=14f;
-  public static final int BIG_CITY_LABEL_COLOR=0xffff0000, LONG_STOP_COLOR=0xffff0000,
+  public static final int BIG_CITY_LABEL_COLOR=CITY_LABEL_COLOR, LONG_STOP_COLOR=0xffff0000,
       LONG_STOP_LABEL_BACKGROUND=0xeefaf6ff;
   public static final String BIG_CITY_LABEL_STYLE="italic";
   public static final int LONG_STOP_MINUTES=60, LONG_STOP_LABEL_SIZE_SP=11,
       LONG_STOP_LABEL_MIN_ZOOM=8, LONG_STOP_LABEL_LIMIT=1;
   // Remaining offline basemap lettering (roads and POIs); INK controls default dark text.
-  public static final int MAP_ROAD_LABEL_COLOR=INK, MAP_OTHER_LABEL_COLOR=INK,
+  public static final int MAP_ROAD_LABEL_COLOR=0xff243149, MAP_OTHER_LABEL_COLOR=INK,
       MAP_TEXT_OUTLINE_COLOR=0xffffffff;
+  public static final int MAP_ROAD_CASING=0xff111111, MAP_ROAD_MOTORWAY=0xff162744,
+      MAP_ROAD_TRUNK=0xff20212a, MAP_ROAD_PRIMARY=0xff2b243b,
+      MAP_ROAD_SECONDARY=0xff493a2c, MAP_ROAD_TERTIARY=0xff41464d,
+      MAP_ROAD_MINOR=0xff575b60, MAP_ROAD_PATH=0xff544236;
   public static final String MAP_TEXT_FONT="sans_serif";
   public static float textSize(int originalSp) {
     int configured=switch(originalSp) {
@@ -150,6 +156,9 @@ public class UiConfig {
       Map.entry("age_from_source_date", "Age from epoch: "),
       Map.entry("ago", " ago"),
       Map.entry("always_on_gps_every_5_seconds", "Always-on GPS · every 13 seconds"),
+      Map.entry("gps_marker_style", "GPS marker style"),
+      Map.entry("gps_style_robot", "1 · Robot snake"),
+      Map.entry("gps_style_classic", "2 · Classic dot"),
       Map.entry("resonations_title", "Resonations"),
       Map.entry("resonations_files", "Files"),
       Map.entry("resonations_play", "Play ↻"),

@@ -8,4 +8,7 @@ public class StopDotLayoutTest {
   @Test public void longStopsWinOverNewerCrowdedShortStops(){assertEquals(Set.of(1L,3L),StopDotLayout.select(List.of(new StopDotLayout.Point(1,0,0,true),new StopDotLayout.Point(2,5,0,false),new StopDotLayout.Point(3,100,0,false)),30,Double.NaN,Double.NaN));}
   @Test public void gpsDotKeepsClearSpaceAndNegativeCoordinatesAreSafe(){assertEquals(Set.of(2L),StopDotLayout.select(List.of(new StopDotLayout.Point(1,2,2,true),new StopDotLayout.Point(2,-100,-100,false)),30,0,0));}
   @Test public void equalPriorityUsesNewestAndResultIsStable(){List<StopDotLayout.Point> p=List.of(new StopDotLayout.Point(1,10,10,false),new StopDotLayout.Point(2,10,10,false));assertEquals(Set.of(2L),StopDotLayout.select(p,30,Double.NaN,Double.NaN));assertEquals(StopDotLayout.select(p,30,Double.NaN,Double.NaN),StopDotLayout.select(p,30,Double.NaN,Double.NaN));}
+  @Test public void largerGpsArtReservesMoreSpaceWithoutReducingOtherStopDensity(){
+    assertEquals(Set.of(2L,3L),StopDotLayout.select(List.of(new StopDotLayout.Point(1,25,0,false),new StopDotLayout.Point(2,60,0,false),new StopDotLayout.Point(3,100,0,false)),18,0,0,35));
+  }
 }

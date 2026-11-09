@@ -9,19 +9,28 @@ import javax.xml.transform.stream.StreamResult;
 import org.mapsforge.map.rendertheme.*;
 import org.w3c.dom.*;
 
-/** Restyles settlement captions while retaining the bundled map theme's roads and zoom rules. */
+/** Restyles base-map road colors and captions while preserving geometry, widths and zoom rules. */
 final class OfflineMapTheme implements XmlRenderTheme {
   private final XmlRenderTheme base=InternalRenderTheme.OSMARENDER;
   static String cacheKey() {
     return Integer.toHexString(Objects.hash(UiConfig.CITY_LABEL_FONT,UiConfig.CITY_LABEL_STYLE,
         UiConfig.CITY_LABEL_COLOR,UiConfig.CITY_LABEL_OUTLINE_COLOR,
-        UiConfig.CITY_LABEL_OUTLINE_WIDTH,UiConfig.CITY_LABEL_SIZE_SCALE,UiConfig.CITY_LABEL_MIN_SIZE,UiConfig.CITY_LABEL_MAX_SIZE,UiConfig.BIG_CITY_LABEL_COLOR,UiConfig.BIG_CITY_LABEL_STYLE,UiConfig.MAP_ROAD_LABEL_COLOR,UiConfig.MAP_OTHER_LABEL_COLOR,UiConfig.MAP_TEXT_OUTLINE_COLOR,UiConfig.MAP_TEXT_FONT));
+        UiConfig.CITY_LABEL_OUTLINE_WIDTH,UiConfig.CITY_LABEL_SIZE_SCALE,UiConfig.CITY_LABEL_MIN_SIZE,UiConfig.CITY_LABEL_MAX_SIZE,UiConfig.BIG_CITY_LABEL_COLOR,UiConfig.BIG_CITY_LABEL_STYLE,UiConfig.MAP_ROAD_LABEL_COLOR,UiConfig.MAP_OTHER_LABEL_COLOR,UiConfig.MAP_TEXT_OUTLINE_COLOR,UiConfig.MAP_TEXT_FONT,
+        UiConfig.MAP_ROAD_CASING,UiConfig.MAP_ROAD_MOTORWAY,UiConfig.MAP_ROAD_TRUNK,UiConfig.MAP_ROAD_PRIMARY,UiConfig.MAP_ROAD_SECONDARY,UiConfig.MAP_ROAD_TERTIARY,UiConfig.MAP_ROAD_MINOR,UiConfig.MAP_ROAD_PATH));
   }
   @Override public InputStream getRenderThemeAsStream() throws IOException {
     try (InputStream input=base.getRenderThemeAsStream()) {
       DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance();
       factory.setNamespaceAware(true);
       Document document=factory.newDocumentBuilder().parse(input);
+      NodeList roads=document.getElementsByTagName("line");
+      for(int i=0;i<roads.getLength();i++){
+        Element line=(Element)roads.item(i);String highway=highway(line);
+        if(highway==null||!line.hasAttribute("stroke"))continue;
+        String old=line.getAttribute("stroke");
+        boolean casing=old.equalsIgnoreCase("#707070")||old.equalsIgnoreCase("#000000");
+        line.setAttribute("stroke",color(casing?UiConfig.MAP_ROAD_CASING:roadColor(highway)));
+      }
       NodeList captions=document.getElementsByTagName("caption");
       List<Element> originalCaptions=new ArrayList<>();
       for(int i=0;i<captions.getLength();i++)originalCaptions.add((Element)captions.item(i));
@@ -68,6 +77,22 @@ final class OfflineMapTheme implements XmlRenderTheme {
   static float citySize(float original,int zoom) {
     float factor=zoom<=7?.36f:zoom<=10?.40f:zoom<=13?.48f:.56f;
     return Math.max(UiConfig.CITY_LABEL_MIN_SIZE,Math.min(UiConfig.CITY_LABEL_MAX_SIZE,original*factor))*UiConfig.CITY_LABEL_SIZE_SCALE;
+  }
+  static String highway(Element element){
+    for(Node node=element.getParentNode();node instanceof Element;node=node.getParentNode()){
+      Element rule=(Element)node;if(!"rule".equals(rule.getTagName()))continue;
+      if("highway".equals(rule.getAttribute("k"))&&!"*".equals(rule.getAttribute("v")))return rule.getAttribute("v");
+    }return null;
+  }
+  static int roadColor(String highway){
+    Set<String> types=new HashSet<>(Arrays.asList(highway.split("\\|")));
+    if(types.contains("motorway")||types.contains("motorway_link"))return UiConfig.MAP_ROAD_MOTORWAY;
+    if(types.contains("trunk")||types.contains("trunk_link"))return UiConfig.MAP_ROAD_TRUNK;
+    if(types.contains("primary")||types.contains("primary_link"))return UiConfig.MAP_ROAD_PRIMARY;
+    if(types.contains("secondary")||types.contains("secondary_link"))return UiConfig.MAP_ROAD_SECONDARY;
+    if(types.contains("tertiary")||types.contains("tertiary_link"))return UiConfig.MAP_ROAD_TERTIARY;
+    if(types.contains("track")||types.contains("path")||types.contains("footway")||types.contains("cycleway")||types.contains("steps")||types.contains("bridleway"))return UiConfig.MAP_ROAD_PATH;
+    return UiConfig.MAP_ROAD_MINOR;
   }
   private static boolean bigCity(Element caption){
     for(Node node=caption.getParentNode();node instanceof Element;node=node.getParentNode()) {

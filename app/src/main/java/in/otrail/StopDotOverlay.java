@@ -23,7 +23,8 @@ final class StopDotOverlay extends Overlay {
     Point p=new Point();List<StopDotLayout.Point> candidates=new ArrayList<>();
     for(Entry e:entries){map.getProjection().toPixels(e.marker().getPosition(),p);map.getProjection().rotateAndScalePoint(p.x,p.y,p);if(p.x>=0&&p.y>=0&&p.x<width&&p.y<height)candidates.add(new StopDotLayout.Point(e.id(),p.x,p.y,e.longStop()));}
     double liveX=Double.NaN,liveY=Double.NaN;Marker current=live.get();if(current!=null){map.getProjection().toPixels(current.getPosition(),p);map.getProjection().rotateAndScalePoint(p.x,p.y,p);liveX=p.x;liveY=p.y;}
-    Set<Long> shown=StopDotLayout.select(candidates,gap,liveX,liveY);int newSize=StopDotLayout.diameter(z,false);
+    double liveGap=current==null?gap:Math.max(gap,((current.getIcon()==null?0:current.getIcon().getIntrinsicWidth())+StopDotLayout.diameter(z,true)*density)/2+4*density);
+    Set<Long> shown=StopDotLayout.select(candidates,gap,liveX,liveY,liveGap);int newSize=StopDotLayout.diameter(z,false);
     for(Entry e:entries){e.marker().setEnabled(shown.contains(e.id()));if(size!=newSize)e.marker().setIcon(icon.apply(e.longStop(),StopDotLayout.diameter(z,e.longStop())));}
     size=newSize;
   }

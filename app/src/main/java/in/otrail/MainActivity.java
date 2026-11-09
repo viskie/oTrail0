@@ -719,7 +719,9 @@ public final class MainActivity extends Activity {
     Marker dot = new Marker(map);
     dot.setPosition(stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon()));
     dot.setAnchor(.5f, .5f);
-    LayerDrawable liveIcon=dot(color,22);if(!recorded&&!stale&&!uncertain&&last.accuracy()>0&&last.accuracy()<=UiConfig.GPS_SMILE_MAX_ACCURACY_M)liveIcon.addLayer(new HappyGpsFace());dot.setIcon(liveIcon);
+    if(recorded)dot.setIcon(dot(color,22));else dot.setIcon(GpsMarkerStyle.icon(this,color,()->{
+      LayerDrawable classic=dot(color,22);if(!stale&&!uncertain&&last.accuracy()>0&&last.accuracy()<=UiConfig.GPS_SMILE_MAX_ACCURACY_M)classic.addLayer(new HappyGpsFace());return classic;
+    }));
     dot.setTitle(state);
     dot.setSnippet(
         String.format(
@@ -898,7 +900,7 @@ public final class MainActivity extends Activity {
           Marker m = new Marker(map);
           m.setPosition(new GeoPoint(l.getLatitude(), l.getLongitude()));
           m.setAnchor(.5f, .5f);
-          m.setIcon(dot(UiConfig.READY_GPS_DOT, 22));
+          m.setIcon(GpsMarkerStyle.icon(this,UiConfig.READY_GPS_DOT,()->dot(UiConfig.READY_GPS_DOT,22)));
           m.setTitle(UiConfig.text("current_gps_location"));
           m.setSnippet("±" + Math.round(l.getAccuracy()) + UiConfig.text("m_2"));
           registerMarker("live", m);
@@ -1250,6 +1252,7 @@ public final class MainActivity extends Activity {
     cardUpdates.clear();
     downloadCards.addView(button(UiConfig.text("modules_title"),()->ModuleHost.settings(this)));
     if(new ModuleStore(this).available("mod2"))downloadCards.addView(button("CAM · Photo folder & camera settings",()->openCam("settings",-1)));
+    GpsMarkerStyle.settings(this,downloadCards);
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
     if (routingControls == null) routingControls = new RoutingControls(this);
     routingControls.addTo(downloadCards, cardUpdates);

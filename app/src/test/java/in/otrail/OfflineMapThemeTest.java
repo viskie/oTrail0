@@ -31,4 +31,12 @@ public class OfflineMapThemeTest {
     assertTrue(OfflineMapTheme.citySize(25,13)<=OfflineMapTheme.citySize(25,18));
     assertEquals(UiConfig.CITY_LABEL_MAX_SIZE*UiConfig.CITY_LABEL_SIZE_SCALE,OfflineMapTheme.citySize(100,18),.001);
   }
+  @Test public void roadStrokesUseDarkPaletteWithoutRecoloringWaterways() throws Exception {
+    try(InputStream stream=new OfflineMapTheme().getRenderThemeAsStream()){
+      Document d=DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(stream);NodeList lines=d.getElementsByTagName("line");int roads=0;boolean water=false;
+      java.util.Set<Integer> palette=java.util.Set.of(UiConfig.MAP_ROAD_CASING,UiConfig.MAP_ROAD_MOTORWAY,UiConfig.MAP_ROAD_TRUNK,UiConfig.MAP_ROAD_PRIMARY,UiConfig.MAP_ROAD_SECONDARY,UiConfig.MAP_ROAD_TERTIARY,UiConfig.MAP_ROAD_MINOR,UiConfig.MAP_ROAD_PATH);
+      for(int n=0;n<lines.getLength();n++){Element line=(Element)lines.item(n);if(!line.hasAttribute("stroke"))continue;if(OfflineMapTheme.highway(line)!=null){int color=(int)Long.parseLong(line.getAttribute("stroke").substring(1),16);assertTrue(palette.contains(color));roads++;}else for(Node p=line.getParentNode();p instanceof Element;p=p.getParentNode())if("waterway".equals(((Element)p).getAttribute("k")))water=true;}
+      assertTrue(roads>30);assertTrue(water);
+    }
+  }
 }

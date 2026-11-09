@@ -10,9 +10,9 @@
 
   /** One persistent screen-space bubble anchored above the live dot, including during map rotation. */
   final class GpsBubble extends LinearLayout {
-    private final MapView map;private GeoPoint point;private final TextView state,coordinates,address,worship;
+    private final int markerClearance;private final MapView map;private GeoPoint point;private final TextView state,coordinates,address,worship;
     private final android.view.ViewTreeObserver observer;private final android.view.ViewTreeObserver.OnPreDrawListener positioner;
-    GpsBubble(Context c,MapView map){super(c);this.map=map;setOrientation(VERTICAL);setPadding(dp(4),dp(4),dp(4),dp(4));setElevation(dp(5));
+    GpsBubble(Context c,MapView map){super(c);this.map=map;markerClearance=GpsMarkerStyle.selected(c).sizeDp()/2+5;setOrientation(VERTICAL);setPadding(dp(4),dp(4),dp(4),dp(4));setElevation(dp(5));
       setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_YELLOW,UiConfig.NAV_BOX_CORNER_DP));
       state=text(UiConfig.LIVE_BUBBLE_SIZE_SP);((LayoutParams)state.getLayoutParams()).topMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);addView(state);
       View line=new View(c);line.setBackgroundColor(UiConfig.LIVE_BUBBLE_TEXT);LayoutParams separator=new LayoutParams(-1,dp(1));separator.setMargins(0,0,0,0);addView(line,separator);
@@ -26,7 +26,7 @@
     private void position(){if(point==null||getVisibility()!=VISIBLE||map.getWidth()==0)return;int width=Math.min(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),map.getWidth()-dp(16));if(width<=0)return;android.view.ViewGroup.LayoutParams p=getLayoutParams();if(p!=null&&p.width!=width){p.width=width;setLayoutParams(p);}
     Point screen=map.getProjection().toPixels(point,null);map.getProjection().rotateAndScalePoint(screen.x,screen.y,screen);
     if(screen.x<0||screen.y<0||screen.x>map.getWidth()||screen.y>map.getHeight()){setAlpha(0);return;}setAlpha(1);
-    float x=Math.max(dp(8),Math.min(map.getWidth()-width-dp(8),screen.x-width/2f)),y=Math.max(dp(7),screen.y-getHeight()-dp(16));if(Math.abs(getX()-x)>.5f)setX(x);if(Math.abs(getY()-y)>.5f)setY(y);
+    float x=Math.max(dp(8),Math.min(map.getWidth()-width-dp(8),screen.x-width/2f)),y=Math.max(dp(7),screen.y-getHeight()-dp(markerClearance));if(Math.abs(getX()-x)>.5f)setX(x);if(Math.abs(getY()-y)>.5f)setY(y);
   }
   void close(){if(observer.isAlive())observer.removeOnPreDrawListener(positioner);}
 }
