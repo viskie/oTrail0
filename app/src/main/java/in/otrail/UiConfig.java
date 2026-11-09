@@ -60,6 +60,8 @@ public class UiConfig {
   public static final int[] NAV_TEXT_SPECTRUM={0xffbf40ff,0xffff00ff,0xffb366ff,0xff00ffff,0xff40e0d0};
   public static final int MAP_SELECTOR_SIZE_SP=BODY_SIZE_SP+2;
   public static final int TOTAL_STATS_TEXT_COLOR=0xff01ff1f, TOTAL_STATS_BACKGROUND=0xff202039;
+  public static final int TOTAL_STATS_EXTRA_PX=1;
+  public static final String TOTAL_STATS_DELIMITER="  ||  ";
   public static final int TOTAL_STATS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final int RESONATIONS_TITLE_SP=12, RESONATIONS_TEXT_SP=11, RESONATIONS_TEXT=0xff00ffff;
   public static final float TEXT_SCALE=1f;

@@ -24,6 +24,7 @@ final class CameraLogoButton extends ImageButton {
       for(int i=0;i<5;i++){double angle=-Math.PI/2+i*2*Math.PI/5;float x=cx+radius*(float)Math.cos(angle),y=cy+radius*(float)Math.sin(angle);if(i==0)path.moveTo(x,y);else path.lineTo(x,y);}path.close();
       paint.setStyle(Paint.Style.FILL);paint.setShader(null);
       if(mask){paint.setColor(Color.WHITE);canvas.drawPath(path,paint);return;}
+      NeonBorderDrawable.pathGlow(canvas,path,paint,UiConfig.CAM_BORDER_COLOR,stroke);
       canvas.save();canvas.translate(0,depth);paint.setColor(UiConfig.LOCATE_BEVEL_SHADOW);canvas.drawPath(path,paint);canvas.restore();
       paint.setShader(new LinearGradient(cx-radius,cy-radius,cx+radius,cy+radius,new int[]{UiConfig.LOCATE_BEVEL_LIGHT,UiConfig.CAM_BACKGROUND,UiConfig.CAM_BACKGROUND},null,Shader.TileMode.CLAMP));canvas.drawPath(path,paint);paint.setShader(null);
       paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(stroke);paint.setColor(UiConfig.CAM_BORDER_COLOR);canvas.drawPath(path,paint);

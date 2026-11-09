@@ -32,6 +32,7 @@ final class WtfButton extends ImageButton {
       Rect b=getBounds();float stroke=Math.max(2,b.width()*.018f),radius=(Math.min(b.width(),b.height())/2f-stroke)*UiConfig.LOCATE_VISUAL_SCALE,cx=b.exactCenterX(),cy=b.exactCenterY();Path path=new Path();
       for(int i=0;i<8;i++){double angle=-Math.PI/2+Math.PI/8+i*Math.PI/4;float x=cx+radius*(float)Math.cos(angle),y=cy+radius*(float)Math.sin(angle);if(i==0)path.moveTo(x,y);else path.lineTo(x,y);}path.close();paint.setStyle(Paint.Style.FILL);paint.setShader(null);
       if(mask){paint.setColor(Color.WHITE);canvas.drawPath(path,paint);return;}
+      NeonBorderDrawable.pathGlow(canvas,path,paint,edge,stroke);
       canvas.save();canvas.translate(0,Math.max(2,b.height()*.035f));paint.setColor(UiConfig.LOCATE_BEVEL_SHADOW);canvas.drawPath(path,paint);canvas.restore();
       paint.setShader(new LinearGradient(cx-radius,cy-radius,cx+radius,cy+radius,new int[]{UiConfig.LOCATE_BEVEL_LIGHT,fill,fill},null,Shader.TileMode.CLAMP));canvas.drawPath(path,paint);paint.setShader(null);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(stroke);paint.setColor(edge);canvas.drawPath(path,paint);
     }

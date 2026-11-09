@@ -377,6 +377,7 @@ public final class MainActivity extends Activity {
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
     stats.setSingleLine(true);
+    stats.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX,stats.getTextSize()+UiConfig.TOTAL_STATS_EXTRA_PX);
     AppStyle.decoratePanel(stats,AppStyle.CYAN);
     GradientDrawable totalBackground=bg(UiConfig.TOTAL_STATS_BACKGROUND,9);
     totalBackground.setStroke(dp(1),UiConfig.TOTAL_STATS_TEXT_COLOR);
@@ -614,7 +615,7 @@ public final class MainActivity extends Activity {
     else if(liveBubble!=null)liveBubble.setVisibility(View.GONE);
     stopLabels.liveBubble(!history);
     roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !uncertain && !stopped && last.speed()>1.5, offlineOnly, history);
-    stats.setText(
+    String totalStatus =
         (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), driveMetrics.totalMeters()/1000))
             + (trip < 0 ? UiConfig.text("full_trail") : String.format(Locale.US,UiConfig.text("trail_2f_km"),trailMeters/1000))
             + clock(fixes.get(0).time())
@@ -625,7 +626,8 @@ public final class MainActivity extends Activity {
             + UiConfig.text("stops_2")
             + Math.round(last.accuracy())
             + UiConfig.text("m")
-            + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time())));
+            + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time()));
+    stats.setText(totalStatus.replace(" · ",UiConfig.TOTAL_STATS_DELIMITER));
     if(moduleHost!=null)moduleHost.update(new TrailModule.Snapshot(System.currentTimeMillis(),last.time(),last.lat(),last.lon(),last.accuracy(),driveMetrics==null?0:driveMetrics.totalMeters(),stops.size(),history));
     if(wtfActive()){
       wtfTarget=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());

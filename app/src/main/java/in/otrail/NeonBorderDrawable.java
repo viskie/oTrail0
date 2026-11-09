@@ -25,6 +25,21 @@ public final class NeonBorderDrawable extends Drawable {
   public static NeonBorderDrawable button(View view){return button(view,Palette.CURRENT);}
   public static NeonBorderDrawable button(View view,Palette palette){return new NeonBorderDrawable(view,palette,true,0);}
   public static NeonBorderDrawable panel(View view,Palette palette,float cornerDp){return new NeonBorderDrawable(view,palette,false,cornerDp);}
+  /** Shared shape-following halo; call before the icon fill/rim, never on ripple masks. */
+  public static void pathGlow(Canvas canvas,Path path,Paint source,int color,float rimWidth){
+    Paint p=new Paint(source);p.setStyle(Paint.Style.STROKE);p.setStrokeJoin(Paint.Join.ROUND);p.setStrokeCap(Paint.Cap.ROUND);
+    RectF box=new RectF();path.computeBounds(box,true);p.setShader(new LinearGradient(0,box.top,0,box.bottom,new int[]{withAlpha(color,100),color},null,Shader.TileMode.CLAMP));p.setColor(Color.WHITE);
+    p.setStrokeWidth(rimWidth*6);p.setAlpha(45);canvas.drawPath(path,p);
+    p.setStrokeWidth(rimWidth*3.5f);p.setAlpha(100);canvas.drawPath(path,p);
+    p.setStrokeWidth(rimWidth);p.setAlpha(255);canvas.drawPath(path,p);
+  }
+  public static Drawable menuIcon(View view,int color){return new MenuIcon(view.getResources().getDisplayMetrics().density,color);}
+  private static final class MenuIcon extends Drawable {
+    private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);private final float density;private final int color;
+    MenuIcon(float density,int color){this.density=density;this.color=color;}
+    @Override public void draw(Canvas canvas){RectF box=new RectF(getBounds());box.inset(box.width()*(1-UiConfig.LOCATE_VISUAL_SCALE)/2,box.height()*(1-UiConfig.LOCATE_VISUAL_SCALE)/2);Path path=new Path();path.addRoundRect(box,10*density,10*density,Path.Direction.CW);pathGlow(canvas,path,p,color,density);p.setStyle(Paint.Style.FILL);p.setColor(UiConfig.LOCATE_BACKGROUND);canvas.drawPath(path,p);p.setStyle(Paint.Style.STROKE);p.setColor(color);p.setStrokeWidth(density);canvas.drawPath(path,p);}
+    @Override public void setAlpha(int alpha){p.setAlpha(alpha);invalidateSelf();}@Override public void setColorFilter(ColorFilter filter){p.setColorFilter(filter);invalidateSelf();}@Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
+  }
   private static int withAlpha(int color,int alpha){return(color&0xffffff)|(alpha<<24);}
   private static int lighter(int color){return Color.rgb((Color.red(color)*3+255)/4,(Color.green(color)*3+255)/4,(Color.blue(color)*3+255)/4);}
   @Override protected void onBoundsChange(Rect bounds){

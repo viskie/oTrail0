@@ -36,7 +36,7 @@ final class LocateLogoButton extends ImageButton {
         float x=cx+radius*(float)Math.cos(angle),y=cy+radius*(float)Math.sin(angle);
         if(i==0)path.moveTo(x,y);else path.lineTo(x,y);
       }
-      path.close();paint.setStyle(Paint.Style.FILL);paint.setShader(null);
+      path.close();if(fill!=Color.WHITE)NeonBorderDrawable.pathGlow(canvas,path,paint,edge,stroke);paint.setStyle(Paint.Style.FILL);paint.setShader(null);
       if(fill!=Color.WHITE){
         canvas.save();canvas.translate(0,depth);paint.setColor(UiConfig.LOCATE_BEVEL_SHADOW);canvas.drawPath(path,paint);canvas.restore();
         paint.setShader(new LinearGradient(cx-radius,cy-radius,cx+radius,cy+radius,

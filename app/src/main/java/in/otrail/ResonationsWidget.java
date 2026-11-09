@@ -26,6 +26,7 @@ final class ResonationsWidget extends LinearLayout {
     title = new TextView(activity);
     AppStyle.text(title);
     title.setTextSize(UiConfig.RESONATIONS_TITLE_SP);
+    title.setGravity(Gravity.CENTER);title.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
     title.setMaxLines(2);
     title.setEllipsize(
         android.text.TextUtils.TruncateAt.END
@@ -77,7 +78,7 @@ final class ResonationsWidget extends LinearLayout {
           line.setTextColor(UiConfig.RESONATIONS_TEXT);
 
           // Match navigation instruction font and size
-          line.setTextSize(UiConfig.NAV_SUMMARY_SIZE_SP);
+          line.setTextSize(UiConfig.RESONATIONS_TEXT_SP);
           line.setTypeface(
               android.graphics.Typeface.create(
                   UiConfig.HEADING_FONT,
