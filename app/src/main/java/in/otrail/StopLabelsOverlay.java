@@ -11,6 +11,8 @@ final class StopLabelsOverlay extends Overlay {
   private List<TrailDb.Stop> stops=List.of();
   private List<CityPlaces.Place> cities=List.of();
   private DriveMetrics.Result metrics;
+  private boolean liveBubble;
+  void liveBubble(boolean visible){liveBubble=visible;}
   void update(List<TrailDb.Stop> stops,DriveMetrics.Result metrics,List<CityPlaces.Place> cities){this.stops=stops;this.metrics=metrics;this.cities=cities;}
   static boolean longStop(TrailDb.Stop stop){return stop.observed()-stop.arrival()>=UiConfig.LONG_STOP_MINUTES*60_000L;}
   @Override public void draw(Canvas canvas,MapView map,boolean shadow){
@@ -31,7 +33,7 @@ final class StopLabelsOverlay extends Overlay {
     List<RectF> occupied=new ArrayList<>();
     int shown=0;
     for(int i=stops.size()-1;i>=0&&shown<UiConfig.LONG_STOP_LABEL_LIMIT;i--){
-      TrailDb.Stop stop=stops.get(i);if(!longStop(stop))continue;
+      TrailDb.Stop stop=stops.get(i);if(liveBubble&&i==stops.size()-1)continue;if(!longStop(stop))continue;
       map.getProjection().toPixels(new GeoPoint(stop.lat(),stop.lon()),point);
       if(point.x<0||point.y<0||point.x>map.getWidth()||point.y>map.getHeight())continue;
       String name=stop.locality()!=null?stop.locality():stop.placeName()!=null?stop.placeName():"Stop #"+stop.id();

@@ -141,3 +141,7 @@ Base-app WTF! `!` toggle centers the live GPS dot and rotates the map so travel 
 ## 0.4.4 — 2026-11-08
 
 WTF! `!` becomes a regular octagon, normalized to the navigation/CAM icon scale and 56dp touch target. Enabled/disabled state, bevel and ripple retained. Camera slope/behavior, modules and data unchanged. See docs/0.4.4-wtf-octagon.md.
+
+## 0.4.5 — 2026-11-09
+
+Persistent GPS status popup above the live dot with speed, four-decimal coordinates, locality/road and cached/online nearby worship distances. Strongly bold destination heading. Solid rounded route/trail strokes. WTF! diagonal mirrored toward upper-left. Journal, modules, settings and map downloads retained. See docs/0.4.5-live-gps-bubble.md.

@@ -19,6 +19,7 @@ final class RoadControls implements AutoCloseable {
   private long lastUpdate,lastNetwork;private double lastLat=Double.NaN,lastLon;
   private boolean loading,closed,enabled;private long tapTicket;
   RoadControls(Activity a){activity=a;}
+  String roadName(){return current==null?"":current.road();}
   void attach(TextView label,MapView map){this.label=label;this.map=map;markers.clear();label.setText(UiConfig.text("road_landmarks_shown_while_on_the_move"));label.setOnClickListener(v->showList());}
   void update(TrailDb.Fix fix,TrailDb.Fix previous,boolean moving,boolean offline,boolean history) {
     if(closed||label==null)return;

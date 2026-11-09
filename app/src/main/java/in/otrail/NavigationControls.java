@@ -227,7 +227,8 @@ final class NavigationControls implements AutoCloseable {
       draw(map, s);
       return;
     }
-    title.setText(DestinationLabel.format(pending != null ? pending.name() : s.name()));
+    android.text.SpannableString destination=new android.text.SpannableString(DestinationLabel.format(pending != null ? pending.name() : s.name()));destination.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD),0,destination.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);title.setText(destination);
+    title.setTypeface(android.graphics.Typeface.create(UiConfig.NAV_TITLE_FONT,android.graphics.Typeface.BOLD));title.getPaint().setFakeBoldText(true);
     NavigationProgress.Guidance g = s.guidance();
     boolean active = "ACTIVE".equals(s.mode());
     boolean stale =
@@ -276,7 +277,8 @@ final class NavigationControls implements AutoCloseable {
       route.setId("navigation:route");
       route.setPoints(points);
       route.getOutlinePaint().setColor(UiConfig.NAV_ROUTE_COLOR);
-      route.getOutlinePaint().setStrokeWidth(dp(5));
+      route.getOutlinePaint().setStrokeWidth(dp(6));
+      route.getOutlinePaint().setStyle(android.graphics.Paint.Style.STROKE);route.getOutlinePaint().setStrokeJoin(android.graphics.Paint.Join.ROUND);route.getOutlinePaint().setStrokeCap(android.graphics.Paint.Cap.ROUND);route.getOutlinePaint().setAntiAlias(true);route.getOutlinePaint().setPathEffect(null);
       route.setOnClickListener(
           (line, view, event) -> {
             if (roadTap != null) roadTap.accept(event); else turns();

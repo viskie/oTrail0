@@ -54,6 +54,9 @@ public final class MainActivity extends Activity {
   private final ExecutorService heritageIo = Executors.newSingleThreadExecutor();
   private RoutingControls routingControls;
   private RoadControls roadControls;
+  private LiveLocationContext liveContext;
+  private GpsBubble liveBubble;
+  private GeoPoint liveBubblePoint;
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
   private ModuleHost moduleHost;
@@ -91,6 +94,7 @@ public final class MainActivity extends Activity {
     super.onCreate(b);
     db = new TrailDb(this);
     roadControls = new RoadControls(this);
+    liveContext=new LiveLocationContext(this,this::refreshLiveBubble);
     packs = new MapPacks(this, db);
     navigation =
         new NavigationControls(this, this::navigationOrigin, this::locate, this::navigationChanged);
@@ -188,6 +192,7 @@ public final class MainActivity extends Activity {
   }
 
   private void showMap() {
+    if(liveBubble!=null){liveBubble.close();liveBubble=null;}liveBubblePoint=null;
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}wtfTarget=null;
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     if (map != null) {
@@ -242,6 +247,7 @@ public final class MainActivity extends Activity {
     AppStyle.decoratePanel(roadInfo,AppStyle.ORANGE);
     roadInfo.setSingleLine(true);
     roadInfo.setEllipsize(android.text.TextUtils.TruncateAt.END);
+    roadInfo.setVisibility(View.GONE);
     body.addView(roadInfo);
     body.addView(navigation.panel());
     map = new MapView(this);
@@ -280,6 +286,7 @@ public final class MainActivity extends Activity {
     FrameLayout.LayoutParams northPosition=new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.BOTTOM|Gravity.START);northPosition.setMargins(dp(10),0,0,dp(10));mapFrame.addView(wtfNorth,northPosition);
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
+    liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -325,6 +332,7 @@ public final class MainActivity extends Activity {
     status = text(UiConfig.text("ready_when_you_are"), UiConfig.STATUS_SIZE_SP, INK);
     status.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, UiConfig.STATUS_FONT_STYLE));
     status.setTextColor(UiConfig.STATUS_TEXT_COLOR);
+    status.setVisibility(history?View.VISIBLE:View.GONE);
     AppStyle.decoratePanel(status,AppStyle.CYAN);
     GradientDrawable statusBackground=bg(UiConfig.STATUS_BACKGROUND,9);
     statusBackground.setStroke(dp(1),UiConfig.STATUS_TEXT_COLOR);
@@ -574,6 +582,9 @@ public final class MainActivity extends Activity {
     android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
     statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     status.setText(statusText);
+    if(!history){liveBubblePoint=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());liveContext.update(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude(),roadControls.roadName());refreshLiveBubble();}
+    else if(liveBubble!=null)liveBubble.setVisibility(View.GONE);
+    stopLabels.liveBubble(!history);
     roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !uncertain && !stopped && last.speed()>1.5, offlineOnly, history);
     stats.setText(
         (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), driveMetrics.totalMeters()/1000))
@@ -757,6 +768,7 @@ public final class MainActivity extends Activity {
     p.getOutlinePaint().setColor(color);
     p.getOutlinePaint().setStrokeWidth(dp(4));
     android.graphics.Paint stroke = p.getOutlinePaint();
+    stroke.setStyle(android.graphics.Paint.Style.STROKE);stroke.setStrokeCap(android.graphics.Paint.Cap.ROUND);stroke.setStrokeJoin(android.graphics.Paint.Join.ROUND);stroke.setAntiAlias(true);stroke.setPathEffect(null);
     android.graphics.Paint halo = new android.graphics.Paint(stroke);
     halo.setColor(UiConfig.TRAIL_OUTLINE); halo.setStrokeWidth(dp(6));
     p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
@@ -1575,6 +1587,7 @@ public final class MainActivity extends Activity {
     return best;
   }
 
+  private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){String address=liveContext.address();String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+="\n"+road;liveBubble.update(liveBubblePoint,status.getText(),address,liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude()));}}
   private boolean wtfActive(){return wtfEnabled&&!history;}
   private void toggleWtf(){
     wtfEnabled=history||!wtfEnabled;getPreferences(0).edit().putBoolean("wtf_mode",wtfEnabled).apply();
@@ -1696,6 +1709,7 @@ public final class MainActivity extends Activity {
     if(moduleHost!=null)moduleHost.close();
     navigation.close();
     roadControls.close();
+    if(liveContext!=null)liveContext.close();if(liveBubble!=null)liveBubble.close();
     if (routingControls != null) routingControls.close();
     super.onDestroy();
   }

@@ -121,7 +121,7 @@ public final class StopGeocoder implements AutoCloseable {
     }
   }
 
-  private static Address lookupAddress(Context c, double lat, double lon) throws Exception {
+  static Address lookupAddress(Context c, double lat, double lon) throws Exception {
     if (!Geocoder.isPresent()) return null;
     Geocoder g = new Geocoder(c, Locale.getDefault());
     List<Address> addresses;

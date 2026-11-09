@@ -3,7 +3,7 @@ package in.otrail;
 /** Camera geometry only: GPS courses are clockwise from true north, map rotation is clockwise. */
 public final class WtfCamera {
   private WtfCamera() {}
-  public static float diagonalBearing(){return (float)Math.toDegrees(Math.atan2(UiConfig.WTF_DIAGONAL_X,UiConfig.WTF_DIAGONAL_Y));}
+  public static float diagonalBearing(){return normalize((float)Math.toDegrees(Math.atan2(UiConfig.WTF_DIAGONAL_X,UiConfig.WTF_DIAGONAL_Y)));}
   public static float normalize(float degrees){return (degrees%360+360)%360;}
   public static float rotation(float trueCourse){return normalize(diagonalBearing()-trueCourse);}
   public static float shortestTurn(float current,float target){return (normalize(target)-normalize(current)+540)%360-180;}

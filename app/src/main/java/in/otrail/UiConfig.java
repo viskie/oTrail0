@@ -405,10 +405,13 @@ public class UiConfig {
   // WTF! base-app camera. Travel vector: x=0.8 right, y=1 up.
   public static final String WTF_LABEL="WTF! mode", WTF_ICON_TEXT="!";
   public static final int WTF_ICON_SIZE_SP=24;
-  public static final float WTF_DIAGONAL_X=.8f, WTF_DIAGONAL_Y=1f;
+  public static final float WTF_DIAGONAL_X=-.8f, WTF_DIAGONAL_Y=1f;
   public static final float WTF_MAX_ACCURACY_M=35, WTF_MIN_SPEED_MPS=1.5f;
   public static final int WTF_TURN_ANIMATION_MS=650;
   public static final int WTF_ENABLED_TEXT=0xff00ffff, WTF_DISABLED_TEXT=0xffa7a7ac;
   public static final int WTF_ENABLED_BACKGROUND=0xff8b21b8, WTF_DISABLED_BACKGROUND=0xff000000;
   public static final int WTF_NORTH_COLOR=0xff40e0d0, WTF_NORTH_BACKGROUND=0xcc000000;
+  public static final String NAV_TITLE_FONT="sans-serif", LIVE_BUBBLE_FONT="sans-serif-medium";
+  public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
+  public static final int LIVE_BUBBLE_WIDTH_DP=300, LIVE_WORSHIP_RADIUS_M=25000;
 }
