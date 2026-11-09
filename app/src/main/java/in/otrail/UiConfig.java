@@ -47,6 +47,7 @@ public class UiConfig {
   public static final int SIDEBAR_WIDTH_DP=248, SIDEBAR_INSET_DP=6,
       PANEL_GAP_DP=4, PANEL_INNER_PADDING_DP=6;
   public static final int SETTINGS_COLUMNS_LANDSCAPE=3;
+  public static final int MAP_COPYRIGHT_SPACE_DP=180, MAP_TOTALS_BOTTOM_DP=3;
   public static final float LOCATE_VISUAL_SCALE=.60f;
   public static final int LOCATE_BEVEL_LIGHT=0xff656180, LOCATE_BEVEL_SHADOW=0xff170d25;
   public static final boolean NAV_TITLE_BOLD=true;

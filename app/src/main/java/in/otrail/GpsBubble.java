@@ -12,7 +12,7 @@
   final class GpsBubble extends LinearLayout {
     private final MapView map;private GeoPoint point;private final TextView state,coordinates,address,worship;
     private final android.view.ViewTreeObserver observer;private final android.view.ViewTreeObserver.OnPreDrawListener positioner;
-    GpsBubble(Context c,MapView map){super(c);this.map=map;setOrientation(VERTICAL);setPadding(1,1,1,1);setElevation(dp(5));
+    GpsBubble(Context c,MapView map){super(c);this.map=map;setOrientation(VERTICAL);setPadding(dp(4),dp(4),dp(4),dp(4));setElevation(dp(5));
       setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_YELLOW,UiConfig.NAV_BOX_CORNER_DP));
       state=text(UiConfig.LIVE_BUBBLE_SIZE_SP);((LayoutParams)state.getLayoutParams()).topMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);addView(state);
       View line=new View(c);line.setBackgroundColor(UiConfig.LIVE_BUBBLE_TEXT);LayoutParams separator=new LayoutParams(-1,dp(1));separator.setMargins(0,0,0,0);addView(line,separator);

@@ -46,6 +46,7 @@ public final class MainActivity extends Activity {
   private MapView map;
   private final CityPlaces cityPlaces=new CityPlaces();
   private StopLabelsOverlay stopLabels;
+  private StopDotOverlay stopDots;
   private FrameLayout mapFrame;
   private LinearLayout root, body, downloadCards;
   private TextView status, stats, mode, packSummary;
@@ -276,9 +277,11 @@ public final class MainActivity extends Activity {
     roadInfo.setEllipsize(android.text.TextUtils.TruncateAt.END);
     roadInfo.setVisibility(View.GONE);
     body.addView(roadInfo);
-    body.addView(navigation.panel());
+    View navigationPanel=navigation.panel();body.addView(navigationPanel);
     map = new MapView(this);
     stopLabels=new StopLabelsOverlay();
+    stopDots=new StopDotOverlay(()->visibleMarkers.get("live"),(longStop,size)->dot(longStop?UiConfig.LONG_STOP_COLOR:UiConfig.SAVED_STOP_DOT,size,Math.min(UiConfig.DOT_OUTLINE_WIDTH_DP,Math.max(1,size/6))));
+    map.getOverlays().add(stopDots);
     map.setDestroyMode(false); // Lifecycle is owned here; avoid a second teardown on window detach.
     roadControls.attach(roadInfo, map);
     map.setMultiTouchControls(true);
@@ -373,12 +376,15 @@ public final class MainActivity extends Activity {
     resonations=new ResonationsWidget(this);body.addView(resonations);
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
-    stats.setMaxLines(2);
+    stats.setSingleLine(true);
     AppStyle.decoratePanel(stats,AppStyle.CYAN);
     GradientDrawable totalBackground=bg(UiConfig.TOTAL_STATS_BACKGROUND,9);
     totalBackground.setStroke(dp(1),UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setBackground(totalBackground);
-    body.addView(stats);
+    HorizontalScrollView totalsFloat=new HorizontalScrollView(this);totalsFloat.setHorizontalScrollBarEnabled(false);totalsFloat.setElevation(dp(4));
+    totalsFloat.addView(stats,new HorizontalScrollView.LayoutParams(-2,-2));
+    FrameLayout.LayoutParams totalsPosition=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM|Gravity.END);
+    totalsPosition.setMargins(dp(UiConfig.MAP_COPYRIGHT_SPACE_DP),0,dp(8),dp(UiConfig.MAP_TOTALS_BOTTOM_DP));mapFrame.addView(totalsFloat,totalsPosition);
     TextView legend =
         text(UiConfig.text("green_ready_blue_moving_turquoise_stopped_cyan_history"), 10, MUTED);
     legend.setVisibility(View.GONE);
@@ -398,23 +404,22 @@ public final class MainActivity extends Activity {
       LinearLayout sidebar=new LinearLayout(this);
       sidebar.setOrientation(LinearLayout.VERTICAL);
       sidebar.setPadding(dp(UiConfig.SIDEBAR_INSET_DP),0,dp(UiConfig.SIDEBAR_INSET_DP),dp(UiConfig.SIDEBAR_INSET_DP));
-      ScrollView panel=new ScrollView(this);
-      LinearLayout stack=new LinearLayout(this);
+      ScrollView panel=new ScrollView(this);panel.setFillViewport(true);
+      LinearLayout topStack=new LinearLayout(this);topStack.setOrientation(LinearLayout.VERTICAL);
+      LinearLayout stack=new LinearLayout(this);stack.setGravity(Gravity.CENTER_VERTICAL);
       stack.setOrientation(LinearLayout.VERTICAL);
       stack.setPadding(0,dp(UiConfig.PANEL_GAP_DP),0,dp(UiConfig.PANEL_GAP_DP));
       for(View child:controls) {
         if(child==stats||child==resonations)continue;
         LinearLayout.LayoutParams space=new LinearLayout.LayoutParams(-1,-2);
         space.setMargins(0,dp(UiConfig.PANEL_GAP_DP)/2,0,dp(UiConfig.PANEL_GAP_DP)/2);
-        stack.addView(child,space);
+        if(child==navigationPanel||child==lookupNotes||child==status||child==moduleHost.view())stack.addView(child,space);else topStack.addView(child,space);
       }
       panel.addView(stack);
+      sidebar.addView(topStack,new LinearLayout.LayoutParams(-1,-2));
       sidebar.addView(panel,new LinearLayout.LayoutParams(-1,0,1));
-      LinearLayout.LayoutParams footer=new LinearLayout.LayoutParams(-1,-2);
-      footer.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
       LinearLayout.LayoutParams audioFooter=new LinearLayout.LayoutParams(-1,-2);audioFooter.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
       sidebar.addView(resonations,audioFooter);
-      sidebar.addView(stats,footer);
       body.addView(sidebar,new LinearLayout.LayoutParams(dp(UiConfig.SIDEBAR_WIDTH_DP),-1));
     }
     lastFixId = -1;
@@ -670,6 +675,7 @@ public final class MainActivity extends Activity {
       for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
       line(points, stroke.color(), stroke.ongoing());
     }
+    stopDots.reset();
     for (TrailDb.Stop s : stops) {
       Marker m = new Marker(map);
       m.setPosition(new GeoPoint(s.lat(), s.lon()));
@@ -706,6 +712,7 @@ public final class MainActivity extends Activity {
       }
       m.setSnippet(android.text.TextUtils.htmlEncode(details.toString()).replace("\n", "<br/>"));
       registerMarker("stop:" + s.id(), m);
+      stopDots.add(s.id(),m,StopLabelsOverlay.longStop(s));
     }
     Marker dot = new Marker(map);
     dot.setPosition(stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon()));
@@ -802,10 +809,12 @@ public final class MainActivity extends Activity {
     map.getOverlays().add(p);
   }
 
-  private LayerDrawable dot(int color, int size) {
+  private LayerDrawable dot(int color, int size) {return dot(color,size,UiConfig.DOT_OUTLINE_WIDTH_DP);}
+
+  private LayerDrawable dot(int color, int size, int outlineDp) {
     GradientDrawable inner = bg(color, 99);
     inner.setShape(GradientDrawable.OVAL);
-    inner.setStroke(dp(UiConfig.DOT_OUTLINE_WIDTH_DP), UiConfig.DOT_OUTLINE_COLOR);
+    inner.setStroke(dp(outlineDp), UiConfig.DOT_OUTLINE_COLOR);
     inner.setSize(dp(size), dp(size));
     return new LayerDrawable(new android.graphics.drawable.Drawable[] {inner});
   }

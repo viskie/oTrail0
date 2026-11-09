@@ -18,7 +18,7 @@ public final class NeonBorderDrawable extends Drawable {
 
   private NeonBorderDrawable(View view,Palette palette,boolean pill,float cornerDp){
     this.palette=palette;this.pill=pill;density=view.getResources().getDisplayMetrics().density;
-    inset=(pill?6f:1.5f)*density;corner=cornerDp*density;
+    inset=6f*density;corner=cornerDp*density;
     color=switch(palette){case CURRENT->UiConfig.NEON_CURRENT;case LIME->UiConfig.NEON_LIME;case BRIGHT_ORANGE->UiConfig.NEON_BRIGHT_ORANGE;case BRIGHT_YELLOW->UiConfig.NEON_BRIGHT_YELLOW;};
     reflection=palette==Palette.CURRENT?UiConfig.NEON_CURRENT_REFLECTION:withAlpha(color,153);
   }

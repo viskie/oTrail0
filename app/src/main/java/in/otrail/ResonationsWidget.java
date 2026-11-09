@@ -19,7 +19,7 @@ final class ResonationsWidget extends LinearLayout {
     this.activity = activity;
 
     setOrientation(VERTICAL);
-    setPadding(dp(5), dp(3), dp(5), dp(3));
+    setPadding(dp(8), dp(8), dp(8), dp(8));
 
     setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_ORANGE,7));
 
