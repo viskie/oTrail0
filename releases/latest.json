@@ -1,8 +1,8 @@
 {
-  "versionCode": 33,
-  "versionName": "0.4.10",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.10-debug.apk",
-  "sha256": "89d55303c9d95598f004e6a06508bfdac231ed85372c22f747dd5baa49eabab9",
-  "sizeBytes": 42286507,
-  "notes": "Reusable NeonBorderDrawable with current turquoise, lime, bright orange and bright yellow palettes. Bijnor destination panel lime; Resonations orange; GPS popup yellow. Brighter innermost top rim against black. Manual button typography, text colors, sizing and turquoise glow retained; manual menu, swatch and Resonations edits included. No journal/module/settings/download migration. Build, 95 JVM checks and lint passed. Phone visual check pending ADB."
+  "versionCode": 34,
+  "versionName": "0.4.11",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.11-debug.apk",
+  "sha256": "cc34eb9b5c6d27a91644336107f5b883ea8e29f189ab1e0bca39965b727ef064",
+  "sizeBytes": 41777164,
+  "notes": "Solid black outline for all recorded trail colors, repeated passes and inferred green connectors. Ongoing pink ride keeps existing turquoise casing; navigation unchanged. Explicit live-run flag prevents historical pink from being exempted. Includes reusable neon panel palettes and manual UI edits. Build, 96 JVM checks and lint passed; installed on POCO via ADB, main UI and active GPS recorder checked. Existing trail/stops, settings, modules and Resonations selections retained."
 }
