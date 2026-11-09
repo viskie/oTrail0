@@ -1,8 +1,8 @@
 {
-  "versionCode": 34,
-  "versionName": "0.4.11",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.11-debug.apk",
-  "sha256": "cc34eb9b5c6d27a91644336107f5b883ea8e29f189ab1e0bca39965b727ef064",
-  "sizeBytes": 41777164,
-  "notes": "Solid black outline for all recorded trail colors, repeated passes and inferred green connectors. Ongoing pink ride keeps existing turquoise casing; navigation unchanged. Explicit live-run flag prevents historical pink from being exempted. Includes reusable neon panel palettes and manual UI edits. Build, 96 JVM checks and lint passed; installed on POCO via ADB, main UI and active GPS recorder checked. Existing trail/stops, settings, modules and Resonations selections retained."
+  "versionCode": 35,
+  "versionName": "0.4.12",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.12-debug.apk",
+  "sha256": "4afe6908ca19d97d86f729e3fe247c1cce8f5aa07cd03b11ac9d15b8de570db6",
+  "sizeBytes": 41793548,
+  "notes": "Zoom-aware saved-stop density and sizes uncover the continuous trail when zoomed out. Prioritize long/newer stops and keep GPS dot clear; all stops remain saved and accessible. Single-line scrolling total strip floats beside map copyright with bottom gap. Bijnor/nearby info centered in landscape sidebar; Resonations bottom-pinned. Fully rounded outer neon glow with natural insets, no outer clipping mask. Build, 101 JVM checks and lint passed. Final phone visual check pending ADB reconnection. Existing data, modules, maps and playlists retained."
 }
