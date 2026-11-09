@@ -1,8 +1,8 @@
 {
-  "versionCode": 31,
-  "versionName": "0.4.8",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.8-debug.apk",
-  "sha256": "b5135f9d056e814f8934e01e23bc6e6cef230ee0a6b5217b5305846c9e6a66a6",
-  "sizeBytes": 41760688,
-  "notes": "13-second unbatched high-accuracy GPS requests; calmer 13-second map polling with no overlay rebuild solely for stop-clock changes. Rounded GPS/navigation boxes and text +1sp. Religious places nearby wording, nearest police retained. Brighter orange lower-right button/panel gradients. Existing journal, settings, downloads and modules retained. Build, 91 JVM tests and lint passed."
+  "versionCode": 32,
+  "versionName": "0.4.9",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.9-debug.apk",
+  "sha256": "d2290e04e8a514ccfdd2b9de43d956f92ab70f43807895c161f42ab38641853b",
+  "sizeBytes": 42282851,
+  "notes": "Resonations compact player above total/status panel. Multi-select MP3, MP4 audio and common recordings. First three filenames plus fourth-line ellipsis for larger playlists. Repeat entire playlist, pause/resume and clear. Saved document access and playlist survive restart/upgrades. Independent foreground playback with audio-focus handling and notification pause controls. No trail/module/settings/download migration. Build, 95 JVM tests and lint passed; actual phone audio checks pending ADB reconnection."
 }
