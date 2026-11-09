@@ -343,7 +343,7 @@ public final class MainActivity extends Activity {
     status.setMaxLines(2);
     status.setEllipsize(android.text.TextUtils.TruncateAt.END);
     body.addView(status);
-    lookupNotes=text("",UiConfig.BODY_SIZE_SP,UiConfig.STATUS_TEXT_COLOR);lookupNotes.setBackground(bg(UiConfig.STATUS_BACKGROUND,9));lookupNotes.setVisibility(View.GONE);body.addView(lookupNotes);
+    lookupNotes=text("",UiConfig.BODY_SIZE_SP,UiConfig.STATUS_TEXT_COLOR);GradientDrawable notesBackground=bg(UiConfig.STATUS_BACKGROUND,9);notesBackground.setStroke(dp(1),UiConfig.STATUS_TEXT_COLOR);lookupNotes.setBackground(notesBackground);lookupNotes.setVisibility(View.GONE);body.addView(lookupNotes);
     moduleHost=new ModuleHost(this);body.addView(moduleHost.view());
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
@@ -1167,6 +1167,8 @@ public final class MainActivity extends Activity {
   }
 
   private void showDownloads() {
+    if(liveBubble!=null){liveBubble.close();liveBubble=null;}liveBubblePoint=null;mapMenu=null;
+    if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     downloads = true;
     if (map != null) {
