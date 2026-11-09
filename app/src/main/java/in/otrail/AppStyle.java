@@ -11,7 +11,7 @@ public final class AppStyle extends UiConfig {
   public static void button(Button b){button(b,0);}
   public static void button(Button b,int emphasis) {
     b.setGravity(android.view.Gravity.CENTER);b.setAllCaps(false);b.setTypeface(Typeface.create(BUTTON_FONT,BUTTON_FONT_STYLE));b.setTextSize(BUTTON_SIZE_SP);b.setShadowLayer(dp(b,.6f),0,0,Color.WHITE);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setLetterSpacing(.01f);
-    b.setMinHeight(dp(b,44));b.setMinimumHeight(dp(b,44));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);b.setStateListAnimator(null);
+    b.setMinHeight(dp(b,12));b.setMinimumHeight(dp(b,12));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);b.setStateListAnimator(null);
     int fill=BUTTON;
     GradientDrawable shape=VIBRANT_FINISH
         ?new GradientDrawable(GradientDrawable.Orientation.TL_BR,PSYCHEDELIC_GRADIENTS?BUTTON_SPECTRUM:new int[]{fill,mix(fill,BUTTON_GRADIENT_ACCENT,BUTTON_GRADIENT_MIX)})
@@ -99,10 +99,10 @@ public final class AppStyle extends UiConfig {
       android.view.View child=row.getChildAt(i);
       if(child instanceof Button && !(child instanceof CompoundButton)){
         LinearLayout.LayoutParams params=child.getLayoutParams() instanceof LinearLayout.LayoutParams current
-            ?current:new LinearLayout.LayoutParams(-2,dp(row,44));
-        params.height=dp(row,44);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
+            ?current:new LinearLayout.LayoutParams(-2,dp(row,22));
+        params.height=dp(row,22);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
       }else if(child instanceof TextView label && !(child instanceof CompoundButton)){
-        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,44));
+        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,22));
       }
     }
   }

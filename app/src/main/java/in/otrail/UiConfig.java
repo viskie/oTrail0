@@ -11,14 +11,14 @@ public class UiConfig {
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
   public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffff4162,SECONDARY=0xffFF00FF;
   public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffbd00ff;
-  public static final int BACKGROUND=0xffd4d4d8,SURFACE=0xffe7e7eb,INK=0xff1b1b24,MUTED=0xffff7f50;
-  public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2;
+  public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff17deee,MUTED=0xffff7f50;
+  public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2, BLACK=0xff000000;
   public static final int BUTTON_BORDER=0xff17deee, BUTTON_RIPPLE=0xff17deee,
       BUTTON_DISABLED_TEXT=0x99ff00ff;
   // Vibrant finish. Existing manually edited base colors above remain authoritative.
   // Set VIBRANT_FINISH=false to return to flat controls; all colors remain editable here.
   public static final boolean VIBRANT_FINISH=true;
-  public static final int BUTTON_GRADIENT_ACCENT=BLUE, BUTTON_EDGE_ACCENT=SECONDARY;
+  public static final int BUTTON_GRADIENT_ACCENT=PURPLE, BUTTON_EDGE_ACCENT=LIME;
   public static final float BUTTON_GRADIENT_MIX=.24f, PANEL_TINT_MIX=.26f;
   public static final int BUTTON_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final boolean PSYCHEDELIC_GRADIENTS=true;
@@ -421,7 +421,7 @@ public class UiConfig {
   public static final int WTF_NORTH_COLOR=0xff40e0d0, WTF_NORTH_BACKGROUND=0xcc000000;
   public static final String NAV_TITLE_FONT="sans-serif", LIVE_BUBBLE_FONT="sans-serif-medium";
   public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
-  public static final int LIVE_BUBBLE_WIDTH_DP=132, LIVE_WORSHIP_RADIUS_M=25000;
+  public static final int LIVE_BUBBLE_WIDTH_DP=154, LIVE_WORSHIP_RADIUS_M=25000;
   public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};
   // 0.8 of a 16dp base corner, shared by navigation and GPS panels.
   public static final float NAV_BOX_CORNER_DP=12.8f;

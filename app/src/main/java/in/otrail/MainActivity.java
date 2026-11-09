@@ -218,31 +218,54 @@ public final class MainActivity extends Activity {
     cardUpdates.clear();
     base(UiConfig.text("your_road_your_record_personal_navigation"));
     LinearLayout row = new LinearLayout(this);
-    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 13, TEAL);
+    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 10, TEAL);
     mode.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     mode.setTextColor(AppStyle.HEADING);
     mode.setLetterSpacing(.06f);
     AppStyle.decoratePanel(mode,AppStyle.HEADING);
-    row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
+    LinearLayout.LayoutParams modeParams =
+    new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+
+    modeParams.gravity = Gravity.START;
+    row.addView(mode, modeParams);
+    
+    // Flexible empty space in the middle
+    View spacer = new View(this);
+    row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
+
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
     camVisible=new ModuleStore(this).enabled("mod2");
 
     AppStyle.spaceButtons(row);
     body.addView(row);
     LinearLayout tools = new LinearLayout(this);
-    AppStyle.decoratePanel(tools,AppStyle.CYAN);
+    //AppStyle.decoratePanel(tools,AppStyle.CYAN);
+    // Black background with unchanged CYAN border
+    android.graphics.drawable.GradientDrawable bg =
+        new android.graphics.drawable.GradientDrawable();
+
+    bg.setColor(0xff000000);
+    bg.setCornerRadius(dp(7));
+    bg.setStroke(dp(1), AppStyle.CYAN);
+
+    tools.setBackground(bg);
+
     String[] names = {UiConfig.text("osm_roads"), UiConfig.text("esri_satellite"), UiConfig.text("india_offline")};
     Spinner selector = new Spinner(this);
     selector.setAdapter(
         AppStyle.choices(this, java.util.Arrays.asList(names),UiConfig.MAP_SELECTOR_SIZE_SP));
     selector.setSelection(provider);
-    tools.addView(selector, new LinearLayout.LayoutParams(0, dp(40), 1));
+    tools.addView(selector, new LinearLayout.LayoutParams(0, dp(20), 1));
     Switch network = new Switch(this);
     network.setText(UiConfig.text("offline"));
     network.setTextSize(UiConfig.BODY_SIZE_SP);
     AppStyle.nativeTextTree(network);
     AppStyle.toggle(network);
-    network.setMinHeight(dp(44));
+    network.setMinHeight(0);
+    network.setMinimumHeight(0);
     network.setChecked(offlineOnly);
     tools.addView(network);
     AppStyle.spaceButtons(tools);

@@ -48,6 +48,8 @@ final class NavigationControls implements AutoCloseable {
     android.graphics.drawable.GradientDrawable background=new android.graphics.drawable.GradientDrawable();
     background.setColor(UiConfig.NAV_PANEL_BACKGROUND);background.setCornerRadius(UiConfig.NAV_BOX_CORNER_DP*activity.getResources().getDisplayMetrics().density);
     background.setStroke(dp(1),UiConfig.NAV_TEXT_SPECTRUM[0]);panel.setBackground(background);
+    panel.setBackground(background);
+    panel.setPadding(dp(1), dp(1), dp(1), dp(1));
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
@@ -93,15 +95,15 @@ final class NavigationControls implements AutoCloseable {
         new LinearLayout.LayoutParams(0, dp(44), 1));
     AppStyle.spaceButtons(row);
     panel.addView(row);
-    TextView credits = text(UiConfig.text("osrm_fossgis_openstreetmap_contributors"), 10);
-    credits.setOnClickListener(
-        v ->
-            activity.startActivity(
-                new Intent(
-                    Intent.ACTION_VIEW, Uri.parse("https://routing.openstreetmap.de/about.html"))));
-    credits.setVisibility(View.GONE);
-    panel.addView(credits);
-    panel.setVisibility(View.GONE);
+    // TextView credits = text(UiConfig.text("osrm_fossgis_openstreetmap_contributors"), 10);
+    // credits.setOnClickListener(
+    //     v ->
+    //         activity.startActivity(
+    //             new Intent(
+    //                 Intent.ACTION_VIEW, Uri.parse("https://routing.openstreetmap.de/about.html"))));
+    // credits.setVisibility(View.GONE);
+    // panel.addView(credits);
+    // panel.setVisibility(View.GONE);
     return panel;
   }
 
