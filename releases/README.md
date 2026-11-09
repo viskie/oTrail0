@@ -149,3 +149,7 @@ Persistent GPS status popup above the live dot with speed, four-decimal coordina
 ## 0.4.6 — 2026-11-09
 
 Zero-padding compact GPS bubble, uniform 11sp text and available values only; lookup diagnostics move to the side-panel notes box. Fresh accurate GPS gets a subtle smile without changing position/size. Five navigation actions move into a collapsible left drawer with matching gradient shading and a top-left floating menu icon. Place name alone remains bold. See docs/0.4.6-compact-popup-menu.md.
+
+## 0.4.7 — 2026-11-09
+
+GPS popup 40% narrower than measured phone UI with a 3dp thicker border. Named worship sites and nearest police station share the side-panel results list. Clickable places confirm before automatic navigation, preserving the current route if calculation fails. Persistent navigation history can be viewed/reloaded from the left menu. See docs/0.4.7-named-nearby-navigation.md.

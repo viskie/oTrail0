@@ -36,6 +36,7 @@ public final class NavigationManager {
       cacheWriter = Executors.newSingleThreadExecutor();
   private State state = new State(null, null, "", "NONE", "", null, 0, 0);
   private NavigationProgress tracker;
+  private State lastGoodState;
   private long ticket, lastRequest;
   private boolean fetching;
   private String routeJson;
@@ -87,11 +88,12 @@ public final class NavigationManager {
       return;
     }
     long now = System.currentTimeMillis();
-    if (fetching || now - lastRequest < (reroute ? 60_000 : 2000)) return;
+    if (reroute && (fetching || now-lastRequest<60_000)) return;
     lastRequest = now;
     fetching = true;
     long request = ++ticket;
-    State before = state;
+    if(state.route()!=null)lastGoodState=state;
+    State before=state.route()==null&&lastGoodState!=null?lastGoodState:state;
     state =
         new State(
             reroute ? state.route : null,
@@ -111,6 +113,7 @@ public final class NavigationManager {
             RoutePlan plan = OsrmRouteParser.parse(json);
             synchronized (this) {
               if (request != ticket) return;
+              if(!reroute&&before.route()!=null)rememberHistory(before);
               routeJson = json;
               tracker = new NavigationProgress(plan);
               state =
@@ -162,13 +165,17 @@ public final class NavigationManager {
             null,
             state.revision,
             System.currentTimeMillis());
+    rememberHistory(state);
     persist();
   }
+
+  private void rememberHistory(State snapshot){cacheWriter.execute(()->{try(NavigationHistory history=new NavigationHistory(context)){history.remember(snapshot);}catch(Exception error){android.util.Log.w("oTraiL","Navigation history write failed; active route retained",error);}});}
 
   public synchronized void clear() {
     ticket++;
     fetching = false;
     routeJson = null;
+    lastGoodState=null;
     tracker = null;
     state = new State(null, null, "", "NONE", "", null, state.revision + 1, 0);
     cacheWriter.execute(

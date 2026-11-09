@@ -413,8 +413,9 @@ public class UiConfig {
   public static final int WTF_NORTH_COLOR=0xff40e0d0, WTF_NORTH_BACKGROUND=0xcc000000;
   public static final String NAV_TITLE_FONT="sans-serif", LIVE_BUBBLE_FONT="sans-serif-medium";
   public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
-  public static final int LIVE_BUBBLE_WIDTH_DP=260, LIVE_WORSHIP_RADIUS_M=25000;
+  public static final int LIVE_BUBBLE_WIDTH_DP=132, LIVE_WORSHIP_RADIUS_M=25000;
   public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};
   public static final int LIVE_BUBBLE_SIZE_SP=11, GPS_SMILE_COLOR=0xffffffff;
   public static final float GPS_SMILE_MAX_ACCURACY_M=15;
+  public static final int LIVE_BUBBLE_BORDER_DP=4;
 }

@@ -9,7 +9,7 @@ import android.widget.*;
 /** In-app collapsible navigation, with the same editable gradient as the right-hand panel. */
 final class MapMenu extends FrameLayout {
   private final Activity activity;private final FrameLayout shade;private final LinearLayout panel;
-  MapMenu(Activity a,boolean history,Runnable tracker,Runnable places,Runnable stops,Runnable journeys,Runnable settings){super(a);activity=a;setElevation(dp(9));
+  MapMenu(Activity a,boolean history,Runnable tracker,Runnable places,Runnable stops,Runnable journeys,Runnable navigationHistory,Runnable settings){super(a);activity=a;setElevation(dp(9));
     ImageButton trigger=new ImageButton(a);trigger.setContentDescription("Open navigation menu");trigger.setTooltipText("Navigation menu");trigger.setImageDrawable(new Hamburger());trigger.setColorFilter(UiConfig.LOCATE_LOGO_COLOR);trigger.setScaleType(ImageView.ScaleType.FIT_CENTER);
     int inset=dp(Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2));trigger.setPadding(inset,inset,inset,inset);android.graphics.drawable.GradientDrawable icon=new android.graphics.drawable.GradientDrawable();icon.setColor(UiConfig.LOCATE_BACKGROUND);icon.setCornerRadius(dp(10));icon.setStroke(dp(1),UiConfig.LOCATE_BORDER_COLOR);trigger.setBackground(new android.graphics.drawable.InsetDrawable(icon,dp(Math.round(UiConfig.LOCATE_SIZE_DP*(1-UiConfig.LOCATE_VISUAL_SCALE)/2))));
     LayoutParams iconPosition=new LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP),Gravity.TOP|Gravity.START);iconPosition.setMargins(dp(10),dp(10),0,0);addView(trigger,iconPosition);
@@ -17,7 +17,7 @@ final class MapMenu extends FrameLayout {
     ScrollView scroll=new ScrollView(a);scroll.setFillViewport(true);scroll.setBackground(AppStyle.canvas());scroll.setOnClickListener(v->{});scroll.setClickable(true);shade.addView(scroll,new LayoutParams(dp(260),-1,Gravity.START));
     panel=new LinearLayout(a);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(8),dp(8),dp(8),dp(8));scroll.addView(panel,new ScrollView.LayoutParams(-1,-1));
     TextView heading=new TextView(a);heading.setText("Navigation");AppStyle.text(heading);heading.setTextSize(18);heading.setTextColor(UiConfig.HEADING);panel.addView(heading);
-    add("× Close menu",()->closeIfOpen());add(UiConfig.text("tracker"),tracker);add(UiConfig.text("places"),places);add(UiConfig.text("stops"),stops);add(history?UiConfig.text("live"):UiConfig.text("history"),journeys);add(UiConfig.text("settings"),settings);
+    add("× Close menu",()->closeIfOpen());add(UiConfig.text("tracker"),tracker);add(UiConfig.text("places"),places);add(UiConfig.text("stops"),stops);add(history?UiConfig.text("live"):UiConfig.text("history"),journeys);add("Navigation history",navigationHistory);add(UiConfig.text("settings"),settings);
     trigger.setOnClickListener(v->{shade.setVisibility(VISIBLE);shade.bringToFront();});
   }
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}

@@ -28,7 +28,11 @@ public final class PhotoInstrumentation extends Instrumentation {
         require(!PhotoIndex.context(db,400000).has("stop_id"),"stale location assigned a stop");
         try(Cursor cursor=db.getReadableDatabase().rawQuery("PRAGMA foreign_key_check",null)){require(!cursor.moveToFirst(),"broken photo FK");}
       }
-      result.putString("stream","CAM migration, journal preservation, stop association, recovery and stale GPS checks passed\n");finish(-1,result);
+      RoutePlan plan=new RoutePlan(java.util.List.of(new RoutePlan.Point(29,78),new RoutePlan.Point(29.1,78.1)),java.util.List.of(new RoutePlan.Step(0,"Continue")),10000,600);
+      NavigationManager.State state=new NavigationManager.State(plan,new RoutePlan.Point(29.1,78.1),"Test destination","ACTIVE","",null,1,1);
+      try(NavigationHistory history=new NavigationHistory(c)){history.remember(state);history.remember(state);require(history.entries().size()==1,"navigation history duplicates");}
+      try(NavigationHistory history=new NavigationHistory(c)){require(history.entries().get(0).name().equals("Test destination"),"navigation history lost on reopen");require(history.entries().get(0).lat()==29.1,"destination changed");}
+      result.putString("stream","CAM migration, journal preservation, recovery, stale GPS and navigation history persistence checks passed\n");finish(-1,result);
     }catch(Throwable e){result.putString("stream",android.util.Log.getStackTraceString(e));finish(0,result);}finally{for(File f:root.listFiles())f.delete();root.delete();}
   }
 }

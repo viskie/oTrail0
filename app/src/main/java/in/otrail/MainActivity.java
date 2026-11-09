@@ -96,6 +96,7 @@ public final class MainActivity extends Activity {
     super.onCreate(b);
     db = new TrailDb(this);
     roadControls = new RoadControls(this);
+    roadControls.navigateTo=this::confirmNavigation;
     liveContext=new LiveLocationContext(this,this::refreshLiveBubble);
     packs = new MapPacks(this, db);
     navigation =
@@ -289,7 +290,7 @@ public final class MainActivity extends Activity {
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
-    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showDownloads);mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
+    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showDownloads);mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -738,10 +739,11 @@ public final class MainActivity extends Activity {
             android.app.AlertDialog.Builder info=new AppDialogs(this).setTitle(m.getTitle())
                 .setMessage(android.text.Html.fromHtml(m.getSnippet(), android.text.Html.FROM_HTML_MODE_LEGACY))
                 .setPositiveButton(UiConfig.text("close"), null);
+            info.setNegativeButton("Navigate",(dialog,which)->confirmNavigation(new DestinationSearch.Result(m.getTitle(),new RoutePlan.Point(m.getPosition().getLatitude(),m.getPosition().getLongitude()))));
             if(new ModuleStore(this).enabled("mod2"))try{long stop=Long.parseLong(key.substring(5));info.setNeutralButton("Photos",(dialog,which)->openCam("gallery",stop));}catch(NumberFormatException ignored){}
             info.show();
             openMarkerKey = null;
-          } else MarkerPopups.openOnly(view, m);
+          } else if(key.startsWith("historic:"))confirmNavigation(new DestinationSearch.Result(m.getTitle(),new RoutePlan.Point(m.getPosition().getLatitude(),m.getPosition().getLongitude())));else MarkerPopups.openOnly(view, m);
           return true;
         });
     map.getOverlays().add(marker);
@@ -1059,6 +1061,7 @@ public final class MainActivity extends Activity {
               for(String value:new String[]{s.locality(),s.road(),s.district(),s.state(),s.country(),s.postalCode()})
                 if(value!=null&&!value.isBlank())details+="\n"+value;
               android.app.AlertDialog.Builder detail=new AppDialogs(this).setTitle(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName()).setMessage(details).setPositiveButton(UiConfig.text("close"),null);
+              detail.setNegativeButton("Navigate",(dialog,which)->confirmNavigation(new DestinationSearch.Result(s.placeName()==null?"Stop #"+s.id():s.placeName(),new RoutePlan.Point(s.lat(),s.lon()))));
               if(new ModuleStore(this).enabled("mod2"))detail.setNeutralButton("Photos",(dialog,which)->openCam("gallery",s.id()));
               detail.show();
             }).setPositiveButton(UiConfig.text("close"),null).show();
@@ -1586,9 +1589,17 @@ public final class MainActivity extends Activity {
 
   private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){
     String address=liveContext.address(),addressNote="";if(LivePopupText.addressPending(address)){addressNote=address;address="";}String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?"":"\n")+road;
-    LivePopupText.Parts worship=LivePopupText.worship(liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude()));liveBubble.update(liveBubblePoint,status.getText(),address,worship.values());
-    if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+worship.notes();lookupNotes.setText(note.trim());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
+    liveBubble.update(liveBubblePoint,status.getText(),address,"");
+    if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude());android.text.SpannableString linked=new android.text.SpannableString(note.trim());
+      for(NearbySites.Site site:liveContext.sites(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude())){int start=linked.toString().indexOf(site.line());if(start>=0)linked.setSpan(new android.text.style.ClickableSpan(){public void onClick(View view){confirmNavigation(new DestinationSearch.Result(site.name(),new RoutePlan.Point(site.lat(),site.lon())));}public void updateDrawState(android.text.TextPaint paint){paint.setColor(UiConfig.STATUS_TEXT_COLOR);paint.setUnderlineText(true);}},start,start+site.line().length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
+      lookupNotes.setText(linked);lookupNotes.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
+
   }}
+  private void confirmNavigation(DestinationSearch.Result target){
+    NavigationManager.State active=NavigationManager.get(this).state();String replace=active.route()!=null?"\nCurrent destination: "+DestinationLabel.format(active.name())+"\nThis will replace the current route after calculation.":"";
+    new AppDialogs(this).setTitle("Navigate to "+target.name()+"?").setMessage(String.format(Locale.US,"Destination: %.4f, %.4f",target.point().lat(),target.point().lon())+replace).setPositiveButton("Start navigation",(dialog,which)->{if(history){history=false;showMap();}navigation.confirmedPlan(target);}).setNegativeButton("Cancel",null).show();
+  }
+  private void showNavigationHistory(){io.execute(()->{try(NavigationHistory saved=new NavigationHistory(this)){saved.remember(NavigationManager.get(this).state());List<NavigationHistory.Entry> entries=saved.entries();String[] labels=entries.stream().map(item->DestinationLabel.format(item.name())+"\n"+clock(item.time())+String.format(Locale.US," · %.1f km",item.meters()/1000)).toArray(String[]::new);runOnUiThread(()->{if(isFinishing()||isDestroyed())return;if(entries.isEmpty()){toast("No navigation history yet");return;}new AppDialogs(this).setTitle("Navigation history · reload destination").setItems(labels,(dialog,index)->{NavigationHistory.Entry item=entries.get(index);confirmNavigation(new DestinationSearch.Result(item.name(),new RoutePlan.Point(item.lat(),item.lon())));}).setNegativeButton("Close",null).show();});}catch(Exception error){runOnUiThread(()->toast("Cannot load navigation history: "+error.getMessage()));}});}
   private boolean wtfActive(){return wtfEnabled&&!history;}
   private void toggleWtf(){
     wtfEnabled=history||!wtfEnabled;getPreferences(0).edit().putBoolean("wtf_mode",wtfEnabled).apply();

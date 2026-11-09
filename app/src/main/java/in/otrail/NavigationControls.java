@@ -29,7 +29,7 @@ final class NavigationControls implements AutoCloseable {
   private MapView lastMap;
   private long drawnRevision = -1;
   private final List<Overlay> overlays = new ArrayList<>();
-  private DestinationSearch.Result pending;
+  private DestinationSearch.Result pending,autoStartTarget;
   private boolean searching;
   java.util.function.Consumer<GeoPoint> roadTap;
 
@@ -86,7 +86,7 @@ final class NavigationControls implements AutoCloseable {
         button(
             UiConfig.text("clear"),
             () -> {
-              pending = null;
+              pending = null;autoStartTarget=null;
               manager.clear();
               changed.run();
             }),
@@ -187,7 +187,9 @@ final class NavigationControls implements AutoCloseable {
         .show();
   }
 
-  void plan(DestinationSearch.Result destination) {
+  void plan(DestinationSearch.Result destination){plan(destination,false);}
+  void confirmedPlan(DestinationSearch.Result destination){plan(destination,true);}
+  private void plan(DestinationSearch.Result destination,boolean autoStart) {
     if (!DestinationSearch.india(destination.point())) {
       toast(UiConfig.text("choose_a_destination_in_india"));
       return;
@@ -196,6 +198,7 @@ final class NavigationControls implements AutoCloseable {
       toast(UiConfig.text("choose_brouter_or_valhalla_in_maps_downloads_to_calculate_offlin"));
       return;
     }
+    autoStartTarget=autoStart?destination:null;
     pending = destination;
     Location current = origin.get();
     if (current == null) {
@@ -221,6 +224,8 @@ final class NavigationControls implements AutoCloseable {
       if (current != null) begin(current);
     }
     NavigationManager.State s = manager.state();
+    if(autoStartTarget!=null&&pending==null&&s.route()!=null&&s.target()!=null&&"PREVIEW".equals(s.mode())&&RoutePlan.metres(s.target(),autoStartTarget.point())<1){autoStartTarget=null;manager.start();s=manager.state();changed.run();}
+    else if(autoStartTarget!=null&&pending==null&&!"PLANNING".equals(s.mode())&&s.target()!=null&&RoutePlan.metres(s.target(),autoStartTarget.point())>=1)autoStartTarget=null;
     boolean has = s.route() != null;
     panel.setVisibility(has || pending != null || !s.note().isEmpty() ? View.VISIBLE : View.GONE);
     if (panel.getVisibility() != View.VISIBLE) {
