@@ -1642,7 +1642,7 @@ public final class MainActivity extends Activity {
   private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){
     String address=liveContext.address(),addressNote="";if(LivePopupText.addressPending(address)){addressNote=address;address="";}
     address = address.replace('\n', ' ').trim();
-    String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?"":":")+road;
+    String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?":":"")+road;
     liveBubble.update(liveBubblePoint,status.getText(),address,"");
     if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude());android.text.SpannableString linked=new android.text.SpannableString(note.trim());
       for(NearbySites.Site site:liveContext.sites(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude())){int start=linked.toString().indexOf(site.line());if(start>=0)linked.setSpan(new android.text.style.ClickableSpan(){public void onClick(View view){confirmNavigation(new DestinationSearch.Result(site.name(),new RoutePlan.Point(site.lat(),site.lon())));}public void updateDrawState(android.text.TextPaint paint){paint.setColor(UiConfig.LIME);paint.setUnderlineText(true);}},start,start+site.line().length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
