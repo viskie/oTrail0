@@ -429,11 +429,11 @@ public final class MainActivity extends Activity {
   }
 
   private void showReligiousDirectory(){
-    () -> Toast.makeText(
+    Toast.makeText(
         this,
         "Religious directory not yet implemented",
         Toast.LENGTH_SHORT
-    ).show(),
+    ).show();
   }
 
   private void applyProvider() {
