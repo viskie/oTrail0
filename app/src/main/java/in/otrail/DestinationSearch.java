@@ -87,8 +87,7 @@ public final class DestinationSearch {
             //             ? a.getAddressLine(0)
             //             : Objects.toString(a.getFeatureName(), query),
             //         p));
-            String name =
-                a.getMaxAddressLineIndex() >= 0
+            String name = a.getMaxAddressLineIndex() >= 0
                     ? a.getAddressLine(0)
                     : Objects.toString(a.getFeatureName(), query);
 
