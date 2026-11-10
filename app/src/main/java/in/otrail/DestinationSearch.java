@@ -81,12 +81,27 @@ public final class DestinationSearch {
         if (a.hasLatitude() && a.hasLongitude()) {
           RoutePlan.Point p = new RoutePlan.Point(a.getLatitude(), a.getLongitude());
           if (india(p))
-            out.add(
-                new Result(
-                    a.getMaxAddressLineIndex() >= 0
-                        ? a.getAddressLine(0)
-                        : Objects.toString(a.getFeatureName(), query),
-                    p));
+            // out.add(
+            //     new Result(
+            //         a.getMaxAddressLineIndex() >= 0
+            //             ? a.getAddressLine(0)
+            //             : Objects.toString(a.getFeatureName(), query),
+            //         p));
+            String name =
+                a.getMaxAddressLineIndex() >= 0
+                    ? a.getAddressLine(0)
+                    : Objects.toString(a.getFeatureName(), query);
+
+            String pin = a.getPostalCode();
+
+            if (pin != null && pin.matches("[1-9][0-9]{5}")
+                    && !name.matches(".*(?<![0-9])"
+                            + java.util.regex.Pattern.quote(pin)
+                            + "(?![0-9]).*")) {
+                name = name + ", " + pin;
+            }
+
+            out.add(new Result(name, p));
         }
     return out;
   }
