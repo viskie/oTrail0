@@ -41,7 +41,7 @@
 
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
     
-    private TextView text(int sp,String color){
+    private TextView text(int sp,int color){
       TextView v=new TextView(getContext());
       v.setTextColor(UiConfig.PURPLE);
       v.setTextSize(sp);
