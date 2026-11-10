@@ -221,8 +221,7 @@ public final class MainActivity extends Activity {
     LinearLayout row = new LinearLayout(this);
     mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 10, UiConfig.LIME);
     mode.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
-    mode.setTextColor(UiConfig.BLACKddf=21][[
-    ,m ssssyu7zspo
+    mode.setTextColor(UiConfig.BLACK);
     mode.setLetterSpacing(.06f);
     AppStyle.decoratePanel(mode,AppStyle.HEADING);
     LinearLayout.LayoutParams modeParams =
