@@ -31,7 +31,7 @@ public final class NeonBorderDrawable extends Drawable {
     RectF box=new RectF();path.computeBounds(box,true);p.setShader(new LinearGradient(0,box.top,0,box.bottom,new int[]{withAlpha(color,100),color},null,Shader.TileMode.CLAMP));p.setColor(Color.WHITE);
     p.setStrokeWidth(rimWidth*3);p.setAlpha(45);canvas.drawPath(path,p);
     p.setStrokeWidth(rimWidth*1.5f);p.setAlpha(100);canvas.drawPath(path,p);
-    p.setStrokeWidth(rimWidth*0.73);p.setAlpha(255);canvas.drawPath(path,p);
+    p.setStrokeWidth(rimWidth*1);p.setAlpha(255);canvas.drawPath(path,p);
   }
   public static Drawable menuIcon(View view,int color){return new MenuIcon(view.getResources().getDisplayMetrics().density,color);}
   private static final class MenuIcon extends Drawable {
