@@ -46,7 +46,7 @@
       TextView v=new TextView(getContext());
       v.setTextColor(UiConfig.PURPLE);
       v.setTextSize(sp);
-      v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));
+      //v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));
       v.setIncludeFontPadding(false);
       v.setPadding(4,4,4,4);
       LayoutParams p=new LayoutParams(-1,-2);
