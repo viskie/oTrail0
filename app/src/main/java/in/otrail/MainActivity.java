@@ -433,7 +433,7 @@ public final class MainActivity extends Activity {
       this,
       "Religious directory not yet implemented",
       Toast.LENGTH_SHORT
-    ).show()
+    ).show();
   }
 
   private void applyProvider() {
