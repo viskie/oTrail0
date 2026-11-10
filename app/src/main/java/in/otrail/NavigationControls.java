@@ -132,61 +132,331 @@ final class NavigationControls implements AutoCloseable {
     return b;
   }
 
-  void search() {
+  // void search() {
+  //   if (searching) {
+  //     toast(UiConfig.text("search_is_already_running"));
+  //     return;
+  //   }
+  //   EditText query = new EditText(activity);
+  //   query.setHint(UiConfig.text("place_in_india_or_latitude_longitude"));
+  //   query.setSingleLine(true);
+  //   new AppDialogs(activity)
+  //       .setTitle(UiConfig.text("where_are_you_going"))
+  //       .setView(query)
+  //       .setPositiveButton(
+  //           UiConfig.text("search"),
+  //           (d, w) -> {
+  //             String q = query.getText().toString().trim();
+  //             if (manager.offline() && !q.matches("[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+")) {
+  //               toast(UiConfig.text("offline_enter_latitude_longitude_or_hold_a_point_on_the_map"));
+  //               return;
+  //             }
+  //             if (q.isEmpty()) return;
+  //             searching = true;
+  //             toast(UiConfig.text("searching_places"));
+  //             searches.execute(
+  //                 () -> {
+  //                   try {
+  //                     List<DestinationSearch.Result> results =
+  //                         DestinationSearch.search(activity.getApplicationContext(), q);
+  //                     activity.runOnUiThread(
+  //                         () -> {
+  //                           if (activity.isFinishing() || activity.isDestroyed()) return;
+  //                           if (results.isEmpty()) {
+  //                             toast(
+  //                                 UiConfig.text("no_matching_place_in_india_try_a_nearby_town_or_coordinates"));
+  //                             return;
+  //                           }
+  //                           String[] names =
+  //                               results.stream()
+  //                                   .map(DestinationSearch.Result::name)
+  //                                   .toArray(String[]::new);
+  //                           new AppDialogs(activity)
+  //                               .setTitle(UiConfig.text("choose_destination"))
+  //                               .setItems(names, (dialog, index) -> plan(results.get(index)))
+  //                               .setNegativeButton(UiConfig.text("cancel"), null)
+  //                               .show();
+  //                         });
+  //                   } catch (Exception e) {
+  //                     activity.runOnUiThread(() -> toast(UiConfig.text("search_unavailable") + e.getMessage()));
+  //                   } finally {
+  //                     searching = false;
+  //                   }
+  //                 });
+  //           })
+  //       .setNegativeButton(UiConfig.text("cancel"), null)
+  //       .show();
+  // }
+
+void search() {
     if (searching) {
-      toast(UiConfig.text("search_is_already_running"));
-      return;
+        toast(UiConfig.text("search_is_already_running"));
+        return;
     }
+
+    searching = true;
+
+    final android.os.Handler handler =
+        new android.os.Handler(
+            android.os.Looper.getMainLooper()
+        );
+
+    final java.util.concurrent.atomic.AtomicInteger generation =
+        new java.util.concurrent.atomic.AtomicInteger();
+
+    final Runnable[] pending = new Runnable[1];
+
+    // Main dialog layout
+    LinearLayout root = new LinearLayout(activity);
+    root.setOrientation(LinearLayout.VERTICAL);
+    root.setPadding(dp(12), dp(8), dp(12), dp(8));
+
+    // Search input
     EditText query = new EditText(activity);
-    query.setHint(UiConfig.text("place_in_india_or_latitude_longitude"));
+    query.setHint("Enter city, locality, place or coordinates");
     query.setSingleLine(true);
-    new AppDialogs(activity)
-        .setTitle(UiConfig.text("where_are_you_going"))
-        .setView(query)
-        .setPositiveButton(
-            UiConfig.text("search"),
-            (d, w) -> {
-              String q = query.getText().toString().trim();
-              if (manager.offline() && !q.matches("[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+")) {
-                toast(UiConfig.text("offline_enter_latitude_longitude_or_hold_a_point_on_the_map"));
+    query.setInputType(
+        android.text.InputType.TYPE_CLASS_TEXT
+    );
+
+    root.addView(
+        query,
+        new LinearLayout.LayoutParams(-1, dp(48))
+    );
+
+    // Search progress / message
+    TextView status = new TextView(activity);
+    AppStyle.text(status);
+    status.setTextSize(12);
+    status.setText("Start typing to find a destination");
+    status.setPadding(dp(6), dp(8), dp(6), dp(8));
+
+    root.addView(status);
+
+    // Clickable results container
+    ScrollView scroll = new ScrollView(activity);
+    scroll.setFillViewport(false);
+
+    LinearLayout resultsBox = new LinearLayout(activity);
+    resultsBox.setOrientation(LinearLayout.VERTICAL);
+
+    scroll.addView(resultsBox);
+
+    root.addView(
+        scroll,
+        new LinearLayout.LayoutParams(-1, dp(235))
+    );
+
+    android.app.AlertDialog dialog =
+        new AppDialogs(activity)
+            .setTitle(UiConfig.text("where_are_you_going"))
+            .setView(root)
+            .setNegativeButton(
+                UiConfig.text("cancel"),
+                null
+            )
+            .create();
+
+    // Execute a location lookup without blocking the UI
+    Runnable lookup = () -> {
+        final String q =
+            query.getText().toString().trim();
+
+        final int requestId =
+            generation.incrementAndGet();
+
+        resultsBox.removeAllViews();
+
+        if (q.length() < 2) {
+            status.setText("Enter at least 2 characters");
+            return;
+        }
+
+        boolean coordinates =
+            q.matches(
+                "[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+"
+            );
+
+        if (manager.offline() && !coordinates) {
+            status.setText(
+                "Offline: enter latitude, longitude"
+            );
+            return;
+        }
+
+        status.setText("Searching: " + q);
+
+        searches.execute(() -> {
+            // Skip requests superseded while queued
+            if (requestId != generation.get()) {
                 return;
-              }
-              if (q.isEmpty()) return;
-              searching = true;
-              toast(UiConfig.text("searching_places"));
-              searches.execute(
-                  () -> {
-                    try {
-                      List<DestinationSearch.Result> results =
-                          DestinationSearch.search(activity.getApplicationContext(), q);
-                      activity.runOnUiThread(
-                          () -> {
-                            if (activity.isFinishing() || activity.isDestroyed()) return;
-                            if (results.isEmpty()) {
-                              toast(
-                                  UiConfig.text("no_matching_place_in_india_try_a_nearby_town_or_coordinates"));
-                              return;
-                            }
-                            String[] names =
-                                results.stream()
-                                    .map(DestinationSearch.Result::name)
-                                    .toArray(String[]::new);
-                            new AppDialogs(activity)
-                                .setTitle(UiConfig.text("choose_destination"))
-                                .setItems(names, (dialog, index) -> plan(results.get(index)))
-                                .setNegativeButton(UiConfig.text("cancel"), null)
-                                .show();
-                          });
-                    } catch (Exception e) {
-                      activity.runOnUiThread(() -> toast(UiConfig.text("search_unavailable") + e.getMessage()));
-                    } finally {
-                      searching = false;
+            }
+
+            try {
+                List<DestinationSearch.Result> found =
+                    DestinationSearch.search(
+                        activity.getApplicationContext(),
+                        q
+                    );
+
+                activity.runOnUiThread(() -> {
+                    if (!dialog.isShowing()
+                            || activity.isFinishing()
+                            || activity.isDestroyed()
+                            || requestId != generation.get()) {
+                        return;
                     }
-                  });
-            })
-        .setNegativeButton(UiConfig.text("cancel"), null)
-        .show();
-  }
+
+                    resultsBox.removeAllViews();
+
+                    if (found.isEmpty()) {
+                        status.setText(
+                            "No matching destination found"
+                        );
+                        return;
+                    }
+
+                    status.setText(
+                        found.size() + " matching destinations"
+                    );
+
+                    for (DestinationSearch.Result place : found) {
+                        TextView item = new TextView(activity);
+
+                        AppStyle.text(item);
+
+                        item.setText(place.name());
+                        item.setTextSize(14);
+                        item.setTextColor(
+                            UiConfig.NAV_TEXT_COLOR
+                        );
+
+                        item.setGravity(
+                            Gravity.CENTER_VERTICAL
+                        );
+
+                        item.setPadding(
+                            dp(10),
+                            dp(9),
+                            dp(10),
+                            dp(9)
+                        );
+
+                        item.setMinHeight(dp(44));
+                        item.setMaxLines(2);
+
+                        item.setBackground(
+                            AppStyle.panel(
+                                item,
+                                UiConfig.CYAN
+                            )
+                        );
+
+                        LinearLayout.LayoutParams params =
+                            new LinearLayout.LayoutParams(
+                                -1,
+                                -2
+                            );
+
+                        params.setMargins(
+                            0,
+                            dp(2),
+                            0,
+                            dp(2)
+                        );
+
+                        resultsBox.addView(item, params);
+
+                        item.setOnClickListener(v -> {
+                            generation.incrementAndGet();
+                            dialog.dismiss();
+                            plan(place);
+                        });
+                    }
+                });
+
+            } catch (Exception error) {
+                activity.runOnUiThread(() -> {
+                    if (dialog.isShowing()
+                            && requestId == generation.get()) {
+                        resultsBox.removeAllViews();
+                        status.setText(
+                            "Search unavailable: "
+                                + error.getMessage()
+                        );
+                    }
+                });
+            }
+        });
+    };
+
+    // Live text-change listener
+    query.addTextChangedListener(
+        new android.text.TextWatcher() {
+
+            @Override
+            public void beforeTextChanged(
+                CharSequence s,
+                int start,
+                int count,
+                int after
+            ) {}
+
+            @Override
+            public void onTextChanged(
+                CharSequence s,
+                int start,
+                int before,
+                int count
+            ) {
+                // Invalidate previous lookup
+                generation.incrementAndGet();
+
+                if (pending[0] != null) {
+                    handler.removeCallbacks(pending[0]);
+                }
+
+                resultsBox.removeAllViews();
+
+                String value = s.toString().trim();
+
+                if (value.length() < 2) {
+                    status.setText(
+                        "Enter at least 2 characters"
+                    );
+                    return;
+                }
+
+                status.setText("Typing: " + value);
+
+                pending[0] = lookup;
+
+                // Wait 500ms after last keystroke
+                handler.postDelayed(
+                    pending[0],
+                    500
+                );
+            }
+
+            @Override
+            public void afterTextChanged(
+                android.text.Editable s
+            ) {}
+        }
+    );
+
+    dialog.setOnDismissListener(d -> {
+        generation.incrementAndGet();
+
+        if (pending[0] != null) {
+            handler.removeCallbacks(pending[0]);
+        }
+
+        searching = false;
+    });
+
+    dialog.show();
+}
 
   void plan(DestinationSearch.Result destination){plan(destination,false);}
   void confirmedPlan(DestinationSearch.Result destination){plan(destination,true);}
