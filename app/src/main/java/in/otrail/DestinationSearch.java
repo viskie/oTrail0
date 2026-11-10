@@ -100,7 +100,7 @@ public final class DestinationSearch {
                               + java.util.regex.Pattern.quote(pin)
                               + "(?![0-9]).*"
                           )) {
-                      name = name + ", " + pin;
+                      name = pin+"-"+name + ", " + pin;
                   }
 
                   out.add(new Result(name, p));
