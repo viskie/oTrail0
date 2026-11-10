@@ -76,7 +76,7 @@ public final class DestinationSearch {
       }
     }
     List<Result> out = new ArrayList<>();
-     if (found != null) {
+    if (found != null) {
       for (Address a : found) {
           if (a.hasLatitude() && a.hasLongitude()) {
 
@@ -107,9 +107,10 @@ public final class DestinationSearch {
               }
           }
       }
-  }
+   }
 
   return out;
+}
   @SuppressWarnings("deprecation")
   private static List<Address> legacy(Geocoder g, String q) throws Exception {
     return g.getFromLocationName(q, 5, 6, 68, 38, 98);
