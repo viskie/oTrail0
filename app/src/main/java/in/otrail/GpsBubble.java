@@ -47,7 +47,7 @@
       v.setTextSize(sp);
       //v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));
       v.setIncludeFontPadding(false);
-      v.setPadding(4,4,4,4);
+      v.setPadding(1,1,1,1);
       LayoutParams p=new LayoutParams(-1,-1);
       p.setMargins(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0,dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0);
       v.setLayoutParams(p);return v;
