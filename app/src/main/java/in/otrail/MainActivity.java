@@ -799,7 +799,7 @@ public final class MainActivity extends Activity {
 
   private static void addressLine(StringBuilder out, String label, String value) {
     if (value != null && !value.isBlank())
-      out.append(label).append(": ").append(value).append("\n");
+      out.append(label).append(": ").append(value).append(":");
   }
 
   private void line(ArrayList<GeoPoint> pts, int color, boolean ongoing) {
