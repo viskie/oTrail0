@@ -19,18 +19,17 @@
       setOrientation(VERTICAL);
       setPadding(dp(7),dp(7),dp(7),dp(7));setElevation(dp(2));
       setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_ORANGE,UiConfig.NAV_BOX_CORNER_DP));
-
-      state=text(UiConfig.LIVE_BUBBLE_SIZE_SP);
+      state=text(UiConfig.LIVE_BUBBLE_SIZE_SP, UiConfig.LIME);
       ((LayoutParams)state.getLayoutParams()).topMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);
       addView(state);
       View line=new View(c);
       line.setBackgroundColor(UiConfig.LIVE_BUBBLE_TEXT);
       LayoutParams separator=new LayoutParams(-1,dp(1));
       separator.setMargins(1,1,1,1);
-      addView(line,separator);
-      coordinates=text(UiConfig.LIVE_BUBBLE_SIZE_SP);
-      address=text(UiConfig.LIVE_BUBBLE_SIZE_SP);
-      worship=text(UiConfig.LIVE_BUBBLE_SIZE_SP);
+      //addView(line,separator);
+      coordinates=text(UiConfig.LIVE_BUBBLE_SIZE_SP, UiConfig.ORANGE);
+      address=text(UiConfig.LIVE_BUBBLE_SIZE_SP,UiConfig.ORANGE);
+      worship=text(UiConfig.LIVE_BUBBLE_SIZE_SP,UiConfig.ORANGE);
       addView(coordinates)
       ;addView(address);
       addView(worship);
@@ -42,14 +41,14 @@
 
     private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
     
-    private TextView text(int sp){
+    private TextView text(int sp,String color){
       TextView v=new TextView(getContext());
       v.setTextColor(UiConfig.PURPLE);
       v.setTextSize(sp);
       //v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));
       v.setIncludeFontPadding(false);
       v.setPadding(4,4,4,4);
-      LayoutParams p=new LayoutParams(-1,-2);
+      LayoutParams p=new LayoutParams(-1,-1);
       p.setMargins(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0,dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0);
       v.setLayoutParams(p);return v;
     }
