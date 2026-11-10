@@ -29,6 +29,8 @@
       //addView(line,separator);
       coordinates=text(UiConfig.LIVE_BUBBLE_SIZE_SP, UiConfig.ORANGE);
       address=text(UiConfig.LIVE_BUBBLE_SIZE_SP,UiConfig.ORANGE);
+      address.setSingleLine(true);
+      address.setEllipsize(android.text.TextUtils.TruncateAt.END);
       worship=text(UiConfig.LIVE_BUBBLE_SIZE_SP,UiConfig.ORANGE);
       addView(coordinates)
       ;addView(address);
