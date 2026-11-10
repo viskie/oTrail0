@@ -93,13 +93,7 @@ public final class DestinationSearch {
 
                   String pin = a.getPostalCode();
 
-                  if (pin != null
-                          && pin.matches("[1-9][0-9]{5}")
-                          && !name.matches(
-                              ".*(?<![0-9])"
-                              + java.util.regex.Pattern.quote(pin)
-                              + "(?![0-9]).*"
-                          )) {
+                  if (pin != null) {
                       name = pin+"-"+name + ", " + pin;
                   }
 
