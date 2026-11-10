@@ -219,9 +219,9 @@ public final class MainActivity extends Activity {
     cardUpdates.clear();
     base(UiConfig.text("your_road_your_record_personal_navigation"));
     LinearLayout row = new LinearLayout(this);
-    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 10, TEAL);
+    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 10, UiConfig.LIME);
     mode.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
-    mode.setTextColor(AppStyle.HEADING);
+    mode.setTextColor(UiConfig.BLACK);
     mode.setLetterSpacing(.06f);
     AppStyle.decoratePanel(mode,AppStyle.HEADING);
     LinearLayout.LayoutParams modeParams =
@@ -317,7 +317,7 @@ public final class MainActivity extends Activity {
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
-    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showDownloads);mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
+    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads);mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -719,8 +719,8 @@ public final class MainActivity extends Activity {
     Marker dot = new Marker(map);
     dot.setPosition(stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon()));
     dot.setAnchor(.5f, .5f);
-    if(recorded)dot.setIcon(dot(color,22));else dot.setIcon(GpsMarkerStyle.icon(this,color,()->{
-      LayerDrawable classic=dot(color,22);if(!stale&&!uncertain&&last.accuracy()>0&&last.accuracy()<=UiConfig.GPS_SMILE_MAX_ACCURACY_M)classic.addLayer(new HappyGpsFace());return classic;
+    if(recorded)dot.setIcon(dot(color,32));else dot.setIcon(GpsMarkerStyle.icon(this,color,()->{
+      LayerDrawable classic=dot(color,32);if(!stale&&!uncertain&&last.accuracy()>0&&last.accuracy()<=UiConfig.GPS_SMILE_MAX_ACCURACY_M)classic.addLayer(new HappyGpsFace());return classic;
     }));
     dot.setTitle(state);
     dot.setSnippet(
@@ -1122,6 +1122,8 @@ public final class MainActivity extends Activity {
     rows.addView(text(String.format(Locale.US,UiConfig.text("continuity_06x"),TrailPalette.CONTINUITY&0xffffff),14,INK));ScrollView scroll=new ScrollView(this);scroll.addView(rows);
     new AppDialogs(this).setTitle(UiConfig.text("repeated_road_passes_31_colors")).setView(scroll).setPositiveButton(UiConfig.text("close"),null).show();
   }
+
+  private void showReligiousDirectory(){ReligiousDirectoryDialog.show(this,this::confirmNavigation);}
 
   private void history() {
     if (history) {

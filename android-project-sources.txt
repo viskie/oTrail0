@@ -1437,11 +1437,25 @@ public final class AppStyle extends UiConfig {
   public static void button(Button b){button(b,0);}
   public static void button(Button b,int emphasis) {
     b.setGravity(android.view.Gravity.CENTER);b.setAllCaps(false);b.setTypeface(Typeface.create(BUTTON_FONT,BUTTON_FONT_STYLE));b.setTextSize(BUTTON_SIZE_SP);b.setShadowLayer(dp(b,.6f),0,0,Color.WHITE);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setLetterSpacing(.01f);
-    b.setMinHeight(dp(b,44));b.setMinimumHeight(dp(b,44));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);b.setStateListAnimator(null);
+    b.setMinHeight(dp(b,12));b.setMinimumHeight(dp(b,12));b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(b,BUTTON_INNER_PADDING_DP),0,dp(b,BUTTON_INNER_PADDING_DP),0);b.setStateListAnimator(null);
     int fill=BUTTON;
-    GradientDrawable shape=VIBRANT_FINISH
-        ?new GradientDrawable(GradientDrawable.Orientation.TL_BR,PSYCHEDELIC_GRADIENTS?BUTTON_SPECTRUM:new int[]{fill,mix(fill,BUTTON_GRADIENT_ACCENT,BUTTON_GRADIENT_MIX)})
-        :new GradientDrawable();
+    
+    GradientDrawable shape = VIBRANT_FINISH
+        ? new GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            PSYCHEDELIC_GRADIENTS
+                ? BUTTON_SPECTRUM
+                : new int[]{
+                    fill,
+                    mix(
+                        fill,
+                        BUTTON_GRADIENT_ACCENT,
+                        BUTTON_GRADIENT_MIX
+                    )
+                }
+        )
+        : new GradientDrawable();
+
     if(!VIBRANT_FINISH)shape.setColor(fill);
     shape.setCornerRadius(dp(b,10));shape.setStroke(dp(b,1),BUTTON_BORDER);
     android.graphics.drawable.Drawable face=shape;
@@ -1525,10 +1539,10 @@ public final class AppStyle extends UiConfig {
       android.view.View child=row.getChildAt(i);
       if(child instanceof Button && !(child instanceof CompoundButton)){
         LinearLayout.LayoutParams params=child.getLayoutParams() instanceof LinearLayout.LayoutParams current
-            ?current:new LinearLayout.LayoutParams(-2,dp(row,44));
-        params.height=dp(row,44);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
+            ?current:new LinearLayout.LayoutParams(-2,dp(row,22));
+        params.height=dp(row,22);params.setMargins(halfGap,0,halfGap,0);child.setLayoutParams(params);
       }else if(child instanceof TextView label && !(child instanceof CompoundButton)){
-        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,44));
+        label.setGravity(android.view.Gravity.CENTER_VERTICAL);label.setMinHeight(dp(row,22));
       }
     }
   }
@@ -2200,32 +2214,32 @@ public final class DriveMetrics {
 FILE: app/src/main/java/in/otrail/GpsBubble.java
 ================================================================================
 
-package in.otrail;
+  package in.otrail;
 
-import android.content.Context;
-import android.graphics.*;
-import android.graphics.drawable.GradientDrawable;
-import android.view.*;
-import android.widget.*;
-import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.MapView;
+  import android.content.Context;
+  import android.graphics.*;
+  import android.graphics.drawable.GradientDrawable;
+  import android.view.*;
+  import android.widget.*;
+  import org.osmdroid.util.GeoPoint;
+  import org.osmdroid.views.MapView;
 
-/** One persistent screen-space bubble anchored above the live dot, including during map rotation. */
-final class GpsBubble extends LinearLayout {
-  private final MapView map;private GeoPoint point;private final TextView state,coordinates,address,worship;
-  private final android.view.ViewTreeObserver observer;private final android.view.ViewTreeObserver.OnPreDrawListener positioner;
-  GpsBubble(Context c,MapView map){super(c);this.map=map;setOrientation(VERTICAL);setPadding(0,0,0,0);setElevation(dp(5));
-    GradientDrawable background=new GradientDrawable();background.setColor(UiConfig.LIVE_BUBBLE_BACKGROUND);background.setCornerRadius(UiConfig.NAV_BOX_CORNER_DP*getResources().getDisplayMetrics().density);background.setStroke(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),UiConfig.LIVE_BUBBLE_TEXT);setBackground(background);
-    state=text(UiConfig.LIVE_BUBBLE_SIZE_SP);((LayoutParams)state.getLayoutParams()).topMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);addView(state);
-    View line=new View(c);line.setBackgroundColor(UiConfig.LIVE_BUBBLE_TEXT);LayoutParams separator=new LayoutParams(-1,dp(1));separator.setMargins(0,0,0,0);addView(line,separator);
-    coordinates=text(UiConfig.LIVE_BUBBLE_SIZE_SP);address=text(UiConfig.LIVE_BUBBLE_SIZE_SP);worship=text(UiConfig.LIVE_BUBBLE_SIZE_SP);addView(coordinates);addView(address);addView(worship);setVisibility(GONE);
-    observer=map.getViewTreeObserver();positioner=()->{position();return true;};observer.addOnPreDrawListener(positioner);
-  }
-  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
-  private TextView text(int sp){TextView v=new TextView(getContext());v.setTextColor(UiConfig.LIVE_BUBBLE_TEXT);v.setTextSize(sp);v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));v.setIncludeFontPadding(false);LayoutParams p=new LayoutParams(-1,-2);p.setMargins(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0,dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0);v.setLayoutParams(p);return v;}
-  void update(GeoPoint point,CharSequence status,String locality,String temples){this.point=point;setChangedText(state,status);setChangedText(coordinates,String.format(java.util.Locale.US,"Lat %.4f  ·  Lon %.4f",point.getLatitude(),point.getLongitude()));setChangedText(address,locality);((LayoutParams)address.getLayoutParams()).bottomMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);address.setVisibility(locality.isBlank()?GONE:VISIBLE);setChangedText(worship,temples);worship.setVisibility(temples.isBlank()?GONE:VISIBLE);setVisibility(VISIBLE);position();}
-  private static void setChangedText(TextView view,CharSequence value){if(!android.text.TextUtils.equals(view.getText(),value))view.setText(value);}
-  private void position(){if(point==null||getVisibility()!=VISIBLE||map.getWidth()==0)return;int width=Math.min(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),map.getWidth()-dp(16));if(width<=0)return;android.view.ViewGroup.LayoutParams p=getLayoutParams();if(p!=null&&p.width!=width){p.width=width;setLayoutParams(p);}
+  /** One persistent screen-space bubble anchored above the live dot, including during map rotation. */
+  final class GpsBubble extends LinearLayout {
+    private final MapView map;private GeoPoint point;private final TextView state,coordinates,address,worship;
+    private final android.view.ViewTreeObserver observer;private final android.view.ViewTreeObserver.OnPreDrawListener positioner;
+    GpsBubble(Context c,MapView map){super(c);this.map=map;setOrientation(VERTICAL);setPadding(1,1,1,1);setElevation(dp(5));
+      GradientDrawable background=new GradientDrawable();background.setColor(UiConfig.LIVE_BUBBLE_BACKGROUND);background.setCornerRadius(UiConfig.NAV_BOX_CORNER_DP*getResources().getDisplayMetrics().density);background.setStroke(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),UiConfig.LIVE_BUBBLE_TEXT);setBackground(background);
+      state=text(UiConfig.LIVE_BUBBLE_SIZE_SP);((LayoutParams)state.getLayoutParams()).topMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);addView(state);
+      View line=new View(c);line.setBackgroundColor(UiConfig.LIVE_BUBBLE_TEXT);LayoutParams separator=new LayoutParams(-1,dp(1));separator.setMargins(0,0,0,0);addView(line,separator);
+      coordinates=text(UiConfig.LIVE_BUBBLE_SIZE_SP);address=text(UiConfig.LIVE_BUBBLE_SIZE_SP);worship=text(UiConfig.LIVE_BUBBLE_SIZE_SP);addView(coordinates);addView(address);addView(worship);setVisibility(GONE);
+      observer=map.getViewTreeObserver();positioner=()->{position();return true;};observer.addOnPreDrawListener(positioner);
+    }
+    private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
+    private TextView text(int sp){TextView v=new TextView(getContext());v.setTextColor(UiConfig.LIVE_BUBBLE_TEXT);v.setTextSize(sp);v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));v.setIncludeFontPadding(false);v.setPadding(4,4,4,4);LayoutParams p=new LayoutParams(-1,-2);p.setMargins(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0,dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0);v.setLayoutParams(p);return v;}
+    void update(GeoPoint point,CharSequence status,String locality,String temples){this.point=point;setChangedText(state,status);setChangedText(coordinates,String.format(java.util.Locale.US,"Lat %.4f  ·  Lon %.4f",point.getLatitude(),point.getLongitude()));setChangedText(address,locality);((LayoutParams)address.getLayoutParams()).bottomMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);address.setVisibility(locality.isBlank()?GONE:VISIBLE);setChangedText(worship,temples);worship.setVisibility(temples.isBlank()?GONE:VISIBLE);setVisibility(VISIBLE);position();}
+    private static void setChangedText(TextView view,CharSequence value){if(!android.text.TextUtils.equals(view.getText(),value))view.setText(value);}
+    private void position(){if(point==null||getVisibility()!=VISIBLE||map.getWidth()==0)return;int width=Math.min(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),map.getWidth()-dp(16));if(width<=0)return;android.view.ViewGroup.LayoutParams p=getLayoutParams();if(p!=null&&p.width!=width){p.width=width;setLayoutParams(p);}
     Point screen=map.getProjection().toPixels(point,null);map.getProjection().rotateAndScalePoint(screen.x,screen.y,screen);
     if(screen.x<0||screen.y<0||screen.x>map.getWidth()||screen.y>map.getHeight()){setAlpha(0);return;}setAlpha(1);
     float x=Math.max(dp(8),Math.min(map.getWidth()-width-dp(8),screen.x-width/2f)),y=Math.max(dp(7),screen.y-getHeight()-dp(16));if(Math.abs(getX()-x)>.5f)setX(x);if(Math.abs(getY()-y)>.5f)setY(y);
@@ -2832,12 +2846,24 @@ public final class MainActivity extends Activity {
     cardUpdates.clear();
     base(UiConfig.text("your_road_your_record_personal_navigation"));
     LinearLayout row = new LinearLayout(this);
-    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 13, TEAL);
+    mode = text(history ? UiConfig.text("history") : UiConfig.text("live_trail"), 10, TEAL);
     mode.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     mode.setTextColor(AppStyle.HEADING);
     mode.setLetterSpacing(.06f);
     AppStyle.decoratePanel(mode,AppStyle.HEADING);
-    row.addView(mode, new LinearLayout.LayoutParams(0, -2, 1));
+    LinearLayout.LayoutParams modeParams =
+    new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    );
+
+    modeParams.gravity = Gravity.START;
+    row.addView(mode, modeParams);
+    
+    // Flexible empty space in the middle
+    View spacer = new View(this);
+    row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
+
     row.addView(button(UiConfig.text("navigate"), () -> navigation.search()));
     camVisible=new ModuleStore(this).enabled("mod2");
 
@@ -2860,13 +2886,14 @@ public final class MainActivity extends Activity {
     selector.setAdapter(
         AppStyle.choices(this, java.util.Arrays.asList(names),UiConfig.MAP_SELECTOR_SIZE_SP));
     selector.setSelection(provider);
-    tools.addView(selector, new LinearLayout.LayoutParams(0, dp(40), 1));
+    tools.addView(selector, new LinearLayout.LayoutParams(0, dp(20), 1));
     Switch network = new Switch(this);
     network.setText(UiConfig.text("offline"));
     network.setTextSize(UiConfig.BODY_SIZE_SP);
     AppStyle.nativeTextTree(network);
     AppStyle.toggle(network);
-    network.setMinHeight(dp(44));
+    network.setMinHeight(0);
+    network.setMinimumHeight(0);
     network.setChecked(offlineOnly);
     tools.addView(network);
     AppStyle.spaceButtons(tools);
@@ -4387,7 +4414,7 @@ final class MapMenu extends FrameLayout {
     trigger.setOnClickListener(v->{shade.setVisibility(VISIBLE);shade.bringToFront();});
   }
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
-  private void add(String label,Runnable action){Button b=new Button(activity);b.setText(label);AppStyle.button(b);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(46));p.setMargins(0,dp(4),0,dp(4));panel.addView(b,p);b.setOnClickListener(v->{closeIfOpen();action.run();});}
+  private void add(String label,Runnable action){Button b=new Button(activity);b.setText(label);AppStyle.button(b);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(22));p.setMargins(0,dp(4),0,dp(4));panel.addView(b,p);b.setOnClickListener(v->{closeIfOpen();action.run();});}
   boolean closeIfOpen(){if(shade.getVisibility()!=VISIBLE)return false;shade.setVisibility(GONE);return true;}
   @Override protected void onSizeChanged(int w,int h,int oldw,int oldh){super.onSizeChanged(w,h,oldw,oldh);if(shade.getChildCount()>0){View child=shade.getChildAt(0);LayoutParams p=(LayoutParams)child.getLayoutParams();p.width=Math.min(dp(260),Math.round(w*.82f));child.setLayoutParams(p);}}
   private static final class Hamburger extends Drawable {private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);@Override public void draw(Canvas c){Rect b=getBounds();p.setColor(UiConfig.LOCATE_LOGO_COLOR);p.setStrokeWidth(b.height()*.1f);p.setStrokeCap(Paint.Cap.ROUND);for(int i=0;i<3;i++){float y=b.top+b.height()*(.22f+i*.28f);c.drawLine(b.left+b.width()*.1f,y,b.right-b.width()*.1f,y,p);}}@Override public int getIntrinsicWidth(){return 28;}@Override public int getIntrinsicHeight(){return 28;}@Override public void setAlpha(int alpha){p.setAlpha(alpha);invalidateSelf();}@Override public void setColorFilter(ColorFilter f){p.setColorFilter(f);invalidateSelf();}@Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}}
@@ -4540,6 +4567,8 @@ final class NavigationControls implements AutoCloseable {
     android.graphics.drawable.GradientDrawable background=new android.graphics.drawable.GradientDrawable();
     background.setColor(UiConfig.NAV_PANEL_BACKGROUND);background.setCornerRadius(UiConfig.NAV_BOX_CORNER_DP*activity.getResources().getDisplayMetrics().density);
     background.setStroke(dp(1),UiConfig.NAV_TEXT_SPECTRUM[0]);panel.setBackground(background);
+    panel.setBackground(background);
+    panel.setPadding(dp(1), dp(1), dp(1), dp(1));
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
@@ -4585,15 +4614,15 @@ final class NavigationControls implements AutoCloseable {
         new LinearLayout.LayoutParams(0, dp(44), 1));
     AppStyle.spaceButtons(row);
     panel.addView(row);
-    TextView credits = text(UiConfig.text("osrm_fossgis_openstreetmap_contributors"), 10);
-    credits.setOnClickListener(
-        v ->
-            activity.startActivity(
-                new Intent(
-                    Intent.ACTION_VIEW, Uri.parse("https://routing.openstreetmap.de/about.html"))));
-    credits.setVisibility(View.GONE);
-    panel.addView(credits);
-    panel.setVisibility(View.GONE);
+    // TextView credits = text(UiConfig.text("osrm_fossgis_openstreetmap_contributors"), 10);
+    // credits.setOnClickListener(
+    //     v ->
+    //         activity.startActivity(
+    //             new Intent(
+    //                 Intent.ACTION_VIEW, Uri.parse("https://routing.openstreetmap.de/about.html"))));
+    // credits.setVisibility(View.GONE);
+    // panel.addView(credits);
+    // panel.setVisibility(View.GONE);
     return panel;
   }
 
@@ -5878,24 +5907,115 @@ final class ResonationsWidget extends LinearLayout {
   static final int PICK_FILES=74;
   private final Activity activity;private final TextView title;private final LinearLayout names;private final Button play;
   private final Runnable listener=this::refresh;
-  ResonationsWidget(Activity activity){super(activity);this.activity=activity;setOrientation(VERTICAL);setPadding(dp(5),dp(3),dp(5),dp(3));AppStyle.decoratePanel(this,UiConfig.CYAN);
-    title=new TextView(activity);AppStyle.text(title);title.setTextSize(UiConfig.RESONATIONS_TITLE_SP);title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);title.setTextColor(UiConfig.RESONATIONS_TEXT);addView(title);
-    names=new LinearLayout(activity);names.setOrientation(VERTICAL);addView(names);
+ ResonationsWidget(Activity activity) {
+    super(activity);
+    this.activity = activity;
+
+    setOrientation(VERTICAL);
+    setPadding(dp(5), dp(3), dp(5), dp(3));
+
+    AppStyle.decoratePanel(this, UiConfig.CYAN);
+
+    // Black background with cyan border
+    android.graphics.drawable.GradientDrawable bg =
+        new android.graphics.drawable.GradientDrawable();
+
+    bg.setColor(0xff000000);
+    bg.setCornerRadius(dp(7));
+    bg.setStroke(dp(1), UiConfig.CYAN);
+
+    setBackground(bg);
+
+    title = new TextView(activity);
+    AppStyle.text(title);
+    title.setTextSize(UiConfig.RESONATIONS_TITLE_SP);
+    title.setMaxLines(2);
+    title.setEllipsize(
+        android.text.TextUtils.TruncateAt.END
+    );
+    title.setTextColor(UiConfig.RESONATIONS_TEXT);
+    addView(title);
+
+    names = new LinearLayout(activity);
+    names.setOrientation(VERTICAL);
+    addView(names);
     LinearLayout controls=new LinearLayout(activity);
-    Button choose=button(UiConfig.text("resonations_files"),this::pick);controls.addView(choose,new LayoutParams(0,dp(36),1));
-    play=button(UiConfig.text("resonations_play"),()->{Intent intent=new Intent(activity,ResonationsService.class).setAction(ResonationsService.active?ResonationsService.PAUSE:ResonationsService.PLAY);try{if(ResonationsService.active)activity.startService(intent);else activity.startForegroundService(intent);}catch(RuntimeException error){Toast.makeText(activity,"Cannot start audio: "+error.getMessage(),Toast.LENGTH_LONG).show();}});controls.addView(play,new LayoutParams(0,dp(36),1));
-    Button clear=button(UiConfig.text("resonations_clear"),()->{activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist","[]").putInt("position",0).putInt("index",0).apply();ResonationsService.message="";refresh();});controls.addView(clear,new LayoutParams(0,dp(36),1));
+    Button choose=button(UiConfig.text("resonations_files"),this::pick);controls.addView(choose,new LayoutParams(0,dp(22),1));
+    play=button(UiConfig.text("resonations_play"),()->{Intent intent=new Intent(activity,ResonationsService.class).setAction(ResonationsService.active?ResonationsService.PAUSE:ResonationsService.PLAY);try{if(ResonationsService.active)activity.startService(intent);else activity.startForegroundService(intent);}catch(RuntimeException error){Toast.makeText(activity,"Cannot start audio: "+error.getMessage(),Toast.LENGTH_LONG).show();}});controls.addView(play,new LayoutParams(0,dp(22),1));
+    Button clear=button(UiConfig.text("resonations_clear"),()->{activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist","[]").putInt("position",0).putInt("index",0).apply();ResonationsService.message="";refresh();});controls.addView(clear,new LayoutParams(0,dp(22),1));
     for(int i=0;i<controls.getChildCount();i++){LayoutParams p=(LayoutParams)controls.getChildAt(i).getLayoutParams();p.setMargins(dp(2),dp(2),dp(2),0);}addView(controls);refresh();
   }
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
-  private Button button(String text,Runnable action){Button b=new Button(activity);b.setText(text);AppStyle.button(b);b.setTextSize(UiConfig.RESONATIONS_TEXT_SP);b.setMinHeight(0);b.setMinimumHeight(0);b.setOnClickListener(v->action.run());return b;}
+  private Button button(String text,Runnable action){Button b=new Button(activity);b.setText(text);AppStyle.button(b);b.setMinHeight(0);b.setMinimumHeight(0);b.setOnClickListener(v->action.run());return b;}
   private void pick(){Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true).putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"audio/*","video/mp4","video/3gpp","application/ogg"}).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);activity.startActivityForResult(intent,PICK_FILES);}
   void selected(Intent data){
     LinkedHashSet<Uri> uris=new LinkedHashSet<>();if(data.getClipData()!=null)for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());else if(data.getData()!=null)uris.add(data.getData());
     List<ResonationsPlaylist.Track> selected=new ArrayList<>();for(Uri uri:uris){if(!"content".equals(uri.getScheme()))continue;try{activity.getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(SecurityException error){Toast.makeText(activity,"Cannot retain this file · choose from local storage",Toast.LENGTH_LONG).show();continue;}String name="Audio";try(Cursor c=activity.getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst()&&!c.isNull(0))name=c.getString(0);}catch(RuntimeException ignored){}selected.add(new ResonationsPlaylist.Track(uri.toString(),name));}
     if(selected.isEmpty())return;activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist",ResonationsPlaylist.encode(selected)).putInt("index",0).putInt("position",0).apply();ResonationsService.message="";refresh();
   }
-  private void refresh(){List<ResonationsPlaylist.Track> tracks=ResonationsService.tracks(activity);title.setText(UiConfig.text("resonations_title")+(ResonationsService.active?" · ↻":""));title.setContentDescription(ResonationsService.message);names.removeAllViews();List<String> lines=ResonationsPlaylist.visibleNames(tracks);if(lines.isEmpty())lines=List.of(UiConfig.text("resonations_empty"));for(String name:lines){TextView line=new TextView(activity);line.setText(name);line.setTextColor(UiConfig.RESONATIONS_TEXT);line.setTextSize(UiConfig.RESONATIONS_TEXT_SP);line.setSingleLine(true);line.setEllipsize(android.text.TextUtils.TruncateAt.END);line.setIncludeFontPadding(false);names.addView(line);}play.setText(UiConfig.text(ResonationsService.active?"resonations_pause":"resonations_play"));play.setEnabled(!tracks.isEmpty());if(!ResonationsService.message.isBlank()&&!ResonationsService.active)title.setText(UiConfig.text("resonations_title")+" · "+ResonationsService.message);}
+  
+  private void refresh() {
+      List<ResonationsPlaylist.Track> tracks =
+          ResonationsService.tracks(activity);
+
+      title.setText(
+          UiConfig.text("resonations_title")
+              + (ResonationsService.active ? " · ↻" : "")
+      );
+
+      title.setContentDescription(ResonationsService.message);
+
+      names.removeAllViews();
+
+      List<String> lines = ResonationsPlaylist.visibleNames(tracks);
+
+      if (lines.isEmpty()) {
+          lines = List.of(UiConfig.text("resonations_empty"));
+      }
+
+      for (String name : lines) {
+          TextView line = new TextView(activity);
+
+          line.setText(name);
+          line.setTextColor(UiConfig.RESONATIONS_TEXT);
+
+          // Match navigation instruction font and size
+          line.setTextSize(UiConfig.NAV_SUMMARY_SIZE_SP);
+          line.setTypeface(
+              android.graphics.Typeface.create(
+                  UiConfig.HEADING_FONT,
+                  UiConfig.HEADING_FONT_STYLE
+              )
+          );
+
+          line.setSingleLine(true);
+          line.setEllipsize(
+              android.text.TextUtils.TruncateAt.END
+          );
+          line.setIncludeFontPadding(false);
+
+          names.addView(line);
+      }
+
+      play.setText(
+          UiConfig.text(
+              ResonationsService.active
+                  ? "resonations_pause"
+                  : "resonations_play"
+          )
+      );
+
+      play.setEnabled(!tracks.isEmpty());
+
+      if (!ResonationsService.message.isBlank()
+              && !ResonationsService.active) {
+          title.setText(
+              UiConfig.text("resonations_title")
+                  + " · "
+                  + ResonationsService.message
+          );
+      }
+  }
   @Override protected void onAttachedToWindow(){super.onAttachedToWindow();ResonationsService.listeners.add(listener);refresh();}
   @Override protected void onDetachedFromWindow(){ResonationsService.listeners.remove(listener);super.onDetachedFromWindow();}
 }
@@ -7937,14 +8057,14 @@ public class UiConfig {
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
   public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffff4162,SECONDARY=0xffFF00FF;
   public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffbd00ff;
-  public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff1b1b24,MUTED=0xffff7f50;
+  public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff17deee,MUTED=0xffff7f50;
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2, BLACK=0xff000000;
   public static final int BUTTON_BORDER=0xff17deee, BUTTON_RIPPLE=0xff17deee,
       BUTTON_DISABLED_TEXT=0x99ff00ff;
   // Vibrant finish. Existing manually edited base colors above remain authoritative.
   // Set VIBRANT_FINISH=false to return to flat controls; all colors remain editable here.
   public static final boolean VIBRANT_FINISH=true;
-  public static final int BUTTON_GRADIENT_ACCENT=BLUE, BUTTON_EDGE_ACCENT=SECONDARY;
+  public static final int BUTTON_GRADIENT_ACCENT=PURPLE, BUTTON_EDGE_ACCENT=LIME;
   public static final float BUTTON_GRADIENT_MIX=.24f, PANEL_TINT_MIX=.26f;
   public static final int BUTTON_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final boolean PSYCHEDELIC_GRADIENTS=true;
@@ -8347,7 +8467,7 @@ public class UiConfig {
   public static final int WTF_NORTH_COLOR=0xff40e0d0, WTF_NORTH_BACKGROUND=0xcc000000;
   public static final String NAV_TITLE_FONT="sans-serif", LIVE_BUBBLE_FONT="sans-serif-medium";
   public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
-  public static final int LIVE_BUBBLE_WIDTH_DP=132, LIVE_WORSHIP_RADIUS_M=25000;
+  public static final int LIVE_BUBBLE_WIDTH_DP=154, LIVE_WORSHIP_RADIUS_M=25000;
   public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};
   // 0.8 of a 16dp base corner, shared by navigation and GPS panels.
   public static final float NAV_BOX_CORNER_DP=12.8f;

@@ -44,13 +44,14 @@ final class NavigationControls implements AutoCloseable {
   LinearLayout panel() {
     panel = new LinearLayout(activity);
     panel.setOrientation(LinearLayout.VERTICAL);
-    panel.setBackground(NeonBorderDrawable.panel(panel,NeonBorderDrawable.Palette.LIME,UiConfig.NAV_BOX_CORNER_DP));
+    panel.setBackground(NeonBorderDrawable.panel(panel,NeonBorderDrawable.Palette.BRIGHT_YELLOW,UiConfig.NAV_BOX_CORNER_DP));
     panel.setPadding(dp(8), dp(8), dp(8), dp(8));
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
     title.setGravity(android.view.Gravity.CENTER);
     title.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+    title.setTextColor(UiConfig.ORANGE);
     title.getPaint().setFakeBoldText(UiConfig.NAV_TITLE_BOLD);
     title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);
     instruction.setMaxLines(2);

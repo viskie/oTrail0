@@ -9,8 +9,8 @@ import java.util.Map;
 public class UiConfig {
   protected UiConfig() {}
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
-  public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffff4162,SECONDARY=0xffFF00FF;
-  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xff01ff1f;
+  public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffbd00ff,SECONDARY=0xffFF00FF;
+  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffff9a00;
   public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff17deee,MUTED=0xffff7f50;
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2, BLACK=0xff000000;
   // Shared neon border palettes; button typography and ripple colors remain separate.
@@ -52,7 +52,7 @@ public class UiConfig {
   public static final int LOCATE_BEVEL_LIGHT=0xff656180, LOCATE_BEVEL_SHADOW=0xff170d25;
   public static final boolean NAV_TITLE_BOLD=true;
   public static final String DEFAULT_GPS_MARKER_STYLE="robot-snake";
-  public static final int GPS_ART_MARKER_SIZE_DP=35;
+  public static final int GPS_ART_MARKER_SIZE_DP=63;
   public static final int LIVE_TRAIL_COLOR=0xffff1493;
   public static final int LOCATE_SIZE_DP=56, LOCATE_BACKGROUND=0xff000000,
       LOCATE_LOGO_COLOR=0xff00ffff, LOCATE_BORDER_COLOR=0xffff00ff, LOCATE_RIPPLE_COLOR=0x6640e0d0;
@@ -88,10 +88,10 @@ public class UiConfig {
   public static final int MAP_ROAD_LABEL_COLOR=0xff243149, MAP_OTHER_LABEL_COLOR=INK,
       MAP_TEXT_OUTLINE_COLOR=0xffffffff;
   public static final float MAP_ROAD_WIDTH_FAR=.38f, MAP_ROAD_WIDTH_MID=.55f, MAP_ROAD_WIDTH_STREET=.72f, MAP_ROAD_WIDTH_CLOSE=.88f;
-  public static final int MAP_ROAD_CASING=0xff111111, MAP_ROAD_MOTORWAY=0xff162744,
-      MAP_ROAD_TRUNK=0xff20212a, MAP_ROAD_PRIMARY=0xff2b243b,
-      MAP_ROAD_SECONDARY=0xff493a2c, MAP_ROAD_TERTIARY=0xff41464d,
-      MAP_ROAD_MINOR=0xff575b60, MAP_ROAD_PATH=0xff544236;
+  public static final int MAP_ROAD_CASING=0xff111111, MAP_ROAD_MOTORWAY=0xffefefeb,
+      MAP_ROAD_TRUNK=0xffefefec, MAP_ROAD_PRIMARY=0xffefefef,
+      MAP_ROAD_SECONDARY=0xffefefe1, MAP_ROAD_TERTIARY=0xffefefe2,
+      MAP_ROAD_MINOR=0xffefefe7, MAP_ROAD_PATH=0xffefefe4;
   public static final String MAP_TEXT_FONT="sans_serif";
   public static float textSize(int originalSp) {
     int configured=switch(originalSp) {
@@ -125,7 +125,7 @@ public class UiConfig {
       STOPPED_GPS_DOT=0xff004208, HISTORY_GPS_DOT=0xffff0080, SAVED_STOP_DOT=0xffff0080;
   // Border shared wby location and saved-stop dots (width in dp).
   public static final int DOT_OUTLINE_COLOR=0xffffffff;
-  public static final int DOT_OUTLINE_WIDTH_DP=3;
+  public static final int DOT_OUTLINE_WIDTH_DP=0;
   // Recorded trail casing is black regardless of pass/continuity color.
   public static final int TRAIL_OUTLINE=0xff000000;
   // Ongoing ride retains its previous outline; navigation styles are independent.
@@ -449,5 +449,5 @@ public class UiConfig {
   public static final float NAV_BOX_CORNER_DP=12.8f;
   public static final int LIVE_BUBBLE_SIZE_SP=12, GPS_SMILE_COLOR=0xffffffff;
   public static final float GPS_SMILE_MAX_ACCURACY_M=15;
-  public static final int LIVE_BUBBLE_BORDER_DP=4;
+  public static final int LIVE_BUBBLE_BORDER_DP=1;
 }

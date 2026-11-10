@@ -21,7 +21,7 @@ final class ResonationsWidget extends LinearLayout {
     setOrientation(VERTICAL);
     setPadding(dp(8), dp(8), dp(8), dp(8));
 
-    setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_ORANGE,7));
+    setBackground(NeonBorderDrawable.panel(this,NeonBorderDrawable.Palette.BRIGHT_YELLOW,7));
 
     title = new TextView(activity);
     AppStyle.text(title);
