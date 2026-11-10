@@ -43,7 +43,7 @@
     
     private TextView text(int sp,int color){
       TextView v=new TextView(getContext());
-      v.setTextColor(UiConfig.PURPLE);
+      v.setTextColor(color);
       v.setTextSize(sp);
       //v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));
       v.setIncludeFontPadding(false);
