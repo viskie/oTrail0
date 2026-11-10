@@ -29,7 +29,7 @@ public final class NeonBorderDrawable extends Drawable {
   public static void pathGlow(Canvas canvas,Path path,Paint source,int color,float rimWidth){
     Paint p=new Paint(source);p.setStyle(Paint.Style.STROKE);p.setStrokeJoin(Paint.Join.ROUND);p.setStrokeCap(Paint.Cap.ROUND);
     RectF box=new RectF();path.computeBounds(box,true);p.setShader(new LinearGradient(0,box.top,0,box.bottom,new int[]{withAlpha(color,100),color},null,Shader.TileMode.CLAMP));p.setColor(Color.WHITE);
-    p.setStrokeWidth(rimWidth*6);p.setAlpha(45);canvas.drawPath(path,p);
+    p.setStrokeWidth(rimWidth*3);p.setAlpha(45);canvas.drawPath(path,p);
     p.setStrokeWidth(rimWidth*3.5f);p.setAlpha(100);canvas.drawPath(path,p);
     p.setStrokeWidth(rimWidth);p.setAlpha(255);canvas.drawPath(path,p);
   }
