@@ -475,7 +475,8 @@ public static List<Result> autocomplete(
 
     // Preserve existing coordinate search.
     if (q.matches("[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+")) {
-        return search(context, q);
+        //return search(context, q);
+      return autocomplete(context,q);
     }
 
     if (q.length() < 3) {
