@@ -508,33 +508,16 @@ public static List<Result> autocomplete(
             );
         }
 
-        
-      String json;
+        String json;
 
-      try (
-          java.io.InputStream input = connection.getInputStream();
-          java.io.ByteArrayOutputStream output =
-              new java.io.ByteArrayOutputStream()
-      ) {
-          byte[] buffer = new byte[8192];
-          int count;
+        try (java.io.InputStream input =
+                 connection.getInputStream()) {
 
-          while ((count = input.read(buffer)) != -1) {
-              if (output.size() + count > 2_000_000) {
-                  throw new java.io.IOException(
-                      "Search response exceeds 2 MB"
-                  );
-              }
-
-              output.write(buffer, 0, count);
-          }
-
-          json = new String(
-              output.toByteArray(),
-              java.nio.charset.StandardCharsets.UTF_8
-          );
-      }
-
+            json = new String(
+                input.readAllBytes(),
+                java.nio.charset.StandardCharsets.UTF_8
+            );
+        }
 
         org.json.JSONArray features =
             new org.json.JSONObject(json)
