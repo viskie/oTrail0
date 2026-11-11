@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.location.Location;
 import android.net.Uri;
 import android.view.View;
+import android.Gravity;
 import android.widget.*;
 import java.util.*;
 import java.util.concurrent.*;
