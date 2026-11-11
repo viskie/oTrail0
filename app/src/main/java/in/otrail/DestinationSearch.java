@@ -11,29 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Explicit user searches only; coordinate entry remains usable when the Android geocoder is absent.
  */
 public final class DestinationSearch {
-  //public record Result(String name, RoutePlan.Point point) {}
   public record Result(String name, RoutePlan.Point point) {}
-
-    public static List<Result> search(
-        Context context,
-        String query
-    ) throws Exception {
-        // Existing geocoder implementation
-    }
-
-    public static List<Result> autocomplete(
-        Context context,
-        String query
-    ) throws Exception {
-        // Photon autocomplete implementation
-    }
-
-    static boolean india(RoutePlan.Point point) {
-        return point.lat() >= 6
-            && point.lat() <= 38
-            && point.lon() >= 68
-            && point.lon() <= 98;
-    }
 
   private static final ExecutorService LEGACY =
       new ThreadPoolExecutor(
