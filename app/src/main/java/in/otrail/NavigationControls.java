@@ -15,7 +15,6 @@ import org.osmdroid.util.*;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.*;
 import in.otrail.DestinationSearch.Result;
-import in.otrail.DestinationSearch;
 
 /**
  * Text-only guidance controls; route overlays have their own identities, separate from trail
