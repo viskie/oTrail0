@@ -76,35 +76,21 @@ public final class DestinationSearch {
       }
     }
     List<Result> out = new ArrayList<>();
-    if (found != null) {
-      for (Address a : found) {
-          if (a.hasLatitude() && a.hasLongitude()) {
+    if (found != null)
+      for (Address a : found)
+        if (a.hasLatitude() && a.hasLongitude()) {
+          RoutePlan.Point p = new RoutePlan.Point(a.getLatitude(), a.getLongitude());
+          if (india(p))
+            out.add(
+                new Result(
+                    a.getMaxAddressLineIndex() >= 0
+                        ? a.getAddressLine(0)
+                        : Objects.toString(a.getFeatureName(), query),
+                    p));
+        }
+    return out;
+  }
 
-              RoutePlan.Point p = new RoutePlan.Point(
-                  a.getLatitude(),
-                  a.getLongitude()
-              );
-
-              if (india(p)) {
-
-                  String name = a.getMaxAddressLineIndex() >= 0
-                      ? a.getAddressLine(0)
-                      : Objects.toString(a.getFeatureName(), query);
-
-                  String pin = a.getPostalCode();
-
-                  if (pin != null) {
-                      name = pin+"-"+name + ", " + pin;
-                  }
-
-                  out.add(new Result(name, p));
-              }
-          }
-      }
-   }
-
-  return out;
-}
   @SuppressWarnings("deprecation")
   private static List<Address> legacy(Geocoder g, String q) throws Exception {
     return g.getFromLocationName(q, 5, 6, 68, 38, 98);
@@ -113,4 +99,10 @@ public final class DestinationSearch {
   static boolean india(RoutePlan.Point p) {
     return p.lat() >= 6 && p.lat() <= 38 && p.lon() >= 68 && p.lon() <= 98;
   }
+  public static List<Result> autocomplete(
+        Context context,
+        String query
+) throws Exception {
+    return search(context, query);
+}
 }
