@@ -21,20 +21,7 @@ public final class DestinationSearch {
         // Existing geocoder implementation
     }
 
-    public static List<Result> autocomplete(
-        Context context,
-        String query
-    ) throws Exception {
-        // Photon autocomplete implementation
-    }
-
-    static boolean india(RoutePlan.Point point) {
-        return point.lat() >= 6
-            && point.lat() <= 38
-            && point.lon() >= 68
-            && point.lon() <= 98;
-    }
-
+  
   private static final ExecutorService LEGACY =
       new ThreadPoolExecutor(
           0,
