@@ -188,6 +188,7 @@ final class NavigationControls implements AutoCloseable {
   //       .show();
   // }
 
+
 void search() {
     if (searching) {
         toast(UiConfig.text("search_is_already_running"));
@@ -197,23 +198,19 @@ void search() {
     searching = true;
 
     final android.os.Handler handler =
-        new android.os.Handler(
-            android.os.Looper.getMainLooper()
-        );
+        new android.os.Handler(android.os.Looper.getMainLooper());
 
     final java.util.concurrent.atomic.AtomicInteger generation =
         new java.util.concurrent.atomic.AtomicInteger();
 
     final Runnable[] pending = new Runnable[1];
 
-    // Main dialog layout
     LinearLayout root = new LinearLayout(activity);
     root.setOrientation(LinearLayout.VERTICAL);
     root.setPadding(dp(12), dp(8), dp(12), dp(8));
 
-    // Search input
     EditText query = new EditText(activity);
-    query.setHint("Enter city, locality, place or coordinates");
+    query.setHint("City, locality, place or coordinates");
     query.setSingleLine(true);
     query.setInputType(
         android.text.InputType.TYPE_CLASS_TEXT
@@ -224,18 +221,15 @@ void search() {
         new LinearLayout.LayoutParams(-1, dp(48))
     );
 
-    // Search progress / message
     TextView status = new TextView(activity);
     AppStyle.text(status);
     status.setTextSize(12);
-    status.setText("Start typing to find a destination");
+    status.setText("Start typing a destination");
     status.setPadding(dp(6), dp(8), dp(6), dp(8));
 
     root.addView(status);
 
-    // Clickable results container
     ScrollView scroll = new ScrollView(activity);
-    scroll.setFillViewport(false);
 
     LinearLayout resultsBox = new LinearLayout(activity);
     resultsBox.setOrientation(LinearLayout.VERTICAL);
@@ -244,7 +238,7 @@ void search() {
 
     root.addView(
         scroll,
-        new LinearLayout.LayoutParams(-1, dp(235))
+        new LinearLayout.LayoutParams(-1, dp(250))
     );
 
     android.app.AlertDialog dialog =
@@ -257,13 +251,10 @@ void search() {
             )
             .create();
 
-    // Execute a location lookup without blocking the UI
     Runnable lookup = () -> {
-        final String q =
-            query.getText().toString().trim();
+        final String q = query.getText().toString().trim();
 
-        final int requestId =
-            generation.incrementAndGet();
+        final int requestId = generation.incrementAndGet();
 
         resultsBox.removeAllViews();
 
@@ -272,125 +263,208 @@ void search() {
             return;
         }
 
-        boolean coordinates =
-            q.matches(
-                "[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+"
-            );
+        final boolean coordinates = q.matches(
+            "[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+"
+        );
 
         if (manager.offline() && !coordinates) {
-            status.setText(
-                "Offline: enter latitude, longitude"
-            );
+            status.setText("Offline: enter latitude, longitude");
             return;
         }
 
-        status.setText("Searching: " + q);
+        status.setText("Searching " + q + "...");
 
-        searches.execute(() -> {
-            // Skip requests superseded while queued
-            if (requestId != generation.get()) {
-                return;
-            }
+        try {
+            searches.execute(() -> {
+                if (requestId != generation.get()) {
+                    return;
+                }
 
-            try {
-                List<DestinationSearch.Result> found =
-                    DestinationSearch.search(
-                        activity.getApplicationContext(),
-                        q
-                    );
-
-                activity.runOnUiThread(() -> {
-                    if (!dialog.isShowing()
-                            || activity.isFinishing()
-                            || activity.isDestroyed()
-                            || requestId != generation.get()) {
-                        return;
-                    }
-
-                    resultsBox.removeAllViews();
-
-                    if (found.isEmpty()) {
-                        status.setText(
-                            "No matching destination found"
+                try {
+                    List<DestinationSearch.Result> found =
+                        DestinationSearch.search(
+                            activity.getApplicationContext(),
+                            q
                         );
-                        return;
-                    }
 
-                    status.setText(
-                        found.size() + " matching destinations"
-                    );
+                    java.util.LinkedHashMap<
+                        String,
+                        DestinationSearch.Result
+                    > unique = new java.util.LinkedHashMap<>();
 
+                    String prefix =
+                        q.toLowerCase(java.util.Locale.ROOT);
+
+                    // Keep only actual prefix matches.
+                    // Coordinates bypass textual prefix filtering.
                     for (DestinationSearch.Result place : found) {
-                        TextView item = new TextView(activity);
+                        if (requestId != generation.get()) {
+                            return;
+                        }
 
-                        AppStyle.text(item);
+                        String fullName = place.name().trim();
 
-                        item.setText(place.name());
-                        item.setTextSize(14);
-                        item.setTextColor(
-                            UiConfig.NAV_TEXT_COLOR
+                        String shortName =
+                            fullName.split(",", 2)[0].trim();
+
+                        if (!coordinates &&
+                            !shortName.toLowerCase(
+                                java.util.Locale.ROOT
+                            ).startsWith(prefix)) {
+                            continue;
+                        }
+
+                        String key =
+                            shortName.toLowerCase(
+                                java.util.Locale.ROOT
+                            )
+                            + ":"
+                            + Math.round(place.point().lat() * 100000)
+                            + ":"
+                            + Math.round(place.point().lon() * 100000);
+
+                        unique.putIfAbsent(key, place);
+                    }
+
+                    List<DestinationSearch.Result> ranked =
+                        new java.util.ArrayList<>(
+                            unique.values()
                         );
 
-                        item.setGravity(
-                            android.view.Gravity.CENTER_VERTICAL
+                    // Exact match first, then remaining prefix matches.
+                    ranked.sort((a, b) -> {
+                        String an =
+                            a.name().split(",", 2)[0].trim();
+
+                        String bn =
+                            b.name().split(",", 2)[0].trim();
+
+                        boolean ae = an.equalsIgnoreCase(q);
+                        boolean be = bn.equalsIgnoreCase(q);
+
+                        if (ae != be) {
+                            return ae ? -1 : 1;
+                        }
+
+                        int comparison =
+                            an.compareToIgnoreCase(bn);
+
+                        if (comparison != 0) {
+                            return comparison;
+                        }
+
+                        return a.name().compareToIgnoreCase(
+                            b.name()
                         );
+                    });
 
-                        item.setPadding(
-                            dp(10),
-                            dp(9),
-                            dp(10),
-                            dp(9)
-                        );
-
-                        item.setMinHeight(dp(44));
-                        item.setMaxLines(2);
-
-                        item.setBackground(
-                            AppStyle.panel(
-                                item,
-                                UiConfig.CYAN
+                    List<DestinationSearch.Result> displayed =
+                        new java.util.ArrayList<>(
+                            ranked.subList(
+                                0,
+                                Math.min(5, ranked.size())
                             )
                         );
 
-                        LinearLayout.LayoutParams params =
-                            new LinearLayout.LayoutParams(
-                                -1,
-                                -2
-                            );
+                    activity.runOnUiThread(() -> {
+                        if (!dialog.isShowing()
+                                || activity.isFinishing()
+                                || activity.isDestroyed()
+                                || requestId != generation.get()) {
+                            return;
+                        }
 
-                        params.setMargins(
-                            0,
-                            dp(2),
-                            0,
-                            dp(2)
+                        resultsBox.removeAllViews();
+
+                        if (displayed.isEmpty()) {
+                            status.setText(
+                                "No prefix matches returned"
+                            );
+                            return;
+                        }
+
+                        status.setText(
+                            displayed.size()
+                                + " matching destinations"
                         );
 
-                        resultsBox.addView(item, params);
+                        for (DestinationSearch.Result place : displayed) {
+                            TextView item = new TextView(activity);
 
-                        item.setOnClickListener(v -> {
-                            generation.incrementAndGet();
-                            dialog.dismiss();
-                            plan(place);
-                        });
-                    }
-                });
+                            AppStyle.text(item);
 
-            } catch (Exception error) {
-                activity.runOnUiThread(() -> {
-                    if (dialog.isShowing()
-                            && requestId == generation.get()) {
+                            item.setText(place.name());
+                            item.setTextSize(14);
+                            item.setTextColor(
+                                UiConfig.NAV_TEXT_COLOR
+                            );
+
+                            item.setGravity(
+                                android.view.Gravity.CENTER_VERTICAL
+                            );
+
+                            item.setPadding(
+                                dp(10),
+                                dp(9),
+                                dp(10),
+                                dp(9)
+                            );
+
+                            item.setMinHeight(dp(44));
+                            item.setMaxLines(2);
+
+                            item.setBackground(
+                                AppStyle.panel(
+                                    item,
+                                    UiConfig.CYAN
+                                )
+                            );
+
+                            LinearLayout.LayoutParams params =
+                                new LinearLayout.LayoutParams(
+                                    -1,
+                                    -2
+                                );
+
+                            params.setMargins(
+                                0,
+                                dp(2),
+                                0,
+                                dp(2)
+                            );
+
+                            resultsBox.addView(item, params);
+
+                            item.setOnClickListener(v -> {
+                                generation.incrementAndGet();
+                                dialog.dismiss();
+                                plan(place);
+                            });
+                        }
+                    });
+
+                } catch (Exception error) {
+                    activity.runOnUiThread(() -> {
+                        if (!dialog.isShowing()
+                                || requestId != generation.get()) {
+                            return;
+                        }
+
                         resultsBox.removeAllViews();
+
                         status.setText(
                             "Search unavailable: "
                                 + error.getMessage()
                         );
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
+
+        } catch (java.util.concurrent.RejectedExecutionException error) {
+            status.setText("Search worker unavailable");
+        }
     };
 
-    // Live text-change listener
     query.addTextChangedListener(
         new android.text.TextWatcher() {
 
@@ -409,7 +483,6 @@ void search() {
                 int before,
                 int count
             ) {
-                // Invalidate previous lookup
                 generation.incrementAndGet();
 
                 if (pending[0] != null) {
@@ -421,17 +494,14 @@ void search() {
                 String value = s.toString().trim();
 
                 if (value.length() < 2) {
-                    status.setText(
-                        "Enter at least 2 characters"
-                    );
+                    status.setText("Enter at least 2 characters");
                     return;
                 }
 
-                status.setText("Typing: " + value);
+                status.setText("Searching shortly...");
 
                 pending[0] = lookup;
 
-                // Wait 500ms after last keystroke
                 handler.postDelayed(
                     pending[0],
                     500
@@ -457,6 +527,7 @@ void search() {
 
     dialog.show();
 }
+
 
   void plan(DestinationSearch.Result destination){plan(destination,false);}
   void confirmedPlan(DestinationSearch.Result destination){plan(destination,true);}
