@@ -397,73 +397,73 @@ final class NavigationControls implements AutoCloseable {
 //         });
 //     };
 
-//     // Live text-change listener
-//     query.addTextChangedListener(
-//         new android.text.TextWatcher() {
+    // Live text-change listener
+    query.addTextChangedListener(
+        new android.text.TextWatcher() {
 
-//             @Override
-//             public void beforeTextChanged(
-//                 CharSequence s,
-//                 int start,
-//                 int count,
-//                 int after
-//             ) {}
+            @Override
+            public void beforeTextChanged(
+                CharSequence s,
+                int start,
+                int count,
+                int after
+            ) {}
 
-//             @Override
-//             public void onTextChanged(
-//                 CharSequence s,
-//                 int start,
-//                 int before,
-//                 int count
-//             ) {
-//                 // Invalidate previous lookup
-//                 generation.incrementAndGet();
+            @Override
+            public void onTextChanged(
+                CharSequence s,
+                int start,
+                int before,
+                int count
+            ) {
+                // Invalidate previous lookup
+                generation.incrementAndGet();
 
-//                 if (pending[0] != null) {
-//                     handler.removeCallbacks(pending[0]);
-//                 }
+                if (pending[0] != null) {
+                    handler.removeCallbacks(pending[0]);
+                }
 
-//                 resultsBox.removeAllViews();
+                resultsBox.removeAllViews();
 
-//                 String value = s.toString().trim();
+                String value = s.toString().trim();
 
-//                 if (value.length() < 2) {
-//                     status.setText(
-//                         "Enter at least 2 characters"
-//                     );
-//                     return;
-//                 }
+                if (value.length() < 2) {
+                    status.setText(
+                        "Enter at least 2 characters"
+                    );
+                    return;
+                }
 
-//                 status.setText("Typing: " + value);
+                status.setText("Typing: " + value);
 
-//                 pending[0] = lookup;
+                pending[0] = lookup;
 
-//                 // Wait 500ms after last keystroke
-//                 handler.postDelayed(
-//                     pending[0],
-//                     500
-//                 );
-//             }
+                // Wait 500ms after last keystroke
+                handler.postDelayed(
+                    pending[0],
+                    500
+                );
+            }
 
-//             @Override
-//             public void afterTextChanged(
-//                 android.text.Editable s
-//             ) {}
-//         }
-//     );
+            @Override
+            public void afterTextChanged(
+                android.text.Editable s
+            ) {}
+        }
+    );
 
-//     dialog.setOnDismissListener(d -> {
-//         generation.incrementAndGet();
+    dialog.setOnDismissListener(d -> {
+        generation.incrementAndGet();
 
-//         if (pending[0] != null) {
-//             handler.removeCallbacks(pending[0]);
-//         }
+        if (pending[0] != null) {
+            handler.removeCallbacks(pending[0]);
+        }
 
-//         searching = false;
-//     });
+        searching = false;
+    });
 
-//     dialog.show();
-// }
+    dialog.show();
+}
 
 
 public static List<Result> autocomplete(
