@@ -6,15 +6,13 @@ import android.location.Location;
 import android.net.Uri;
 import android.view.View;
 import android.widget.*;
-import android.content.Context;
-
+import android.content.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
 import org.osmdroid.util.*;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.*;
-import in.otrail.DestinationSearch.Result;
 
 /**
  * Text-only guidance controls; route overlays have their own identities, separate from trail
