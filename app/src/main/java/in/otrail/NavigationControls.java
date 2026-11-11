@@ -332,7 +332,7 @@ void search() {
                         );
 
                         item.setGravity(
-                            android.view.Gravity.CENTER_VERTICAL
+                            Gravity.CENTER_VERTICAL
                         );
 
                         item.setPadding(
