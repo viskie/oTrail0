@@ -192,210 +192,210 @@ final class NavigationControls implements AutoCloseable {
   //       .show();
   // }
 
-void search() {
-    if (searching) {
-        toast(UiConfig.text("search_is_already_running"));
-        return;
-    }
+// void search() {
+//     if (searching) {
+//         toast(UiConfig.text("search_is_already_running"));
+//         return;
+//     }
 
-    searching = true;
+//     searching = true;
 
-    final android.os.Handler handler =
-        new android.os.Handler(
-            android.os.Looper.getMainLooper()
-        );
+//     final android.os.Handler handler =
+//         new android.os.Handler(
+//             android.os.Looper.getMainLooper()
+//         );
 
-    final java.util.concurrent.atomic.AtomicInteger generation =
-        new java.util.concurrent.atomic.AtomicInteger();
+//     final java.util.concurrent.atomic.AtomicInteger generation =
+//         new java.util.concurrent.atomic.AtomicInteger();
 
-    final Runnable[] pending = new Runnable[1];
+//     final Runnable[] pending = new Runnable[1];
 
-    // Main dialog layout
-    LinearLayout root = new LinearLayout(activity);
-    root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(dp(12), dp(8), dp(12), dp(8));
+//     // Main dialog layout
+//     LinearLayout root = new LinearLayout(activity);
+//     root.setOrientation(LinearLayout.VERTICAL);
+//     root.setPadding(dp(12), dp(8), dp(12), dp(8));
 
-    // Search input
-    EditText query = new EditText(activity);
-    query.setHint("Enter city, locality, place or coordinates");
-    query.setSingleLine(true);
-    query.setInputType(
-        android.text.InputType.TYPE_CLASS_TEXT
-    );
+//     // Search input
+//     EditText query = new EditText(activity);
+//     query.setHint("Enter city, locality, place or coordinates");
+//     query.setSingleLine(true);
+//     query.setInputType(
+//         android.text.InputType.TYPE_CLASS_TEXT
+//     );
 
-    root.addView(
-        query,
-        new LinearLayout.LayoutParams(-1, dp(48))
-    );
+//     root.addView(
+//         query,
+//         new LinearLayout.LayoutParams(-1, dp(48))
+//     );
 
-    // Search progress / message
-    TextView status = new TextView(activity);
-    AppStyle.text(status);
-    status.setTextSize(12);
-    status.setText("Start typing to find a destination");
-    status.setPadding(dp(6), dp(8), dp(6), dp(8));
+//     // Search progress / message
+//     TextView status = new TextView(activity);
+//     AppStyle.text(status);
+//     status.setTextSize(12);
+//     status.setText("Start typing to find a destination");
+//     status.setPadding(dp(6), dp(8), dp(6), dp(8));
 
-    root.addView(status);
+//     root.addView(status);
 
-    // Clickable results container
-    ScrollView scroll = new ScrollView(activity);
-    scroll.setFillViewport(false);
+//     // Clickable results container
+//     ScrollView scroll = new ScrollView(activity);
+//     scroll.setFillViewport(false);
 
-    LinearLayout resultsBox = new LinearLayout(activity);
-    resultsBox.setOrientation(LinearLayout.VERTICAL);
+//     LinearLayout resultsBox = new LinearLayout(activity);
+//     resultsBox.setOrientation(LinearLayout.VERTICAL);
 
-    scroll.addView(resultsBox);
+//     scroll.addView(resultsBox);
 
-    root.addView(
-        scroll,
-        new LinearLayout.LayoutParams(-1, dp(235))
-    );
+//     root.addView(
+//         scroll,
+//         new LinearLayout.LayoutParams(-1, dp(235))
+//     );
 
-    android.app.AlertDialog dialog =
-        new AppDialogs(activity)
-            .setTitle(UiConfig.text("where_are_you_going"))
-            .setView(root)
-            .setNegativeButton(
-                UiConfig.text("cancel"),
-                null
-            )
-            .create();
+//     android.app.AlertDialog dialog =
+//         new AppDialogs(activity)
+//             .setTitle(UiConfig.text("where_are_you_going"))
+//             .setView(root)
+//             .setNegativeButton(
+//                 UiConfig.text("cancel"),
+//                 null
+//             )
+//             .create();
 
-    // Execute a location lookup without blocking the UI
-    Runnable lookup = () -> {
-        final String q =
-            query.getText().toString().trim();
+//     // Execute a location lookup without blocking the UI
+//     Runnable lookup = () -> {
+//         final String q =
+//             query.getText().toString().trim();
 
-        final int requestId =
-            generation.incrementAndGet();
+//         final int requestId =
+//             generation.incrementAndGet();
 
-        resultsBox.removeAllViews();
+//         resultsBox.removeAllViews();
 
-        if (q.length() < 2) {
-            status.setText("Enter at least 2 characters");
-            return;
-        }
+//         if (q.length() < 2) {
+//             status.setText("Enter at least 2 characters");
+//             return;
+//         }
 
-        boolean coordinates =
-            q.matches(
-                "[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+"
-            );
+//         boolean coordinates =
+//             q.matches(
+//                 "[+\\-0-9.]+\\s*,\\s*[+\\-0-9.]+"
+//             );
 
-        if (manager.offline() && !coordinates) {
-            status.setText(
-                "Offline: enter latitude, longitude"
-            );
-            return;
-        }
+//         if (manager.offline() && !coordinates) {
+//             status.setText(
+//                 "Offline: enter latitude, longitude"
+//             );
+//             return;
+//         }
 
-        status.setText("Searching: " + q);
+//         status.setText("Searching: " + q);
 
-        searches.execute(() -> {
-            // Skip requests superseded while queued
-            if (requestId != generation.get()) {
-                return;
-            }
+//         searches.execute(() -> {
+//             // Skip requests superseded while queued
+//             if (requestId != generation.get()) {
+//                 return;
+//             }
 
-            try {
-                List<DestinationSearch.Result> found =
-                    // DestinationSearch.search(
-                    //     activity.getApplicationContext(),
-                    //     q
-                    // );
-                    DestinationSearch.autocomplete(
-                        activity.getApplicationContext(),
-                        q
-                    );
-                activity.runOnUiThread(() -> {
-                    if (!dialog.isShowing()
-                            || activity.isFinishing()
-                            || activity.isDestroyed()
-                            || requestId != generation.get()) {
-                        return;
-                    }
+//             try {
+//                 List<DestinationSearch.Result> found =
+//                     // DestinationSearch.search(
+//                     //     activity.getApplicationContext(),
+//                     //     q
+//                     // );
+//                     DestinationSearch.autocomplete(
+//                         activity.getApplicationContext(),
+//                         q
+//                     );
+//                 activity.runOnUiThread(() -> {
+//                     if (!dialog.isShowing()
+//                             || activity.isFinishing()
+//                             || activity.isDestroyed()
+//                             || requestId != generation.get()) {
+//                         return;
+//                     }
 
-                    resultsBox.removeAllViews();
+//                     resultsBox.removeAllViews();
 
-                    if (found.isEmpty()) {
-                        status.setText(
-                            "No matching destination found"
-                        );
-                        return;
-                    }
+//                     if (found.isEmpty()) {
+//                         status.setText(
+//                             "No matching destination found"
+//                         );
+//                         return;
+//                     }
 
-                    status.setText(
-                        found.size() + " matching destinations"
-                    );
+//                     status.setText(
+//                         found.size() + " matching destinations"
+//                     );
 
-                    for (DestinationSearch.Result place : found) {
-                        TextView item = new TextView(activity);
+//                     for (DestinationSearch.Result place : found) {
+//                         TextView item = new TextView(activity);
 
-                        AppStyle.text(item);
+//                         AppStyle.text(item);
 
-                        item.setText(place.name());
-                        item.setTextSize(14);
-                        item.setTextColor(
-                            UiConfig.NAV_TEXT_COLOR
-                        );
+//                         item.setText(place.name());
+//                         item.setTextSize(14);
+//                         item.setTextColor(
+//                             UiConfig.NAV_TEXT_COLOR
+//                         );
 
-                        item.setGravity(
-                            android.view.Gravity.CENTER_VERTICAL
-                        );
+//                         item.setGravity(
+//                             android.view.Gravity.CENTER_VERTICAL
+//                         );
 
-                        item.setPadding(
-                            dp(10),
-                            dp(9),
-                            dp(10),
-                            dp(9)
-                        );
+//                         item.setPadding(
+//                             dp(10),
+//                             dp(9),
+//                             dp(10),
+//                             dp(9)
+//                         );
 
-                        item.setMinHeight(dp(44));
-                        item.setMaxLines(2);
+//                         item.setMinHeight(dp(44));
+//                         item.setMaxLines(2);
 
-                        item.setBackground(
-                            AppStyle.panel(
-                                item,
-                                UiConfig.CYAN
-                            )
-                        );
+//                         item.setBackground(
+//                             AppStyle.panel(
+//                                 item,
+//                                 UiConfig.CYAN
+//                             )
+//                         );
 
-                        LinearLayout.LayoutParams params =
-                            new LinearLayout.LayoutParams(
-                                -1,
-                                -2
-                            );
+//                         LinearLayout.LayoutParams params =
+//                             new LinearLayout.LayoutParams(
+//                                 -1,
+//                                 -2
+//                             );
 
-                        params.setMargins(
-                            0,
-                            dp(2),
-                            0,
-                            dp(2)
-                        );
+//                         params.setMargins(
+//                             0,
+//                             dp(2),
+//                             0,
+//                             dp(2)
+//                         );
 
-                        resultsBox.addView(item, params);
+//                         resultsBox.addView(item, params);
 
-                        item.setOnClickListener(v -> {
-                            generation.incrementAndGet();
-                            dialog.dismiss();
-                            plan(place);
-                        });
-                    }
-                });
+//                         item.setOnClickListener(v -> {
+//                             generation.incrementAndGet();
+//                             dialog.dismiss();
+//                             plan(place);
+//                         });
+//                     }
+//                 });
 
-            } catch (Exception error) {
-                activity.runOnUiThread(() -> {
-                    if (dialog.isShowing()
-                            && requestId == generation.get()) {
-                        resultsBox.removeAllViews();
-                        status.setText(
-                            "Search unavailable: "
-                                + error.getMessage()
-                        );
-                    }
-                });
-            }
-        });
-    };
+//             } catch (Exception error) {
+//                 activity.runOnUiThread(() -> {
+//                     if (dialog.isShowing()
+//                             && requestId == generation.get()) {
+//                         resultsBox.removeAllViews();
+//                         status.setText(
+//                             "Search unavailable: "
+//                                 + error.getMessage()
+//                         );
+//                     }
+//                 });
+//             }
+//         });
+//     };
 
     // Live text-change listener
     query.addTextChangedListener(
