@@ -554,7 +554,7 @@ public static List<Result> autocomplete(
             RoutePlan.Point point =
                 new RoutePlan.Point(lat, lon);
 
-            if (!DestinationSearch.india(point)) {
+            if (!india(point)) {
                 continue;
             }
 
