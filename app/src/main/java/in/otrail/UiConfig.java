@@ -35,11 +35,11 @@ public class UiConfig {
   public static final float CANVAS_COLOR_STRENGTH=.62f;
   public static final int BODY_FONT_STYLE=android.graphics.Typeface.ITALIC,
       STATUS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
-  public static final String HEADING_FONT="sans-serif-condensed";
+  public static final String HEADING_FONT="casual";
   public static final int HEADING_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final int[] PANEL_ACCENTS={CYAN,PURPLE,ORANGE,LIME,PINK};
-  public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="sans-serif-condensed",
-      STATUS_FONT="sans-serif-condensed", MAP_LABEL_FONT="sans-serif-condensed";
+  public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="casual",
+      STATUS_FONT="sans-serif-medium", MAP_LABEL_FONT="sans-serif";
   public static final int BUTTON_SIZE_SP=12, BODY_SIZE_SP=10, STATUS_SIZE_SP=13,
       NAV_TITLE_SIZE_SP=19, NAV_INSTRUCTION_SIZE_SP=15, NAV_SUMMARY_SIZE_SP=12,
       MAP_LABEL_SIZE_SP=11, MAP_LABEL_STYLE=android.graphics.Typeface.BOLD; // 0 normal, 1 bold, 2 italic

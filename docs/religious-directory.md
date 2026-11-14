@@ -25,7 +25,7 @@ Online OSM fallback: https://livingatlas.esri.in/server/rest/services/OSM/POW/Ma
 
 GPS gaps use cached road-routing geometry, trying installed offline graphs first and the configured online driving endpoint when online mode permits. No road path is drawn until routing succeeds; there is no straight-line fallback. Estimates stay green. Their coordinates never enter GPS records, exports or recorded distance calculations; logs identify them as estimated. The path is plausible rather than evidence of the route actually travelled.
 
-Movement state appears in the live-trail caption. The compact GPS popup retains speed, four-decimal coordinate numbers and up to two lines for locality/current road. UI font families use the Resonations title family; existing sizes, colour choices and emphasis are retained except for explicitly requested purple button text and orange headings.
+Movement state appears in the live-trail caption. The compact GPS popup retains speed, four-decimal coordinate numbers and up to two lines for locality/current road. Destination and GPS popup use the Resonations title family; proportional and funky fonts elsewhere are retained; existing sizes, colour choices and emphasis are retained except for explicitly requested purple button text and orange headings.
 
 ## Dark mode proposal — not implemented
 
