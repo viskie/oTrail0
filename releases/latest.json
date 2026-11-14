@@ -1,8 +1,8 @@
 {
-  "versionCode": 36,
-  "versionName": "0.4.13",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.13-debug.apk",
-  "sha256": "18dea89e7a0aada2711a9a9012695a2b6f807e41824f84c2b4d755a5846b88f0",
-  "sizeBytes": 41793548,
-  "notes": "Centered Resonations title, filename font reduced 1sp. Removed extra gap between destination instruction and summary. Floating map totals gain 1 physical pixel with padded || delimiters. Top-row menu/WTF/camera/Locate icons glow along existing borders in their own colors. Includes zoom-aware stop decluttering, rounded unclipped panel glows and centered sidebar with bottom-pinned Resonations. Build, 101 JVM checks and lint passed. Installed and UI checked on POCO; full-trail overview verified clearer lines and fewer dots without crashing. Live view restored with recorder running and data retained."
+  "versionCode": 38,
+  "versionName": "0.4.15",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.15-debug.apk",
+  "sha256": "4237a75fc7ad8521f0719583b21a8042c6df3fa8746e3a191bc7993adc8524c2",
+  "sizeBytes": 44317266,
+  "notes": "User-approved phone baseline. Exact APK extracted from the connected phone and byte-identical to current source build at ca047d7. Preserves manual edits and rollback results. Build, unit tests and lint passed. Religious directory assets are not yet included; work continues separately."
 }
