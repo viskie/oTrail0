@@ -14,6 +14,11 @@ public final class TrackingService extends Service implements LocationListener {
   private long trip = -1;
   private final StopDetector detector = new StopDetector();
   private long lastElapsed;
+  private long requestedInterval=1000;
+  private volatile boolean destroyed;
+  private android.hardware.SensorManager sensors;
+  private android.hardware.Sensor motion;
+  private final android.hardware.TriggerEventListener wake=new android.hardware.TriggerEventListener(){public void onTrigger(android.hardware.TriggerEvent event){requestGps(1000);}};
   private final java.util.concurrent.ExecutorService gpsWriter =
       java.util.concurrent.Executors.newSingleThreadExecutor();
   private final java.util.concurrent.ScheduledExecutorService backupWorker =
@@ -46,7 +51,7 @@ public final class TrackingService extends Service implements LocationListener {
     Notification n =
         new Notification.Builder(this, "tracking")
             .setContentTitle("oTraiL · always recording")
-            .setContentText("High-accuracy GPS every 13 seconds · recording continues when the app is closed")
+            .setContentText("Adaptive GPS · 1s moving / 13–30s stopped · recording continues when the app is closed")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentIntent(open)
             .setOngoing(true)
@@ -72,30 +77,23 @@ public final class TrackingService extends Service implements LocationListener {
           60,
           java.util.concurrent.TimeUnit.SECONDS);
       db.restoreDetector(trip, detector);
-      try {
-        if (Build.VERSION.SDK_INT >= 31) {
-          LocationRequest request = new LocationRequest.Builder(FIX_INTERVAL_MS)
-              .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
-              .setMinUpdateIntervalMillis(FIX_INTERVAL_MS)
-              .setMaxUpdateDelayMillis(0)
-              .build();
-          manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, request,
-              getMainExecutor(), this);
-        } else {
-          manager.requestLocationUpdates(
-              LocationManager.GPS_PROVIDER, FIX_INTERVAL_MS, 0, this, Looper.getMainLooper());
-        }
-      } catch (SecurityException | IllegalArgumentException e) {
-        db.log("GPS", "ERROR", e.toString());
-        db.finish(trip);
-        stopSelf();
-      }
+      sensors=(android.hardware.SensorManager)getSystemService(SENSOR_SERVICE);motion=sensors.getDefaultSensor(android.hardware.Sensor.TYPE_SIGNIFICANT_MOTION);
+      requestGps(1000);
     }
     return START_STICKY;
   }
 
+  private void requestGps(long interval){
+    if(destroyed||manager==null||checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)return;
+    try{manager.removeUpdates(this);requestedInterval=interval;
+      if(Build.VERSION.SDK_INT>=31)manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,new LocationRequest.Builder(interval).setQuality(LocationRequest.QUALITY_HIGH_ACCURACY).setMinUpdateIntervalMillis(interval).setMaxUpdateDelayMillis(0).build(),getMainExecutor(),this);
+      else manager.requestLocationUpdates(LocationManager.GPS_PROVIDER,interval,0,this,Looper.getMainLooper());
+      if(motion!=null){sensors.cancelTriggerSensor(wake,motion);if(interval>1000)sensors.requestTriggerSensor(wake,motion);}
+    }catch(SecurityException|IllegalArgumentException e){db.log("GPS","ERROR",e.toString());}
+  }
   @Override
   public void onLocationChanged(Location l) {
+    if(l.hasAccuracy()&&l.getAccuracy()>25&&requestedInterval!=1000)requestGps(1000);
     Location fix = new Location(l);
     try {
       gpsWriter.execute(() -> storeFix(fix));
@@ -123,6 +121,8 @@ public final class TrackingService extends Service implements LocationListener {
     } catch (RuntimeException e) {
       db.log("Navigation", "ERROR", e.toString());
     }
+    long interval=GpsPolling.interval(l.getAccuracy(),l.hasSpeed()?l.getSpeed():0,detector.isStopped(),l.getTime()-detector.arrival(),motion!=null);
+    new Handler(Looper.getMainLooper()).post(()->{if(interval!=requestedInterval)requestGps(interval);});
     if (newStopId > 0) StopGeocoder.enqueue(this, newStopId);
   }
 
@@ -133,6 +133,8 @@ public final class TrackingService extends Service implements LocationListener {
 
   @Override
   public void onDestroy() {
+    destroyed=true;
+    if(sensors!=null&&motion!=null)sensors.cancelTriggerSensor(wake,motion);
     manager.removeUpdates(this);
     gpsWriter.execute(
         () -> {

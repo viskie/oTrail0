@@ -597,6 +597,7 @@ public final class TrailDb implements AutoCloseable {
       w.beginObject();
       w.name("otrail_backup_version").value(1);
       w.name("created_ms").value(System.currentTimeMillis());
+      String historic=HistoricalTrails.backupJson(context);if(!historic.isBlank())w.name("historical_trails_json").value(historic);
       for (String table : BACKUP_TABLES) {
         w.name(table).beginArray();
         try (Cursor c = d.rawQuery("SELECT * FROM " + table + " ORDER BY id", null)) {
@@ -649,6 +650,7 @@ public final class TrailDb implements AutoCloseable {
   public void restoreBackup(Reader input) throws Exception {
     android.util.JsonReader r = new android.util.JsonReader(input);
     android.content.ContentValues settings = new android.content.ContentValues();
+    String historical=null;
     SQLiteDatabase d = getWritableDatabase();
     d.beginTransaction();
     try {
@@ -660,6 +662,7 @@ public final class TrailDb implements AutoCloseable {
       java.util.Set<Long> historicalTrips = new java.util.HashSet<>();
       while (r.hasNext()) {
         String table = r.nextName();
+        if(table.equals("historical_trails_json")){historical=r.nextString();HistoricalTrails.validateBackup(historical);continue;}
         if (table.equals("settings")) {
           r.beginObject();
           while (r.hasNext()) {
@@ -775,6 +778,7 @@ public final class TrailDb implements AutoCloseable {
     } finally {
       d.endTransaction();
     }
+    HistoricalTrails.restoreMerged(context,historical);
     android.content.SharedPreferences.Editor ui =
         context.getSharedPreferences("MainActivity", 0).edit();
     if (settings.containsKey("provider")) ui.putInt("provider", settings.getAsInteger("provider"));

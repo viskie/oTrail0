@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 39; versionName '0.4.16'; testInstrumentationRunner (project.findProperty('testRunner') ?: 'in.otrail.BackupInstrumentation') }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 40; versionName '0.4.17'; testInstrumentationRunner (project.findProperty('testRunner') ?: 'in.otrail.BackupInstrumentation') }
     sourceSets.main.java.srcDir('../modules/src/main/java')
     sourceSets.main.java.srcDir('../modules/api/src/main/java')
     if (System.getenv('OTRAIL_SIGNING_STORE')) {

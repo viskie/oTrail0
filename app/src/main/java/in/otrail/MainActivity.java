@@ -51,6 +51,7 @@ public final class MainActivity extends Activity {
   private LinearLayout root, body, downloadCards;
   private TextView status, stats, mode, packSummary;
   private GapRoadRoutes gapRoadRoutes;
+  private HistoricalTrails historicalTrails;
   private final Handler handler = new Handler(Looper.getMainLooper());
   private final ExecutorService io = Executors.newSingleThreadExecutor();
   private final ExecutorService heritageIo = Executors.newSingleThreadExecutor();
@@ -102,6 +103,7 @@ public final class MainActivity extends Activity {
     roadControls.navigateTo=this::confirmNavigation;
     liveContext=new LiveLocationContext(this,this::refreshLiveBubble);
     gapRoadRoutes=new GapRoadRoutes(this,()->{lastFixId=-1;if(!isDestroyed()&&!downloads)refresh();});
+    historicalTrails=new HistoricalTrails(this,()->{lastFixId=-1;if(!isDestroyed()&&!downloads)refresh();},points->{if(map!=null&&!points.isEmpty()){follow=false;navigationFollow=false;fitBounds(map,BoundingBox.fromGeoPoints(points.stream().map(p->new GeoPoint(p.lat(),p.lon())).collect(java.util.stream.Collectors.toList())));}});
     packs = new MapPacks(this, db);
     navigation =
         new NavigationControls(this, this::navigationOrigin, this::locate, this::navigationChanged);
@@ -287,6 +289,7 @@ public final class MainActivity extends Activity {
     map.setDestroyMode(false); // Lifecycle is owned here; avoid a second teardown on window detach.
     roadControls.attach(roadInfo, map);
     map.setMultiTouchControls(true);
+    org.osmdroid.views.overlay.gestures.RotationGestureOverlay rotation=new org.osmdroid.views.overlay.gestures.RotationGestureOverlay(map);rotation.setEnabled(!wtfActive());map.getOverlays().add(rotation);
     map.setOnTouchListener(
         (v, event) -> {
           if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN
@@ -319,7 +322,7 @@ public final class MainActivity extends Activity {
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
-    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads,()->updates.show());mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
+    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads,()->updates.show(),()->historicalTrails.show());mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -621,7 +624,7 @@ public final class MainActivity extends Activity {
     stopLabels.liveBubble(!history);
     roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !uncertain && !stopped && last.speed()>1.5, offlineOnly, history);
     String totalStatus =
-        (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), driveMetrics.totalMeters()/1000))
+        (driveMetrics == null ? "" : String.format(Locale.US, UiConfig.text("total_2f_km"), (driveMetrics.totalMeters()+historicalTrails.totalMeters())/1000))
             + (trip < 0 ? UiConfig.text("full_trail") : String.format(Locale.US,UiConfig.text("trail_2f_km"),trailMeters/1000))
             + clock(fixes.get(0).time())
             + " · "
@@ -633,7 +636,7 @@ public final class MainActivity extends Activity {
             + UiConfig.text("m")
             + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time()));
     stats.setText(totalStatus.replace(" · ",UiConfig.TOTAL_STATS_DELIMITER));
-    if(moduleHost!=null)moduleHost.update(new TrailModule.Snapshot(System.currentTimeMillis(),last.time(),last.lat(),last.lon(),last.accuracy(),driveMetrics==null?0:driveMetrics.totalMeters(),stops.size(),history));
+    if(moduleHost!=null)moduleHost.update(new TrailModule.Snapshot(System.currentTimeMillis(),last.time(),last.lat(),last.lon(),last.accuracy(),driveMetrics==null?0:driveMetrics.totalMeters()+historicalTrails.totalMeters(),stops.size(),history));
     if(wtfActive()){
       wtfTarget=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());
       if(!uncertain&&WtfCamera.reliable(System.currentTimeMillis(),last.time(),last.accuracy(),last.speed(),stopped)){
@@ -684,6 +687,8 @@ public final class MainActivity extends Activity {
       if(points.size()<2)continue;
       line(points, stroke.color(), stroke.ongoing());
     }
+    List<HistoricalTrails.Entry> reconstructed=new ArrayList<>(historicalTrails.entries());reconstructed.addAll(historicalTrails.drafts());
+    for(HistoricalTrails.Entry entry:reconstructed)if(entry.visible()){ArrayList<GeoPoint> geometry=new ArrayList<>();int step=Math.max(1,entry.points().size()/20000);for(int i=0;i<entry.points().size();i+=step){RoutePlan.Point p=entry.points().get(i);geometry.add(new GeoPoint(p.lat(),p.lon()));}RoutePlan.Point end=entry.points().get(entry.points().size()-1);geometry.add(new GeoPoint(end.lat(),end.lon()));line(geometry,UiConfig.YELLOW,false);}
     stopDots.reset();
     for (TrailDb.Stop s : stops) {
       Marker m = new Marker(map);
@@ -1545,6 +1550,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
+    if(request==HistoricalTrails.PICK){if(result==RESULT_OK&&data!=null)historicalTrails.selected(data);return;}
     if(request==ResonationsWidget.PICK_FILES){if(result==RESULT_OK&&data!=null&&resonations!=null)resonations.selected(data);return;}
     if (result != RESULT_OK || data == null || data.getData() == null) return;
     Uri uri = data.getData();
@@ -1570,6 +1576,7 @@ public final class MainActivity extends Activity {
               new TrailBackup(this).restore(db, uri);
               runOnUiThread(
                   () -> {
+                    historicalTrails.reload();
                     TrackingStartup.start(this, false);
                     provider = getPreferences(0).getInt("provider", 0);
     wtfEnabled=getPreferences(0).getBoolean("wtf_mode",false);
@@ -1645,7 +1652,7 @@ public final class MainActivity extends Activity {
     if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude());android.text.SpannableString linked=new android.text.SpannableString(note.trim());
       for(NearbySites.Site site:liveContext.sites(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude())){int start=linked.toString().indexOf(site.line());if(start>=0)linked.setSpan(new android.text.style.ClickableSpan(){public void onClick(View view){confirmNavigation(new DestinationSearch.Result(site.name(),new RoutePlan.Point(site.lat(),site.lon())));}public void updateDrawState(android.text.TextPaint paint){paint.setColor(UiConfig.LIME);paint.setUnderlineText(true);}},start,start+site.line().length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
       int heading=linked.toString().indexOf("Religious places nearby");if(heading>=0)linked.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.ORANGE),heading,heading+"Religious places nearby".length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-      lookupNotes.setGravity(Gravity.RIGHT);lookupNotes.setText(linked);lookupNotes.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
+      lookupNotes.setGravity(Gravity.LEFT);lookupNotes.setText(linked);lookupNotes.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
 
   }}
   private void confirmNavigation(DestinationSearch.Result target){
@@ -1657,6 +1664,7 @@ public final class MainActivity extends Activity {
   private void toggleWtf(){
     wtfEnabled=history||!wtfEnabled;getPreferences(0).edit().putBoolean("wtf_mode",wtfEnabled).apply();
     if(wtfEnabled&&history){history=false;showMap();}
+    for(org.osmdroid.views.overlay.Overlay overlay:map.getOverlays())if(overlay instanceof org.osmdroid.views.overlay.gestures.RotationGestureOverlay)((org.osmdroid.views.overlay.gestures.RotationGestureOverlay)overlay).setEnabled(!wtfActive());
     if(wtfButton!=null)wtfButton.update(wtfActive());if(wtfNorth!=null)wtfNorth.setVisibility(wtfActive()?View.VISIBLE:View.GONE);
     if(wtfEnabled){fitTrail=false;follow=true;navigationFollow=true;if(Float.isFinite(wtfCourse))wtfRotate(WtfCamera.rotation(wtfCourse));if(map.getZoomLevelDouble()<14)map.getController().setZoom(16.0);}
     else{wtfTarget=null;if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}map.setMapOrientation(0);map.invalidate();}
@@ -1771,6 +1779,7 @@ public final class MainActivity extends Activity {
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if (map != null) map.onDetach();
     if(gapRoadRoutes!=null)gapRoadRoutes.close();
+    if(historicalTrails!=null)historicalTrails.close();
     io.shutdown();
     heritageIo.shutdownNow();
     if(moduleHost!=null)moduleHost.close();

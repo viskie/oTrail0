@@ -7,7 +7,9 @@ public final class StopDetector {
   private long start,last,lastInput,stableSince,candidateStart,candidateDeparture,candidateLast;
   private double latitude,longitude,candidateLat,candidateLon,firstLat,firstLon,path;
   private int stableCount,candidateCount,preciseCount;
-  private boolean stopped,uncertain,reliable;
+  private boolean stopped,uncertain,reliable,jam;
+  private long freeFlowSince;
+  private boolean jamMoving;private int jamCycles;
   public long persistedStopId=-1;
   public record Event(boolean opened,boolean closed,long arrival,long departure,double lat,double lon) {}
 
@@ -22,6 +24,7 @@ public final class StopDetector {
     if(start==0){seed(time,lat,lon);return null;}
     double displacement=distance(latitude,longitude,lat,lon);
     if(stopped) {
+      if(speed>=1.5f)jamMoving=true;else if(speed<.8f&&jamMoving){jamCycles++;jamMoving=false;}
       double tolerance=RADIUS_METERS+Math.min(50,accuracy*2);
       if(displacement<=tolerance) {
         clearDeparture();
@@ -30,6 +33,8 @@ public final class StopDetector {
         if(reliable){if(time-last>MAX_GAP_MS)stableCount=0;last=time;stable(time);uncertain=!stableSignal();}else stableCount=0;
         return null;
       }
+      if(displacement<600&&speed<4.2f&&(jam||jamCycles>=2&&time-start<600000)&&accuracy<=20){jam=true;freeFlowSince=0;last=time;reliable=true;uncertain=false;clearDeparture();return null;}
+      if(jam&&speed>=4.2f){if(freeFlowSince==0)freeFlowSince=time;}else freeFlowSince=0;
       uncertain=true;stableCount=0;
       if(candidateStart==0||time-candidateLast>MAX_GAP_MS)beginDeparture(time,lat,lon);
       else {
@@ -46,9 +51,9 @@ public final class StopDetector {
       boolean coherent=net>=60&&net/Math.max(1,path)>=.65;
       boolean confirmed=coherent&&((elapsed>=20_000&&preciseCount>=4)
           ||(elapsed>=90_000&&candidateCount>=12&&net>=200));
-      if(!confirmed)return null;
+      if(!confirmed||jam&&displacement<600&&(freeFlowSince==0||time-freeFlowSince<60000))return null;
       Event event=new Event(false,true,start,candidateDeparture,latitude,longitude);
-      seed(time,lat,lon);stopped=false;uncertain=false;clearDeparture();
+      seed(time,lat,lon);jam=false;freeFlowSince=0;stopped=false;uncertain=false;clearDeparture();
       return event;
     }
     // Ignore a claimed speed spike at an unchanged coordinate, but do not join uncertain gaps.
@@ -72,7 +77,7 @@ public final class StopDetector {
   public long arrival(){return start;}
   public double latitude(){return latitude;}
   public double longitude(){return longitude;}
-  public void reset(){start=last=lastInput=stableSince=0;stopped=uncertain=reliable=false;persistedStopId=-1;stableCount=0;clearDeparture();}
+  public void reset(){start=last=lastInput=stableSince=0;stopped=uncertain=reliable=jam=jamMoving=false;jamCycles=0;freeFlowSince=0;persistedStopId=-1;stableCount=0;clearDeparture();}
   private void seed(long time,double lat,double lon){start=last=time;latitude=lat;longitude=lon;stableCount=0;}
   public static double distance(double a,double b,double c,double d){double p=Math.toRadians(c-a),q=Math.toRadians(d-b);double h=Math.sin(p/2)*Math.sin(p/2)+Math.cos(Math.toRadians(a))*Math.cos(Math.toRadians(c))*Math.sin(q/2)*Math.sin(q/2);return 6371000*2*Math.atan2(Math.sqrt(h),Math.sqrt(Math.max(0,1-h)));}
 }
