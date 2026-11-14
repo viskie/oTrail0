@@ -1,8 +1,8 @@
 {
-  "versionCode": 38,
-  "versionName": "0.4.15",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.15-debug.apk",
-  "sha256": "4237a75fc7ad8521f0719583b21a8042c6df3fa8746e3a191bc7993adc8524c2",
-  "sizeBytes": 44317266,
-  "notes": "User-approved phone baseline. Exact APK extracted from the connected phone and byte-identical to current source build at ca047d7. Preserves manual edits and rollback results. Build, unit tests and lint passed. Religious directory assets are not yet included; work continues separately."
+  "versionCode": 39,
+  "versionName": "0.4.16",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.16-debug.apk",
+  "sha256": "a0e189ac2493e31530261d887cb6c5caabcd706ebd37e9c670975b8d70c0895e",
+  "sizeBytes": 55517718,
+  "notes": "Bundled India religious-place directory: Hindu 40,858; Muslim 8,981; Christian 10,539; Buddhist 956; 54,150 named religious records overall. State/religion/city/PIN-prefix/name search, source details and confirmed navigation. Offline nearby religious places/police fallback. Road-routed green GPS-gap estimates cached separately from measured trails; no straight-line fallback or synthetic GPS fixes. Compact GPS popup with numeric coordinates; movement status in live-trail caption. Approved destination/GPS font changes preserve funky fonts elsewhere; purple button text and orange headings. Transparent floating icon/label menu includes App updates. Retains manual source edits, modules, settings and trail data. Dark map mode remains a proposal only."
 }
