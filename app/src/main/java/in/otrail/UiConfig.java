@@ -447,6 +447,7 @@ public class UiConfig {
   public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};
   // 0.8 of a 16dp base corner, shared by navigation and GPS panels.
   public static final float NAV_BOX_CORNER_DP=12.8f;
+  public static final int LIVE_BUBBLE_SPEED_COLOR=0xfff8fff8;
   public static final int LIVE_BUBBLE_SIZE_SP=12, GPS_SMILE_COLOR=0xffffffff;
   public static final float GPS_SMILE_MAX_ACCURACY_M=15;
   public static final int LIVE_BUBBLE_BORDER_DP=1;
