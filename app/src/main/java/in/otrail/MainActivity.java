@@ -430,13 +430,7 @@ public final class MainActivity extends Activity {
     refresh();
   }
 
-  private void showReligiousDirectory(){
-    Toast.makeText(
-        this,
-        "Religious directory not yet implemented",
-        Toast.LENGTH_SHORT
-    ).show();
-  }
+  private void showReligiousDirectory(){ReligiousDirectoryDialog.show(this,this::confirmNavigation);}
 
   private void applyProvider() {
     if (map == null) { return; }
