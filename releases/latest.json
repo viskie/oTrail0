@@ -1,8 +1,8 @@
 {
-  "versionCode": 39,
-  "versionName": "0.4.16",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.16-debug.apk",
-  "sha256": "a0e189ac2493e31530261d887cb6c5caabcd706ebd37e9c670975b8d70c0895e",
-  "sizeBytes": 55517718,
-  "notes": "Bundled India religious-place directory: Hindu 40,858; Muslim 8,981; Christian 10,539; Buddhist 956; 54,150 named religious records overall. State/religion/city/PIN-prefix/name search, source details and confirmed navigation. Offline nearby religious places/police fallback. Road-routed green GPS-gap estimates cached separately from measured trails; no straight-line fallback or synthetic GPS fixes. Compact GPS popup with numeric coordinates; movement status in live-trail caption. Approved destination/GPS font changes preserve funky fonts elsewhere; purple button text and orange headings. Transparent floating icon/label menu includes App updates. Retains manual source edits, modules, settings and trail data. Dark map mode remains a proposal only."
+  "versionCode": 40,
+  "versionName": "0.4.17",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.17-debug.apk",
+  "sha256": "3165c9c8b1eff955828ad566781b754a8cf443bd819ebeec9465ca28a2aae998",
+  "sizeBytes": 55038518,
+  "notes": "Historical multi-file CSV/list imports: road previews, approval before merging, yellow trails, per-file visibility/edit/reload and total distance; independent atomic storage included in trail backups. Road hierarchy/lane-dependent widths and source highway ref labels on India offline map; two-finger rotation outside WTF mode. Religious heading/list left aligned. Adaptive GPS requests: 1s moving/poor reception, 13s stationary, 30s extended stop with motion wakeup. Conservative stop/go traffic episode grouping; raw GPS preserved. Retains existing fonts, palette, modules and data. Build, 111 tests and lint passed. Final UI: centered green GPS lines with zero extra spacing and pearl-white speed; orange religious title right, entries left."
 }
