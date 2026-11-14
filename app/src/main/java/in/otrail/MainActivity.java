@@ -319,7 +319,7 @@ public final class MainActivity extends Activity {
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
-    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads);mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
+    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads,()->updates.show());mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -1269,7 +1269,6 @@ public final class MainActivity extends Activity {
     for (MapPacks.Pack p : MapPacks.PACKS) packCard(p);
     if (routingControls == null) routingControls = new RoutingControls(this);
     routingControls.addTo(downloadCards, cardUpdates);
-    downloadCards.addView(button(UiConfig.text("app_updates_daily_check_now"), () -> updates.show()));
     downloadCards.addView(button(UiConfig.text("last_app_crash_view_copy"), () -> CrashReports.show(this)));
     downloadCards.addView(button(UiConfig.text("trail_palette_31_pass_colors"), this::showPalette));
     downloadCards.addView(
