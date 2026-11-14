@@ -206,6 +206,11 @@ void search() {
         new java.util.concurrent.atomic.AtomicInteger();
 
     final Runnable[] pending = new Runnable[1];
+    final AppDialogs.Style resultStyle =
+        AppDialogs.Style.builder()
+            .bodyColor(UiConfig.NAV_TEXT_COLOR)
+            .bodySizeSp(14)
+            .build();
 
     // Main dialog layout
     LinearLayout root = new LinearLayout(activity);
@@ -327,10 +332,7 @@ void search() {
                         AppStyle.text(item);
 
                         item.setText(place.name());
-                        item.setTextSize(14);
-                        item.setTextColor(
-                            UiConfig.NAV_TEXT_COLOR
-                        );
+                        AppDialogs.styleContent(item, resultStyle);
 
                         item.setGravity(
                             Gravity.CENTER_VERTICAL

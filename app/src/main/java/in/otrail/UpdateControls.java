@@ -71,7 +71,7 @@ final class UpdateControls {
   }
 
   private void download(UpdateManifest manifest) {
-    android.app.ProgressDialog progress = new android.app.ProgressDialog(activity);
+    android.app.ProgressDialog progress = AppDialogs.progress(activity);
     progress.setTitle("Downloading oTraiL " + manifest.versionName());
     progress.setProgressStyle(android.app.ProgressDialog.STYLE_HORIZONTAL);
     progress.setMax(100);
