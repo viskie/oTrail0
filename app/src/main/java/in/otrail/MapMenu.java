@@ -17,24 +17,24 @@ final class MapMenu extends FrameLayout {
     ScrollView scroll=new ScrollView(a);scroll.setFillViewport(true);scroll.setBackgroundColor(Color.TRANSPARENT);scroll.setOnClickListener(v->{});scroll.setClickable(true);shade.addView(scroll,new LayoutParams(dp(260),-1,Gravity.START));
     panel=new LinearLayout(a);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(8),dp(8),dp(8),dp(8));scroll.addView(panel,new ScrollView.LayoutParams(-1,-1));
     TextView heading=new TextView(a);heading.setText("Navigation");AppStyle.text(heading);heading.setTextSize(18);heading.setTextColor(UiConfig.ORANGE);heading.setShadowLayer(dp(3),0,dp(1),Color.BLACK);panel.addView(heading);
-    add("Collapse menu",android.R.drawable.ic_menu_close_clear_cancel,()->closeIfOpen());
-    add(UiConfig.text("tracker"),android.R.drawable.ic_menu_mylocation,tracker);
-    add(UiConfig.text("places"),android.R.drawable.ic_menu_mapmode,places);
-    add(UiConfig.text("stops"),android.R.drawable.ic_menu_myplaces,stops);
-    add(history?UiConfig.text("live"):UiConfig.text("history"),android.R.drawable.ic_menu_recent_history,journeys);
-    add("Historical trails",android.R.drawable.ic_menu_upload,historicalTrails);
-    add("Navigation history",android.R.drawable.ic_menu_directions,navigationHistory);
-    add("Religious places",android.R.drawable.ic_menu_compass,religiousDirectory);
-    add(UiConfig.text("settings"),android.R.drawable.ic_menu_preferences,settings);
-    add("App updates",android.R.drawable.stat_sys_download_done,updates);
+    add("Collapse menu",android.R.drawable.ic_menu_close_clear_cancel,UiConfig.MENU_ICON_COLLAPSE_COLOR,()->closeIfOpen());
+    add(UiConfig.text("tracker"),android.R.drawable.ic_menu_mylocation,UiConfig.MENU_ICON_TRACKER_COLOR,tracker);
+    add(UiConfig.text("places"),android.R.drawable.ic_menu_mapmode,UiConfig.MENU_ICON_PLACES_COLOR,places);
+    add(UiConfig.text("stops"),android.R.drawable.ic_menu_myplaces,UiConfig.MENU_ICON_STOPS_COLOR,stops);
+    add(history?UiConfig.text("live"):UiConfig.text("history"),android.R.drawable.ic_menu_recent_history,UiConfig.MENU_ICON_JOURNEYS_COLOR,journeys);
+    add("Historical trails",android.R.drawable.ic_menu_upload,UiConfig.MENU_ICON_HISTORICAL_COLOR,historicalTrails);
+    add("Navigation history",android.R.drawable.ic_menu_directions,UiConfig.MENU_ICON_NAVIGATION_HISTORY_COLOR,navigationHistory);
+    add("Religious places",android.R.drawable.ic_menu_compass,UiConfig.MENU_ICON_RELIGIOUS_COLOR,religiousDirectory);
+    add(UiConfig.text("settings"),android.R.drawable.ic_menu_preferences,UiConfig.MENU_ICON_SETTINGS_COLOR,settings);
+    add("App updates",android.R.drawable.stat_sys_download_done,UiConfig.MENU_ICON_UPDATES_COLOR,updates);
     trigger.setOnClickListener(v->{shade.setVisibility(VISIBLE);shade.bringToFront();});
   }
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
-  private void add(String label,int icon,Runnable action){
+  private void add(String label,int icon,int iconColor,Runnable action){
     LinearLayout row=new LinearLayout(activity);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(dp(10),0,dp(10),0);row.setContentDescription(label);row.setFocusable(true);
     android.graphics.drawable.GradientDrawable touch=new android.graphics.drawable.GradientDrawable();touch.setColor(0x33000000);touch.setCornerRadius(dp(12));row.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(UiConfig.PURPLE),null,touch));
-    TextView text=new TextView(activity);text.setText(label);AppStyle.text(text);text.setTextColor(UiConfig.PURPLE);text.setTextSize(UiConfig.BUTTON_SIZE_SP);text.setTypeface(Typeface.create(UiConfig.BUTTON_FONT,UiConfig.BUTTON_FONT_STYLE));text.setShadowLayer(dp(3),0,dp(1),Color.BLACK);row.addView(text,new LinearLayout.LayoutParams(0,-2,1));
-    ImageView image=new ImageView(activity);image.setImageResource(icon);image.setColorFilter(UiConfig.PURPLE);image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);LinearLayout.LayoutParams imageSize=new LinearLayout.LayoutParams(dp(28),dp(28));imageSize.setMargins(dp(8),0,0,0);row.addView(image,imageSize);
+    ImageView image=new ImageView(activity);image.setImageResource(icon);image.setColorFilter(iconColor);image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);LinearLayout.LayoutParams imageSize=new LinearLayout.LayoutParams(dp(28),dp(28));imageSize.setMargins(0,0,dp(10),0);row.addView(image,imageSize);
+    TextView text=new TextView(activity);text.setText(label);AppStyle.text(text);text.setTextColor(UiConfig.MENU_TEXT_COLOR);text.setTextSize(UiConfig.MENU_TEXT_SIZE_SP);text.setTypeface(Typeface.create(UiConfig.MENU_TEXT_FONT,UiConfig.MENU_TEXT_FONT_STYLE));text.setShadowLayer(dp(3),0,dp(1),Color.BLACK);row.addView(text,new LinearLayout.LayoutParams(0,-2,1));
     LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(48));p.setMargins(0,dp(2),0,dp(2));panel.addView(row,p);row.setOnClickListener(v->{closeIfOpen();action.run();});
   }
   boolean closeIfOpen(){if(shade.getVisibility()!=VISIBLE)return false;shade.setVisibility(GONE);return true;}

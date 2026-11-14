@@ -1093,13 +1093,16 @@ public final class MainActivity extends Activity {
         for(int i=0;i<stops.size();i++) {
           TrailDb.Stop s=stops.get(i);
           DriveMetrics.Leg leg=metrics.stops().get(s.id());
-          String label=(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName())+"\n"+clock(s.arrival())+" · "+duration(s.observed()-s.arrival())
+          long observedDuration=Math.max(0,s.observed()-s.arrival());
+          String label=(s.placeName()==null?UiConfig.text("stop")+s.id():s.placeName())+"\n"+clock(s.arrival())+" · "+duration(observedDuration)
               +(leg==null?UiConfig.text("stop_distance_unavailable"):"\n"+String.format(Locale.US,UiConfig.text("stop_leg_summary"),leg.meters()/1000,leg.averageKmh()));
           android.text.SpannableString styled=new android.text.SpannableString(label);
           if(StopLabelsOverlay.longStop(s)){
             styled.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.LONG_STOP_COLOR),0,styled.length(),0);
             styled.setSpan(new android.text.style.StyleSpan(Typeface.ITALIC),0,styled.length(),0);
           }
+          if(observedDuration>UiConfig.RECORDED_STOP_EMPHASIS_AFTER_HOURS*60L*60L*1000L)
+            styled.setSpan(new android.text.style.AbsoluteSizeSpan(UiConfig.RECORDED_STOP_EMPHASIS_SIZE_SP,true),0,styled.length(),0);
           labels[i]=styled;
         }
         runOnUiThread(() -> {

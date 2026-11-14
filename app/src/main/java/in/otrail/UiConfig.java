@@ -87,6 +87,21 @@ public class UiConfig {
       DIALOG_PANEL_TINT_MIX=PANEL_TINT_MIX;
   public static final int DIALOG_CORNER_RADIUS_DP=9,
       DIALOG_EDGE_WIDTH_DP=3, DIALOG_BORDER_WIDTH_DP=1;
+  public static final int MENU_TEXT_COLOR=0xfff3f6ff, MENU_TEXT_SIZE_SP=14,
+      MENU_TEXT_FONT_STYLE=android.graphics.Typeface.BOLD;
+  public static final String MENU_TEXT_FONT="sans-serif-condensed";
+  public static final int MENU_ICON_COLLAPSE_COLOR=0xffff4162,
+      MENU_ICON_TRACKER_COLOR=0xff01ff1f,
+      MENU_ICON_PLACES_COLOR=0xff00aaff,
+      MENU_ICON_STOPS_COLOR=0xffff9a00,
+      MENU_ICON_JOURNEYS_COLOR=0xffff00a8,
+      MENU_ICON_HISTORICAL_COLOR=0xffffff00,
+      MENU_ICON_NAVIGATION_HISTORY_COLOR=0xffa66bff,
+      MENU_ICON_RELIGIOUS_COLOR=0xff10aeb2,
+      MENU_ICON_SETTINGS_COLOR=0xffff6d00,
+      MENU_ICON_UPDATES_COLOR=0xff00c853;
+  public static final int RECORDED_STOP_EMPHASIS_AFTER_HOURS=4,
+      RECORDED_STOP_EMPHASIS_SIZE_SP=DIALOG_BODY_SIZE_SP+1;
   public static final float OFFLINE_MAP_TEXT_SCALE=1f;
   // Offline basemap names such as Bilaspur (cities, towns, villages and suburbs).
   // Mapsforge families: default, sans_serif, serif, monospace.
