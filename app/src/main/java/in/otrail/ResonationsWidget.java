@@ -31,7 +31,7 @@ final class ResonationsWidget extends LinearLayout {
     title.setEllipsize(
         android.text.TextUtils.TruncateAt.END
     );
-    title.setTextColor(UiConfig.RESONATIONS_TEXT);
+    title.setTextColor(UiConfig.ORANGE);
     addView(title);
 
     names = new LinearLayout(activity);

@@ -10,7 +10,7 @@ public class UiConfig {
   protected UiConfig() {}
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
   public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffbd00ff,SECONDARY=0xffFF00FF;
-  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffff9a00;
+  public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffbd00ff;
   public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff17deee,MUTED=0xffff7f50;
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2, BLACK=0xff000000;
   // Shared neon border palettes; button typography and ripple colors remain separate.
@@ -35,11 +35,11 @@ public class UiConfig {
   public static final float CANVAS_COLOR_STRENGTH=.62f;
   public static final int BODY_FONT_STYLE=android.graphics.Typeface.ITALIC,
       STATUS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
-  public static final String HEADING_FONT="casual";
+  public static final String HEADING_FONT="sans-serif-condensed";
   public static final int HEADING_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final int[] PANEL_ACCENTS={CYAN,PURPLE,ORANGE,LIME,PINK};
-  public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="casual",
-      STATUS_FONT="sans-serif-medium", MAP_LABEL_FONT="sans-serif";
+  public static final String BODY_FONT="sans-serif-condensed", BUTTON_FONT="sans-serif-condensed",
+      STATUS_FONT="sans-serif-condensed", MAP_LABEL_FONT="sans-serif-condensed";
   public static final int BUTTON_SIZE_SP=12, BODY_SIZE_SP=10, STATUS_SIZE_SP=13,
       NAV_TITLE_SIZE_SP=19, NAV_INSTRUCTION_SIZE_SP=15, NAV_SUMMARY_SIZE_SP=12,
       MAP_LABEL_SIZE_SP=11, MAP_LABEL_STYLE=android.graphics.Typeface.BOLD; // 0 normal, 1 bold, 2 italic
@@ -441,7 +441,7 @@ public class UiConfig {
   public static final int WTF_ENABLED_TEXT=0xff00ffff, WTF_DISABLED_TEXT=0xffa7a7ac;
   public static final int WTF_ENABLED_BACKGROUND=0xff8b21b8, WTF_DISABLED_BACKGROUND=0xff000000;
   public static final int WTF_NORTH_COLOR=0xff40e0d0, WTF_NORTH_BACKGROUND=0xcc000000;
-  public static final String NAV_TITLE_FONT="sans-serif", LIVE_BUBBLE_FONT="sans-serif-medium";
+  public static final String NAV_TITLE_FONT=BODY_FONT, LIVE_BUBBLE_FONT=BODY_FONT;
   public static final int LIVE_BUBBLE_BACKGROUND=0xee000000, LIVE_BUBBLE_TEXT=0xff00ffff;
   public static final int LIVE_BUBBLE_WIDTH_DP=154, LIVE_WORSHIP_RADIUS_M=25000;
   public static final String[] LIVE_WORSHIP_SERVERS={"https://overpass.private.coffee/api/interpreter","https://overpass-api.de/api/interpreter"};

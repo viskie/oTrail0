@@ -29,7 +29,7 @@
       //addView(line,separator);
       coordinates=text(UiConfig.LIVE_BUBBLE_SIZE_SP, UiConfig.ORANGE);
       address=text(UiConfig.LIVE_BUBBLE_SIZE_SP,UiConfig.ORANGE);
-      address.setSingleLine(true);
+      address.setSingleLine(false);address.setMaxLines(2);
       address.setEllipsize(android.text.TextUtils.TruncateAt.END);
       worship=text(UiConfig.LIVE_BUBBLE_SIZE_SP,UiConfig.ORANGE);
       addView(coordinates)
@@ -47,17 +47,17 @@
       TextView v=new TextView(getContext());
       v.setTextColor(color);
       v.setTextSize(sp);
-      //v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,Typeface.NORMAL));
+      v.setTypeface(Typeface.create(UiConfig.LIVE_BUBBLE_FONT,UiConfig.BODY_FONT_STYLE));
       v.setIncludeFontPadding(false);
       v.setPadding(1,1,1,1);
-      LayoutParams p=new LayoutParams(-1,-1);
+      LayoutParams p=new LayoutParams(-2,-2);
       p.setMargins(dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0,dp(UiConfig.LIVE_BUBBLE_BORDER_DP),0);
       v.setLayoutParams(p);return v;
     }
 
-    void update(GeoPoint point,CharSequence status,String locality,String temples){this.point=point;setChangedText(state,status);setChangedText(coordinates,String.format(java.util.Locale.US,"Lat %.4f  ·  Lon %.4f",point.getLatitude(),point.getLongitude()));setChangedText(address,locality);((LayoutParams)address.getLayoutParams()).bottomMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);address.setVisibility(locality.isBlank()?GONE:VISIBLE);setChangedText(worship,temples);worship.setVisibility(temples.isBlank()?GONE:VISIBLE);setVisibility(VISIBLE);position();}
+    void update(GeoPoint point,CharSequence status,String locality,String temples){this.point=point;setChangedText(state,status);setChangedText(coordinates,String.format(java.util.Locale.US,"%.4f · %.4f",point.getLatitude(),point.getLongitude()));setChangedText(address,locality);((LayoutParams)address.getLayoutParams()).bottomMargin=dp(UiConfig.LIVE_BUBBLE_BORDER_DP);address.setVisibility(locality.isBlank()?GONE:VISIBLE);setChangedText(worship,temples);worship.setVisibility(temples.isBlank()?GONE:VISIBLE);setVisibility(VISIBLE);position();}
     private static void setChangedText(TextView view,CharSequence value){if(!android.text.TextUtils.equals(view.getText(),value))view.setText(value);}
-    private void position(){if(point==null||getVisibility()!=VISIBLE||map.getWidth()==0)return;int width=Math.min(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),map.getWidth()-dp(16));if(width<=0)return;android.view.ViewGroup.LayoutParams p=getLayoutParams();if(p!=null&&p.width!=width){p.width=width;setLayoutParams(p);}
+    private void position(){if(point==null||getVisibility()!=VISIBLE||map.getWidth()==0)return;int maximum=Math.min(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),map.getWidth()-dp(16));int natural=0;for(TextView v:new TextView[]{state,coordinates,address})if(v.getVisibility()!=GONE){String[] lines=v.getText().toString().split("\n");for(String line:lines)natural=Math.max(natural,(int)Math.ceil(v.getPaint().measureText(line)));}int width=Math.min(maximum,natural+getPaddingLeft()+getPaddingRight()+dp(2*UiConfig.LIVE_BUBBLE_BORDER_DP+2));if(width<=0)return;android.view.ViewGroup.LayoutParams p=getLayoutParams();if(p!=null&&p.width!=width){p.width=width;setLayoutParams(p);}
     Point screen=map.getProjection().toPixels(point,null);map.getProjection().rotateAndScalePoint(screen.x,screen.y,screen);
     if(screen.x<0||screen.y<0||screen.x>map.getWidth()||screen.y>map.getHeight()){setAlpha(0);return;}setAlpha(1);
     float x=Math.max(dp(8),Math.min(map.getWidth()-width-dp(8),screen.x-width/2f)),y=Math.max(dp(7),screen.y-getHeight()-dp(markerClearance));if(Math.abs(getX()-x)>.5f)setX(x);if(Math.abs(getY()-y)>.5f)setY(y);

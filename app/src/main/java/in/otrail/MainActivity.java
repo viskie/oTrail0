@@ -50,6 +50,7 @@ public final class MainActivity extends Activity {
   private FrameLayout mapFrame;
   private LinearLayout root, body, downloadCards;
   private TextView status, stats, mode, packSummary;
+  private GapRoadRoutes gapRoadRoutes;
   private final Handler handler = new Handler(Looper.getMainLooper());
   private final ExecutorService io = Executors.newSingleThreadExecutor();
   private final ExecutorService heritageIo = Executors.newSingleThreadExecutor();
@@ -100,6 +101,7 @@ public final class MainActivity extends Activity {
     roadControls = new RoadControls(this);
     roadControls.navigateTo=this::confirmNavigation;
     liveContext=new LiveLocationContext(this,this::refreshLiveBubble);
+    gapRoadRoutes=new GapRoadRoutes(this,()->{lastFixId=-1;if(!isDestroyed()&&!downloads)refresh();});
     packs = new MapPacks(this, db);
     navigation =
         new NavigationControls(this, this::navigationOrigin, this::locate, this::navigationChanged);
@@ -618,7 +620,8 @@ public final class MainActivity extends Activity {
     android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
     statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     status.setVisibility(history?View.VISIBLE:View.GONE);
-    status.setText(statusText);
+    status.setText(history?statusText:speed);
+    if(!history&&mode!=null){mode.setText(state.trim());mode.setTextSize(UiConfig.LIVE_BUBBLE_SIZE_SP);}
     if(!history){liveBubblePoint=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());liveContext.update(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude(),roadControls.roadName());refreshLiveBubble();}
     else if(liveBubble!=null)liveBubble.setVisibility(View.GONE);
     stopLabels.liveBubble(!history);
@@ -682,7 +685,9 @@ public final class MainActivity extends Activity {
     }
     for (TrailPalette.Stroke stroke : recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart)) {
       ArrayList<GeoPoint> points = new ArrayList<>();
-      for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
+      if(stroke.pass()==0){for(RoutePlan.Point p:gapRoadRoutes.geometry(stroke.points(),offlineOnly))points.add(new GeoPoint(p.lat(),p.lon()));}
+      else for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
+      if(points.size()<2)continue;
       line(points, stroke.color(), stroke.ongoing());
     }
     stopDots.reset();
@@ -1641,12 +1646,13 @@ public final class MainActivity extends Activity {
 
   private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){
     String address=liveContext.address(),addressNote="";if(LivePopupText.addressPending(address)){addressNote=address;address="";}
-    address = address.replace('\n', ' ').trim();
-    String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?":":"")+road;
+    address = address.trim();
+    String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?"":"\n")+road;
     liveBubble.update(liveBubblePoint,status.getText(),address,"");
     if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude());android.text.SpannableString linked=new android.text.SpannableString(note.trim());
       for(NearbySites.Site site:liveContext.sites(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude())){int start=linked.toString().indexOf(site.line());if(start>=0)linked.setSpan(new android.text.style.ClickableSpan(){public void onClick(View view){confirmNavigation(new DestinationSearch.Result(site.name(),new RoutePlan.Point(site.lat(),site.lon())));}public void updateDrawState(android.text.TextPaint paint){paint.setColor(UiConfig.LIME);paint.setUnderlineText(true);}},start,start+site.line().length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
-      lookupNotes.setText(linked);lookupNotes.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
+      int heading=linked.toString().indexOf("Religious places nearby");if(heading>=0)linked.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.ORANGE),heading,heading+"Religious places nearby".length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      lookupNotes.setGravity(Gravity.RIGHT);lookupNotes.setText(linked);lookupNotes.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
 
   }}
   private void confirmNavigation(DestinationSearch.Result target){
@@ -1771,6 +1777,7 @@ public final class MainActivity extends Activity {
     handler.removeCallbacks(ticker);
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if (map != null) map.onDetach();
+    if(gapRoadRoutes!=null)gapRoadRoutes.close();
     io.shutdown();
     heritageIo.shutdownNow();
     if(moduleHost!=null)moduleHost.close();

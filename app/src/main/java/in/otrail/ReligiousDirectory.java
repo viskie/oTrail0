@@ -28,13 +28,13 @@ final class ReligiousDirectory {
   static List<String> states(Context context)throws Exception{List<String> names=new ArrayList<>();try(Cursor cursor=database(context).rawQuery("SELECT DISTINCT state FROM places WHERE state<>'' ORDER BY state",null)){while(cursor.moveToNext())names.add(cursor.getString(0));}return names;}
   private static Place place(Cursor c){return new Place(c.getString(0),c.getString(1),c.getString(2),c.getString(3),c.getString(4),c.getString(5),c.getString(6),c.getString(7),c.getDouble(8),c.getDouble(9),c.getString(10),c.getString(11),c.getInt(12));}
   private static final String COLUMNS="id,name,religion,state,district,city,area,pin,lat,lon,start_date,source,score";
-  static Page search(Context context,String state,String religion,String city,String prefix,String query,int offset)throws Exception{
-    StringBuilder where=new StringBuilder("religion<>'police'");List<String> args=new ArrayList<>();
+  static Page search(Context context,String state,String religion,String city,String prefix,String query,boolean namedOnly,int offset)throws Exception{
+    StringBuilder where=new StringBuilder("religion<>'police'");List<String> args=new ArrayList<>();if(namedOnly)where.append(" AND name<>''");
     if(!state.isBlank()){where.append(" AND state=?");args.add(state);}
     if(religion.equals("other"))where.append(" AND religion NOT IN ('hindu','muslim','christian','buddhist','sikh','jain','police')");else if(!religion.isBlank()){where.append(" AND religion=?");args.add(religion);}
     if(!city.isBlank()){where.append(" AND (city LIKE ? ESCAPE '\\' OR area LIKE ? ESCAPE '\\' OR district LIKE ? ESCAPE '\\')");for(int i=0;i<3;i++)args.add(like(city));}
     if(!prefix.isBlank()){if(!prefix.matches("[1-9][0-9]{2}"))throw new IllegalArgumentException("Enter exactly the first 3 PIN digits");where.append(" AND pin LIKE ?");args.add(prefix+"%");}
-    if(!query.isBlank()){where.append(" AND search LIKE ? ESCAPE '\\'");args.add(like(query.toLowerCase(Locale.ROOT)));}
+    if(!query.isBlank()){where.append(" AND search LIKE ? ESCAPE '\\'");args.add(like(java.text.Normalizer.normalize(query,java.text.Normalizer.Form.NFKC).toLowerCase(Locale.ROOT)));}
     SQLiteDatabase db=database(context);String[] values=args.toArray(new String[0]);int count;try(Cursor c=db.rawQuery("SELECT count(*) FROM places WHERE "+where,values)){c.moveToFirst();count=c.getInt(0);}
     List<Place> result=new ArrayList<>();try(Cursor c=db.rawQuery("SELECT "+COLUMNS+" FROM places WHERE "+where+" ORDER BY score DESC,year ASC,name,id LIMIT 50 OFFSET "+Math.max(0,offset),values)){while(c.moveToNext())result.add(place(c));}return new Page(List.copyOf(result),count);
   }
