@@ -26,8 +26,8 @@ public final class RoutingPacks {
   }
   public static List<String> indiaTiles() {
     List<String> names=new ArrayList<>();
-    for(int lat=5;lat<=35;lat+=5) for(int lon=65;lon<=95;lon+=5)
-      if(!(lat>=30&&lon>=85) && !(lat<=20&&lon==65) && !(lat<=15&&lon>=85)) names.add("E"+lon+"_N"+lat);
+    for(int lat=RoutingConfig.MIN_LATITUDE;lat<=RoutingConfig.MAX_LATITUDE;lat+=RoutingConfig.TILE_DEGREES) for(int lon=RoutingConfig.MIN_LONGITUDE;lon<=RoutingConfig.MAX_LONGITUDE;lon+=RoutingConfig.TILE_DEGREES)
+      names.add("E"+lon+"_N"+lat);
     return names;
   }
   File target(String key) {

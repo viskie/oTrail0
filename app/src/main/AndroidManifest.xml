@@ -16,11 +16,13 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <application android:name=".CrashReports" android:label="oTraiL" android:theme="@style/AppTheme" android:allowBackup="false" android:largeHeap="true" android:dataExtractionRules="@xml/data_extraction_rules" android:usesCleartextTraffic="false" android:icon="@android:drawable/ic_menu_mylocation" android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
+        <activity android:name=".RemoteDesktopActivity" android:exported="false" android:screenOrientation="unspecified"/>
         <activity android:name=".ModuleManagerActivity" android:exported="false" android:process=":modules"/>
         <activity android:name=".ModuleActivity" android:exported="false" android:process=":modules"/>
         <service android:name=".ModuleTaskService" android:exported="false" android:process=":compiler" android:foregroundServiceType="dataSync"/>
         <receiver android:name=".BootReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
         <receiver android:name=".DownloadReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.DOWNLOAD_COMPLETE"/></intent-filter></receiver>
+        <provider android:name=".TransferredMediaProvider" android:authorities="${applicationId}.transferredmedia" android:exported="false" android:grantUriPermissions="true"/>
         <provider android:name=".UpdateApkProvider" android:authorities="${applicationId}.updates" android:exported="false" android:grantUriPermissions="true"/>
         <service android:name=".UpdateCheckService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true"/>
         <service android:name=".ResonationsService" android:exported="false" android:foregroundServiceType="mediaPlayback"/>

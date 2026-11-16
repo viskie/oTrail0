@@ -24,12 +24,21 @@ final class NavigationControls implements AutoCloseable {
   private final Supplier<Location> origin;
   private final Runnable locate, changed;
   private final ExecutorService searches = Executors.newSingleThreadExecutor();
+  private final ExecutorService tollLookups = Executors.newSingleThreadExecutor();
   private LinearLayout panel;
-  private TextView title, instruction, summary;
+  private TextView title, instruction, summary, tollNote;
   private Button start;
   private MapView lastMap;
   private long drawnRevision = -1;
+  private double drawnProgress=Double.NaN;
+  private RoutePlan drawnRoute;
+  private String drawnRouteKey;
+  private final List<List<GeoPoint>> completedDrivenSegments=new ArrayList<>();
   private final List<Overlay> overlays = new ArrayList<>();
+  private List<RouteTolls.Toll> tolls=List.of();
+  private String tollRequestKey;
+  private long tollTicket;
+  private volatile boolean closed;
   private DestinationSearch.Result pending,autoStartTarget;
   private boolean searching;
   java.util.function.Consumer<GeoPoint> roadTap;
@@ -50,6 +59,9 @@ final class NavigationControls implements AutoCloseable {
     title = text("", UiConfig.NAV_TITLE_SIZE_SP);
     instruction = text("", UiConfig.NAV_INSTRUCTION_SIZE_SP);
     summary = text("", UiConfig.NAV_SUMMARY_SIZE_SP);
+    tollNote = text("",UiConfig.CAPTION_SIZE_SP);
+    tollNote.setMaxLines(2);
+    tollNote.setVisibility(View.GONE);
     title.setGravity(android.view.Gravity.CENTER);
     title.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
     title.setTextColor(UiConfig.ORANGE);
@@ -61,6 +73,7 @@ final class NavigationControls implements AutoCloseable {
     panel.addView(title);
     panel.addView(instruction);
     panel.addView(summary);
+    panel.addView(tollNote);
     LinearLayout row = new LinearLayout(activity);
     start =
         button(
@@ -500,6 +513,7 @@ void search() {
     NavigationManager.State s = manager.state();
     if(autoStartTarget!=null&&pending==null&&s.route()!=null&&s.target()!=null&&"PREVIEW".equals(s.mode())&&RoutePlan.metres(s.target(),autoStartTarget.point())<1){autoStartTarget=null;manager.start();s=manager.state();changed.run();}
     else if(autoStartTarget!=null&&pending==null&&!"PLANNING".equals(s.mode())&&s.target()!=null&&RoutePlan.metres(s.target(),autoStartTarget.point())>=1)autoStartTarget=null;
+    updateTollLookup(map,s);
     boolean has = s.route() != null;
     panel.setVisibility(has || pending != null || !s.note().isEmpty() ? View.VISIBLE : View.GONE);
     if (panel.getVisibility() != View.VISIBLE) {
@@ -522,7 +536,7 @@ void search() {
                 : g != null && g.offRoute()
                     ? s.note()
                     : g != null && active && !g.arrived()
-                        ? distance(g.untilTurn()) + " · " + g.instruction()
+                    ? distance(g.untilTurn()) + UiConfig.text("left_on_this_road") + g.instruction()
                         : s.note());
     double remaining = g != null ? g.remaining() : has ? s.route().distance : 0,
         seconds = g != null ? g.seconds() : has ? s.route().duration : 0;
@@ -539,6 +553,54 @@ void search() {
     draw(map, s);
   }
 
+  private void updateTollLookup(MapView map,NavigationManager.State state) {
+    if(closed)return;
+    RoutePlan route=state.route();
+    String key=route==null?null:RouteTolls.routeKey(route)+":"+manager.offline();
+    if(Objects.equals(key,tollRequestKey))return;
+    tollRequestKey=key;
+    tollTicket++;
+    long ticket=tollTicket;
+    tolls=List.of();
+    drawnRevision=-1;
+    if(route==null) {
+      tollNote.setVisibility(View.GONE);
+      return;
+    }
+    if(manager.offline()) {
+      tollNote.setText(UiConfig.text("toll_lookup_offline"));
+      tollNote.setVisibility(View.VISIBLE);
+      return;
+    }
+    tollNote.setText(UiConfig.text("toll_lookup_loading"));
+    tollNote.setVisibility(View.VISIBLE);
+    tollLookups.execute(() -> {
+      List<RouteTolls.Toll> result=null;
+      Exception failure=null;
+      try {
+        result=RouteTolls.fetch(route);
+      } catch(Exception error) {
+        failure=error;
+      }
+      List<RouteTolls.Toll> found=result;
+      Exception error=failure;
+      activity.runOnUiThread(() -> {
+        if(closed||ticket!=tollTicket||!Objects.equals(key,tollRequestKey))return;
+        tolls=found==null?List.of():found;
+        if(error!=null)tollNote.setText(String.format(Locale.getDefault(),
+            UiConfig.text("toll_lookup_failed"),error.getMessage()));
+        else if(tolls.isEmpty())tollNote.setText(UiConfig.text("toll_none_mapped"));
+        else tollNote.setVisibility(View.GONE);
+        if(error!=null||tolls.isEmpty())tollNote.setVisibility(View.VISIBLE);
+        drawnRevision=-1;
+        NavigationManager.State latest=manager.state();
+        if(lastMap!=null&&latest.route()!=null
+            &&Objects.equals(key,RouteTolls.routeKey(latest.route())+":"+manager.offline()))
+          draw(lastMap,latest);
+      });
+    });
+  }
+
   private void draw(MapView map, NavigationManager.State s) {
     if (map == null) return;
     if (lastMap != map) {
@@ -546,11 +608,33 @@ void search() {
       drawnRevision = -1;
       overlays.clear();
     }
-    if (drawnRevision == s.revision() && overlays.stream().allMatch(map.getOverlays()::contains))
+    String routeKey=s.route()==null?null:RouteTolls.routeKey(s.route());
+    if(routeKey==null) {
+      completedDrivenSegments.clear();
+      drawnRoute=null;
+      drawnRouteKey=null;
+      drawnProgress=0;
+    } else if(drawnRoute!=null&&!Objects.equals(routeKey,drawnRouteKey)) {
+      if(drawnProgress>=5&&completedDrivenSegments.size()<20) {
+        List<GeoPoint> completed=new ArrayList<>();
+        for(RoutePlan.Point point:drawnRoute.prefix(drawnProgress))
+          completed.add(new GeoPoint(point.lat(),point.lon()));
+        if(completed.size()>1)completedDrivenSegments.add(List.copyOf(completed));
+      }
+      drawnProgress=0;
+    }
+    double progress=s.route()==null||s.guidance()==null?0:
+        Math.max(0,s.route().length()-s.guidance().remaining());
+    if (drawnRevision == s.revision()
+        && Math.abs(progress-drawnProgress)<5
+        && overlays.stream().allMatch(map.getOverlays()::contains))
       return;
     map.getOverlays().removeAll(overlays);
     overlays.clear();
     drawnRevision = s.revision();
+    drawnProgress=progress;
+    drawnRoute=s.route();
+    drawnRouteKey=routeKey;
     if (s.route() != null) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       for (RoutePlan.Point p : s.route().points) points.add(new GeoPoint(p.lat(), p.lon()));
@@ -573,6 +657,43 @@ void search() {
         }
       map.getOverlays().add(index, route);
       overlays.add(route);
+      for(int i=0;i<completedDrivenSegments.size();i++)
+        addDrivenOverlay(map,completedDrivenSegments.get(i),
+            "navigation:driven:previous:"+i);
+      if(progress>=5) {
+        ArrayList<GeoPoint> drivenPoints=new ArrayList<>();
+        for(RoutePlan.Point p:s.route().prefix(progress))
+          drivenPoints.add(new GeoPoint(p.lat(),p.lon()));
+        addDrivenOverlay(map,drivenPoints,"navigation:driven");
+      }
+      for(RouteTolls.Toll toll:tolls) {
+        Marker marker=new Marker(map);
+        marker.setId("navigation:toll:"+toll.key());
+        marker.setPosition(new GeoPoint(toll.latitude(),toll.longitude()));
+        marker.setTitle(toll.name());
+        List<String> details=new ArrayList<>();
+        if(!toll.details().isBlank())details.add(toll.details());
+        if(!toll.carRate().isBlank()) {
+          details.add(String.format(Locale.getDefault(),UiConfig.text("toll_car_rate"),toll.carRate()));
+          if(!toll.rateEffective().isBlank())
+            details.add(String.format(Locale.getDefault(),UiConfig.text("toll_rate_effective"),
+                toll.rateEffective().substring(0,Math.min(10,toll.rateEffective().length()))));
+          if(!toll.rateRevision().isBlank())
+            details.add(String.format(Locale.getDefault(),UiConfig.text("toll_rate_revision_due"),
+                toll.rateRevision().substring(0,Math.min(10,toll.rateRevision().length()))));
+        } else details.add(UiConfig.text("toll_rate_unavailable"));
+        details.add(UiConfig.text("toll_data_note"));
+        marker.setSnippet(String.join("\n",details));
+        marker.setIcon(new TollBoothIcon(activity));
+        marker.setAnchor(Marker.ANCHOR_CENTER,Marker.ANCHOR_BOTTOM);
+        marker.setOnMarkerClickListener(
+            (item,view) -> {
+              MarkerPopups.openOnly(view,item);
+              return true;
+            });
+        map.getOverlays().add(marker);
+        overlays.add(marker);
+      }
       Marker end = new Marker(map);
       end.setId("navigation:destination");
       end.setPosition(new GeoPoint(s.target().lat(), s.target().lon()));
@@ -587,6 +708,29 @@ void search() {
       overlays.add(end);
     }
     map.invalidate();
+  }
+
+  private void addDrivenOverlay(MapView map,List<GeoPoint> points,String id) {
+    if(points.size()<2)return;
+    Polyline driven=new Polyline(map);
+    driven.setId(id);
+    driven.setPoints(points);
+    driven.getOutlinePaint().setColor(UiConfig.NAV_DRIVEN_ROUTE_COLOR);
+    driven.getOutlinePaint().setStrokeWidth(dp(8));
+    driven.getOutlinePaint().setStyle(android.graphics.Paint.Style.STROKE);
+    driven.getOutlinePaint().setStrokeJoin(android.graphics.Paint.Join.ROUND);
+    driven.getOutlinePaint().setStrokeCap(android.graphics.Paint.Cap.ROUND);
+    driven.getOutlinePaint().setAntiAlias(true);
+    driven.getOutlinePaint().setPathEffect(null);
+    int index=map.getOverlays().size();
+    for(int i=0;i<map.getOverlays().size();i++) {
+      if(map.getOverlays().get(i) instanceof Marker) {
+        index=i;
+        break;
+      }
+    }
+    map.getOverlays().add(index,driven);
+    overlays.add(driven);
   }
 
   boolean fit(MapView map) {
@@ -640,6 +784,8 @@ void search() {
 
   @Override
   public void close() {
+    closed=true;
     searches.shutdownNow();
+    tollLookups.shutdownNow();
   }
 }

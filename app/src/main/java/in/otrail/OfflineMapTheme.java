@@ -12,8 +12,22 @@ import org.w3c.dom.*;
 /** Restyles base-map road colors and captions while preserving geometry, widths and zoom rules. */
 final class OfflineMapTheme implements XmlRenderTheme {
   private final XmlRenderTheme base=InternalRenderTheme.OSMARENDER;
+  private final boolean dark;
+  OfflineMapTheme(){this(false);}
+  OfflineMapTheme(boolean dark){this.dark=dark;}
   static String cacheKey() {
-    return Integer.toHexString(Objects.hash("road-detail-v2",UiConfig.CITY_LABEL_FONT,UiConfig.CITY_LABEL_STYLE,
+    return cacheKey(false);
+  }
+  static String cacheKey(boolean dark) {
+    return Integer.toHexString(Objects.hash("road-detail-v3",dark,UiConfig.MAP_DARK_BACKGROUND,
+        UiConfig.MAP_DARK_OUTSIDE_BACKGROUND,UiConfig.MAP_DARK_ROAD_CASING,
+        UiConfig.MAP_DARK_ROAD_MOTORWAY,UiConfig.MAP_DARK_ROAD_TRUNK,
+        UiConfig.MAP_DARK_ROAD_PRIMARY,UiConfig.MAP_DARK_ROAD_SECONDARY,
+        UiConfig.MAP_DARK_ROAD_TERTIARY,UiConfig.MAP_DARK_ROAD_MINOR,UiConfig.MAP_DARK_ROAD_PATH,
+        UiConfig.MAP_DARK_ROAD_LABEL_COLOR,UiConfig.MAP_DARK_OTHER_LABEL_COLOR,
+        UiConfig.MAP_DARK_TEXT_OUTLINE_COLOR,UiConfig.MAP_DARK_CITY_LABEL_COLOR,
+        UiConfig.MAP_DARK_CITY_LABEL_OUTLINE_COLOR,UiConfig.MAP_DARK_BIG_CITY_LABEL_COLOR,
+        UiConfig.CITY_LABEL_FONT,UiConfig.CITY_LABEL_STYLE,
         UiConfig.CITY_LABEL_COLOR,UiConfig.CITY_LABEL_OUTLINE_COLOR,
         UiConfig.CITY_LABEL_OUTLINE_WIDTH,UiConfig.CITY_LABEL_SIZE_SCALE,UiConfig.CITY_LABEL_MIN_SIZE,UiConfig.CITY_LABEL_MAX_SIZE,UiConfig.BIG_CITY_LABEL_COLOR,UiConfig.BIG_CITY_LABEL_STYLE,UiConfig.MAP_ROAD_LABEL_COLOR,UiConfig.MAP_OTHER_LABEL_COLOR,UiConfig.MAP_TEXT_OUTLINE_COLOR,UiConfig.MAP_TEXT_FONT,
         UiConfig.MAP_ROAD_CASING,UiConfig.MAP_ROAD_MOTORWAY,UiConfig.MAP_ROAD_TRUNK,UiConfig.MAP_ROAD_PRIMARY,UiConfig.MAP_ROAD_SECONDARY,UiConfig.MAP_ROAD_TERTIARY,UiConfig.MAP_ROAD_MINOR,UiConfig.MAP_ROAD_PATH,UiConfig.MAP_ROAD_WIDTH_FAR,UiConfig.MAP_ROAD_WIDTH_MID,UiConfig.MAP_ROAD_WIDTH_STREET,UiConfig.MAP_ROAD_WIDTH_CLOSE));
@@ -23,6 +37,7 @@ final class OfflineMapTheme implements XmlRenderTheme {
       DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance();
       factory.setNamespaceAware(true);
       Document document=factory.newDocumentBuilder().parse(input);
+      applyPalette(document,dark);
       NodeList roads=document.getElementsByTagName("line");
       List<Element> roadLines=new ArrayList<>();for(int i=0;i<roads.getLength();i++)roadLines.add((Element)roads.item(i));
       for(Element line:roadLines){
@@ -30,27 +45,34 @@ final class OfflineMapTheme implements XmlRenderTheme {
         if(highway==null||!line.hasAttribute("stroke"))continue;
         String old=line.getAttribute("stroke");
         boolean casing=old.equalsIgnoreCase("#707070")||old.equalsIgnoreCase("#000000");
-        line.setAttribute("stroke",color(casing?UiConfig.MAP_ROAD_CASING:roadColor(highway)));
+        line.setAttribute("stroke",color(casing
+            ?(dark?UiConfig.MAP_DARK_ROAD_CASING:UiConfig.MAP_ROAD_CASING)
+            :roadColor(highway,dark)));
         if(line.hasAttribute("stroke-width")){
           float width=Float.parseFloat(line.getAttribute("stroke-width"));Element parent=(Element)line.getParentNode();
           int[][] bands={{0,10},{11,13},{14,16},{17,22}};
           for(int[] band:bands){Element rule=document.createElement("rule");rule.setAttribute("e","way");rule.setAttribute("k","*");rule.setAttribute("v","*");rule.setAttribute("zoom-min",Integer.toString(band[0]));rule.setAttribute("zoom-max",Integer.toString(band[1]));Element scaled=(Element)line.cloneNode(true);scaled.setAttribute("stroke-width",Float.toString(width*roadWidthScale(band[1])*roadClassScale(highway)));String[] laneValues={"-|1|2|3|4|5|6|7|8|9|10|11|12","1","2","3|4","5|6","7|8|9|10|11|12"};float[] laneFactors={1,.65f,.95f,1.25f,1.6f,1.9f};for(int lane=0;lane<laneValues.length;lane++){Element laneRule=document.createElement("rule");laneRule.setAttribute("e","way");laneRule.setAttribute("k","lanes");laneRule.setAttribute("v",laneValues[lane]);Element paint=(Element)scaled.cloneNode(true);paint.setAttribute("stroke-width",Float.toString(width*roadWidthScale(band[1])*roadClassScale(highway)*laneFactors[lane]));laneRule.appendChild(paint);rule.appendChild(laneRule);}parent.insertBefore(rule,line);}parent.removeChild(line);
         }
       }
-      for(String type:new String[]{"motorway","trunk","primary","secondary"}){Element rule=document.createElement("rule");rule.setAttribute("e","way");rule.setAttribute("k","highway");rule.setAttribute("v",type);rule.setAttribute("zoom-min",type.equals("motorway")||type.equals("trunk")?"10":"13");Element label=document.createElement("pathText");label.setAttribute("k","ref");label.setAttribute("font-size","10");label.setAttribute("fill",color(UiConfig.MAP_ROAD_LABEL_COLOR));label.setAttribute("stroke",color(UiConfig.MAP_TEXT_OUTLINE_COLOR));label.setAttribute("stroke-width","1.5");rule.appendChild(label);document.getDocumentElement().appendChild(rule);}
+      int roadLabel=dark?UiConfig.MAP_DARK_ROAD_LABEL_COLOR:UiConfig.MAP_ROAD_LABEL_COLOR;
+      int otherLabel=dark?UiConfig.MAP_DARK_OTHER_LABEL_COLOR:UiConfig.MAP_OTHER_LABEL_COLOR;
+      int textOutline=dark?UiConfig.MAP_DARK_TEXT_OUTLINE_COLOR:UiConfig.MAP_TEXT_OUTLINE_COLOR;
+      for(String type:new String[]{"motorway","trunk","primary","secondary"}){Element rule=document.createElement("rule");rule.setAttribute("e","way");rule.setAttribute("k","highway");rule.setAttribute("v",type);rule.setAttribute("zoom-min",type.equals("motorway")||type.equals("trunk")?"10":"13");Element label=document.createElement("pathText");label.setAttribute("k","ref");label.setAttribute("font-size","10");label.setAttribute("fill",color(roadLabel));label.setAttribute("stroke",color(textOutline));label.setAttribute("stroke-width","1.5");rule.appendChild(label);document.getDocumentElement().appendChild(rule);}
       NodeList captions=document.getElementsByTagName("caption");
       List<Element> originalCaptions=new ArrayList<>();
       for(int i=0;i<captions.getLength();i++)originalCaptions.add((Element)captions.item(i));
       for(Element caption:originalCaptions) {
         if(!settlement(caption)){
-          caption.setAttribute("fill",color(UiConfig.MAP_OTHER_LABEL_COLOR));
-          caption.setAttribute("stroke",color(UiConfig.MAP_TEXT_OUTLINE_COLOR));
+          caption.setAttribute("fill",color(otherLabel));
+          caption.setAttribute("stroke",color(textOutline));
           caption.setAttribute("font-family",UiConfig.MAP_TEXT_FONT);continue;
         }
         caption.setAttribute("font-family",UiConfig.CITY_LABEL_FONT);
         caption.setAttribute("font-style",bigCity(caption)?UiConfig.BIG_CITY_LABEL_STYLE:UiConfig.CITY_LABEL_STYLE);
-        caption.setAttribute("fill",color(bigCity(caption)?UiConfig.BIG_CITY_LABEL_COLOR:UiConfig.CITY_LABEL_COLOR));
-        caption.setAttribute("stroke",color(UiConfig.CITY_LABEL_OUTLINE_COLOR));
+        caption.setAttribute("fill",color(dark
+            ?(bigCity(caption)?UiConfig.MAP_DARK_BIG_CITY_LABEL_COLOR:UiConfig.MAP_DARK_CITY_LABEL_COLOR)
+            :(bigCity(caption)?UiConfig.BIG_CITY_LABEL_COLOR:UiConfig.CITY_LABEL_COLOR)));
+        caption.setAttribute("stroke",color(dark?UiConfig.MAP_DARK_CITY_LABEL_OUTLINE_COLOR:UiConfig.CITY_LABEL_OUTLINE_COLOR));
         caption.setAttribute("stroke-width",Float.toString(UiConfig.CITY_LABEL_OUTLINE_WIDTH));
         if(caption.hasAttribute("font-size")) {
           float original=Float.parseFloat(caption.getAttribute("font-size"));
@@ -72,14 +94,33 @@ final class OfflineMapTheme implements XmlRenderTheme {
       NodeList roadLabels=document.getElementsByTagName("pathText");
       for(int i=0;i<roadLabels.getLength();i++) {
         Element text=(Element)roadLabels.item(i);
-        text.setAttribute("fill",color(UiConfig.MAP_ROAD_LABEL_COLOR));
-        text.setAttribute("stroke",color(UiConfig.MAP_TEXT_OUTLINE_COLOR));
+        text.setAttribute("fill",color(roadLabel));
+        text.setAttribute("stroke",color(textOutline));
         text.setAttribute("font-family",UiConfig.MAP_TEXT_FONT);
       }
       ByteArrayOutputStream output=new ByteArrayOutputStream();
       TransformerFactory.newInstance().newTransformer().transform(new DOMSource(document),new StreamResult(output));
       return new ByteArrayInputStream(output.toByteArray());
     } catch(Exception e) {throw new IOException("Cannot prepare offline city-label theme",e);}
+  }
+  private static void applyPalette(Document document,boolean dark) {
+    Element root=document.getDocumentElement();
+    root.setAttribute("map-background",color(dark?UiConfig.MAP_DARK_BACKGROUND:UiConfig.MAP_LIGHT_BACKGROUND));
+    root.setAttribute("map-background-outside",color(dark?UiConfig.MAP_DARK_OUTSIDE_BACKGROUND:UiConfig.MAP_LIGHT_OUTSIDE_BACKGROUND));
+    if(!dark)return;
+    NodeList all=document.getElementsByTagName("*");
+    for(int i=0;i<all.getLength();i++) {
+      Element element=(Element)all.item(i);
+      for(String attribute:new String[]{"fill","stroke"}) {
+        String value=element.getAttribute(attribute);
+        if(value.matches("#[0-9a-fA-F]{6}"))
+          element.setAttribute(attribute,color(darkenColor((int)Long.parseLong(value.substring(1),16))));
+      }
+    }
+  }
+  static int darkenColor(int rgb) {
+    int red=(rgb>>16)&255,green=(rgb>>8)&255,blue=rgb&255;
+    return 0xff000000|((red*42/100+8)<<16)|((green*42/100+8)<<8)|(blue*42/100+8);
   }
   static float citySize(float original,int zoom) {
     float factor=zoom<=7?.36f:zoom<=10?.40f:zoom<=13?.48f:.56f;
@@ -94,14 +135,17 @@ final class OfflineMapTheme implements XmlRenderTheme {
     }return null;
   }
   static int roadColor(String highway){
+    return roadColor(highway,false);
+  }
+  static int roadColor(String highway,boolean dark){
     Set<String> types=new HashSet<>(Arrays.asList(highway.split("\\|")));
-    if(types.contains("motorway")||types.contains("motorway_link"))return UiConfig.MAP_ROAD_MOTORWAY;
-    if(types.contains("trunk")||types.contains("trunk_link"))return UiConfig.MAP_ROAD_TRUNK;
-    if(types.contains("primary")||types.contains("primary_link"))return UiConfig.MAP_ROAD_PRIMARY;
-    if(types.contains("secondary")||types.contains("secondary_link"))return UiConfig.MAP_ROAD_SECONDARY;
-    if(types.contains("tertiary")||types.contains("tertiary_link"))return UiConfig.MAP_ROAD_TERTIARY;
-    if(types.contains("track")||types.contains("path")||types.contains("footway")||types.contains("cycleway")||types.contains("steps")||types.contains("bridleway"))return UiConfig.MAP_ROAD_PATH;
-    return UiConfig.MAP_ROAD_MINOR;
+    if(types.contains("motorway")||types.contains("motorway_link"))return dark?UiConfig.MAP_DARK_ROAD_MOTORWAY:UiConfig.MAP_ROAD_MOTORWAY;
+    if(types.contains("trunk")||types.contains("trunk_link"))return dark?UiConfig.MAP_DARK_ROAD_TRUNK:UiConfig.MAP_ROAD_TRUNK;
+    if(types.contains("primary")||types.contains("primary_link"))return dark?UiConfig.MAP_DARK_ROAD_PRIMARY:UiConfig.MAP_ROAD_PRIMARY;
+    if(types.contains("secondary")||types.contains("secondary_link"))return dark?UiConfig.MAP_DARK_ROAD_SECONDARY:UiConfig.MAP_ROAD_SECONDARY;
+    if(types.contains("tertiary")||types.contains("tertiary_link"))return dark?UiConfig.MAP_DARK_ROAD_TERTIARY:UiConfig.MAP_ROAD_TERTIARY;
+    if(types.contains("track")||types.contains("path")||types.contains("footway")||types.contains("cycleway")||types.contains("steps")||types.contains("bridleway"))return dark?UiConfig.MAP_DARK_ROAD_PATH:UiConfig.MAP_ROAD_PATH;
+    return dark?UiConfig.MAP_DARK_ROAD_MINOR:UiConfig.MAP_ROAD_MINOR;
   }
   private static boolean bigCity(Element caption){
     for(Node node=caption.getParentNode();node instanceof Element;node=node.getParentNode()) {

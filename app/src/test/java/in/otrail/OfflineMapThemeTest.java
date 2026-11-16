@@ -42,4 +42,23 @@ public class OfflineMapThemeTest {
   @Test public void roadWidthProgressivelyGainsDetailWithoutReturningToOriginalHeavyWidth(){
     assertTrue(OfflineMapTheme.roadWidthScale(9)<OfflineMapTheme.roadWidthScale(12));assertTrue(OfflineMapTheme.roadWidthScale(12)<OfflineMapTheme.roadWidthScale(15));assertTrue(OfflineMapTheme.roadWidthScale(15)<OfflineMapTheme.roadWidthScale(18));assertTrue(OfflineMapTheme.roadWidthScale(18)<1);
   }
+  @Test public void darkThemeUsesConfiguredBackgroundRoadAndCityPalette() throws Exception {
+    try(InputStream stream=new OfflineMapTheme(true).getRenderThemeAsStream()) {
+      Document document=DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(stream);
+      Element root=document.getDocumentElement();
+      assertEquals(String.format(java.util.Locale.ROOT,"#%08X",UiConfig.MAP_DARK_BACKGROUND),root.getAttribute("map-background"));
+      assertEquals(String.format(java.util.Locale.ROOT,"#%08X",UiConfig.MAP_DARK_OUTSIDE_BACKGROUND),root.getAttribute("map-background-outside"));
+      assertEquals(UiConfig.MAP_DARK_ROAD_PRIMARY,OfflineMapTheme.roadColor("primary",true));
+      NodeList rules=document.getElementsByTagName("rule");boolean foundDarkCity=false;
+      for(int i=0;i<rules.getLength();i++) {
+        Element rule=(Element)rules.item(i);
+        if(!"place".equals(rule.getAttribute("k"))||!"city".equals(rule.getAttribute("v")))continue;
+        Element caption=(Element)rule.getElementsByTagName("caption").item(0);
+        assertEquals(String.format(java.util.Locale.ROOT,"#%08X",UiConfig.MAP_DARK_BIG_CITY_LABEL_COLOR),caption.getAttribute("fill"));
+        foundDarkCity=true;
+      }
+      assertTrue(foundDarkCity);
+      assertNotEquals(OfflineMapTheme.cacheKey(false),OfflineMapTheme.cacheKey(true));
+    }
+  }
 }

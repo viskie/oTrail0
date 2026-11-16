@@ -1,0 +1,10 @@
+Package: otrail-screen
+Version: 0.4.17
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3, x11vnc, wmctrl, adb
+Maintainer: oTraiL contributors
+Description: Share a Linux X11 window with the oTraiL Android app over USB
+ Installs a per-user command-line manager for a localhost-only VNC session,
+ selected X11 window, and ADB reverse tunnel to one authorized Android device.

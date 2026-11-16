@@ -119,6 +119,17 @@ public class NavigationTest {
   }
 
   @Test
+  public void routePrefixEndsAtInterpolatedProgressPoint() {
+    RoutePlan p=straight();
+    List<RoutePlan.Point> driven=p.prefix(p.length()/2);
+    assertEquals(2,driven.size());
+    assertEquals(p.points.get(0),driven.get(0));
+    assertEquals(20.005,driven.get(1).lat(),.00001);
+    assertEquals(77,driven.get(1).lon(),.00001);
+    assertEquals(p.points,p.prefix(Double.POSITIVE_INFINITY));
+  }
+
+  @Test
   public void requiresThreeAccurateOffRouteFixes() {
     NavigationProgress p = new NavigationProgress(straight());
     RoutePlan.Point outside = new RoutePlan.Point(20.005, 77.002);

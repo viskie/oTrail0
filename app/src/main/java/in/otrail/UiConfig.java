@@ -125,6 +125,30 @@ public class UiConfig {
       MAP_ROAD_SECONDARY=0xffefefe1, MAP_ROAD_TERTIARY=0xffefefe2,
       MAP_ROAD_MINOR=0xffefefe7, MAP_ROAD_PATH=0xffefefe4;
   public static final String MAP_TEXT_FONT="sans_serif";
+  public static final int MAP_LIGHT_BACKGROUND=0xfff8f8f8,
+      MAP_LIGHT_OUTSIDE_BACKGROUND=0xffdddddd,
+      MAP_DARK_BACKGROUND=0xff121a22,
+      MAP_DARK_OUTSIDE_BACKGROUND=0xff080d12,
+      MAP_DARK_ROAD_CASING=0xff030609,
+      MAP_DARK_ROAD_MOTORWAY=0xffffc857,
+      MAP_DARK_ROAD_TRUNK=0xfff0a94f,
+      MAP_DARK_ROAD_PRIMARY=0xffe6d07a,
+      MAP_DARK_ROAD_SECONDARY=0xffbdc8d2,
+      MAP_DARK_ROAD_TERTIARY=0xff8998a8,
+      MAP_DARK_ROAD_MINOR=0xff506070,
+      MAP_DARK_ROAD_PATH=0xff647364,
+      MAP_DARK_ROAD_LABEL_COLOR=0xffe3edf6,
+      MAP_DARK_OTHER_LABEL_COLOR=0xffd5e0e9,
+      MAP_DARK_TEXT_OUTLINE_COLOR=0xff18232e,
+      MAP_DARK_CITY_LABEL_COLOR=0xffffd18a,
+      MAP_DARK_CITY_LABEL_OUTLINE_COLOR=0xff18232e,
+      MAP_DARK_BIG_CITY_LABEL_COLOR=0xffffb95f;
+  public static final int MAP_THEME_ICON_SIZE_DP=LOCATE_SIZE_DP,
+      MAP_THEME_ICON_LIGHT_COLOR=0xffffc857,
+      MAP_THEME_ICON_DARK_COLOR=0xffd9e8f5,
+      MAP_THEME_ICON_BORDER_COLOR=LOCATE_BORDER_COLOR;
+  public static final float MAP_DARK_RASTER_MIN_LUMA=18f,
+      MAP_DARK_RASTER_MAX_LUMA=218f;
   public static float textSize(int originalSp) {
     int configured=switch(originalSp) {
       case 10 -> CAPTION_SIZE_SP; case 11 -> SECONDARY_SIZE_SP; case 12 -> BODY_SIZE_SP;
@@ -137,6 +161,11 @@ public class UiConfig {
   }
   public static final int MAP_LABEL_BACKGROUND=ORANGE, MAP_LABEL_TEXT=INK,
       NAV_ROUTE_COLOR=CORAL;
+  public static final int TOLL_MARKER_COLOR=0xffffc247,
+      TOLL_ROUTE_OFFSET_METERS=350, TOLL_ROUTE_MAX_SAMPLES=1000,
+      TOLL_ROUTE_SAMPLE_SPACING_METERS=1000,
+      NAV_DRIVEN_ROUTE_COLOR=LIVE_TRAIL_COLOR;
+  public static final int TOLL_NHAI_MAX_RATE_LOOKUPS=12;
   public static final int CONTINUITY=0xFF00FBFF;
   // First five: Vibrant Life (color-hex 5338). Remaining 26: Siter retro palettes.
   public static final int[] TRAIL_COLORS = {
@@ -184,6 +213,18 @@ public class UiConfig {
       Map.entry("1f_km", "%.1f km"),
       Map.entry("6f_6f_1f_km_h_0f_m_s", "%.6f, %.6f\n%.1f km/h · ±%.0f m\n%s"),
       Map.entry("a_fresh_gps_fix_is_required_to_start", "A fresh GPS fix is required to start"),
+      Map.entry("toll_booth", "Toll booth"),
+      Map.entry("toll_lookup_offline", "Toll lookup is unavailable in offline mode"),
+      Map.entry("toll_lookup_loading", "Checking mapped toll locations…"),
+      Map.entry("toll_lookup_failed", "Toll lookup failed: %s"),
+      Map.entry("toll_none_mapped", "No toll locations found in OpenStreetMap near this route; coverage is not guaranteed."),
+      Map.entry("remote_desktop", "Remote desktop"),
+      Map.entry("toll_data_note", "Location from OpenStreetMap; verify current toll details at the plaza."),
+      Map.entry("toll_car_rate", "NHAI published car/jeep/van single journey: Rs %s"),
+      Map.entry("toll_rate_effective", "Effective %s"),
+      Map.entry("toll_rate_revision_due", "Rate revision due %s; verify current charges."),
+      Map.entry("toll_rate_unavailable", "No current NHAI car rate matched."),
+      Map.entry("left_on_this_road", " left on this road · "),
       Map.entry("access_and_opening_hours_are_not_verified", "\nAccess and opening hours are not verified."),
       Map.entry("afterwards_sizes_are_estimates_until_the_server_reports_the_tota", " afterwards. Sizes are estimates until the server reports the total."),
       Map.entry("age_from_source_date", "Age from epoch: "),
@@ -248,6 +289,7 @@ public class UiConfig {
       Map.entry("download_update_selected_brouter_tile", "Download / update selected BRouter tile"),
       Map.entry("download_update_valhalla_india_pack", "Download / update Valhalla India pack"),
       Map.entry("drive_2f_km", " · drive %.2f km"),
+      Map.entry("current_drive_distance_2f_km", "%.2f km"),
       Map.entry("entire_collected_trail", "Entire collected trail"),
       Map.entry("esri_satellite", "Esri satellite"),
       Map.entry("esri_satellite_2", "Esri · satellite"),
@@ -323,6 +365,8 @@ public class UiConfig {
       Map.entry("map_corrections", "Map corrections"),
       Map.entry("map_data_downloads_straight_to_phone_storage_wi_fi_or_cellular_c", "Map data downloads straight to phone storage. Wi-Fi or cellular. Completed datasets"),
       Map.entry("map_destination", "Map destination"),
+      Map.entry("switch_to_dark_map", "Switch to dark map"),
+      Map.entry("switch_to_light_map", "Switch to light map"),
       Map.entry("map_unavailable", "Map unavailable: "),
       Map.entry("maps_downloads_india_only", "MAPS & DOWNLOADS  ·  India only"),
       Map.entry("min_no_live_traffic", " min · no live traffic"),
@@ -464,6 +508,8 @@ public class UiConfig {
   public static final int CAM_BACKGROUND=LOCATE_BACKGROUND;
   public static final int CAM_BORDER_COLOR=LOCATE_BORDER_COLOR;
   public static final int MAP_ICON_GAP_DP=6;
+  public static final int SCREEN_SHARE_ICON_COLOR=0xff01ff1f,
+      SCREEN_SHARE_BACKGROUND=0xff080d13;
   // WTF! base-app camera. Travel vector: x=-0.8 left, y=1 up.
   public static final String WTF_LABEL="WTF! mode", WTF_ICON_TEXT="!";
   public static final int WTF_ICON_SIZE_SP=24;

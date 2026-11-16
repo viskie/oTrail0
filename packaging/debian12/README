@@ -1,0 +1,20 @@
+oTraiL Screen for Debian 12
+
+This package shares one selected X11 window with the oTraiL Android app using
+x11vnc and an ADB reverse TCP tunnel. The VNC server binds to localhost only;
+the tunnel is available only through an authorized ADB device.
+
+1. Connect the phone over USB, enable Android USB debugging, and authorize this laptop.
+2. Run `otrail-screen windows` in the logged-in graphical desktop session.
+3. Run `otrail-screen start N`, using a number from the current window list.
+4. In oTraiL, open the heptagonal desktop-control icon and tap Connect.
+5. Run `otrail-screen switch N` to share a different window or `otrail-screen stop`
+   to terminate sharing and remove the ADB reverse tunnel.
+
+This initial release supports X11 windows. In a Wayland session, wmctrl and x11vnc
+can access only XWayland windows; native Wayland capture requires compositor
+permission portals and is not provided by this package. The screen-sharing command
+must run as the logged-in desktop user, not as root or through sudo.
+
+The Android client uses raw RFB/VNC over the local ADB reverse tunnel. Do not remove
+the localhost binding or expose the VNC port on a network interface.

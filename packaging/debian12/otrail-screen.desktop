@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=oTraiL Screen Sharing
+Comment=Manage an authorized USB screen-sharing session
+Exec=otrail-screen windows
+Icon=otrail-screen
+Terminal=true
+Categories=Network;Utility;

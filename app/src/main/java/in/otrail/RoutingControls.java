@@ -27,6 +27,31 @@ public final class RoutingControls {
       public void onNothingSelected(AdapterView<?> v){}
       public void onItemSelected(AdapterView<?> v,View row,int index,long id){a.getSharedPreferences("navigation",0).edit().putString("engine",keys[index]).apply();}
     });
+    label(box,"Offline routing · India",18);
+    label(box,RoutingConfig.COVERAGE_NOTE,13);
+    TextView summary=label(box,"",13);ProgressBar overall=progress(box);
+    button(box,RoutingConfig.DOWNLOAD_BUTTON,()->files.execute(()->{
+      int queued=0,failed=0;
+      for(String key:RoutingPacks.indiaTiles()) {
+        try {RoutingPacks.State state=packs.state(key);
+          if(!state.ready()&&!state.busy()){packs.download(key,RoutingConfig.BROUTER_TILE_BASE_URL+key+".rd5","");queued++;}
+        }catch(Exception e){failed++;}
+      }
+      int q=queued,f=failed;a.runOnUiThread(()->message(q+" India tiles queued"+(f>0?" · "+f+" failed; tap again to retry":" · existing data retained")));
+    }));
+    ticks.add(()->{
+      int ready=0,busy=0;long downloaded=0,total=0;boolean unknown=false;
+      for(String key:RoutingPacks.indiaTiles()) {RoutingPacks.State state=packs.state(key);
+        if(state.ready())ready++;if(state.busy())busy++;
+        downloaded+=Math.max(0,state.bytes());total+=Math.max(0,state.total());
+        if(!state.ready()&&state.total()<=0)unknown=true;
+      }
+      summary.setText(ready+" / "+RoutingPacks.indiaTiles().size()+" tiles ready offline · "+busy+" active\n"+MapPacks.size(downloaded)+" stored / received · "+(unknown?"final size available as downloads start":MapPacks.size(total)+" total")+"\n"+(ready==RoutingPacks.indiaTiles().size()?"India coverage ready. Choose BRouter above to route without internet.":"Tap download to fetch missing tiles; reopen Settings to check progress."));
+      overall.setIndeterminate(false);overall.setProgress(ready*100/RoutingPacks.indiaTiles().size());
+    });
+    LinearLayout advanced=new LinearLayout(a);advanced.setOrientation(LinearLayout.VERTICAL);advanced.setVisibility(View.GONE);
+    button(box,RoutingConfig.ADVANCED_BUTTON,()->advanced.setVisibility(advanced.getVisibility()==View.VISIBLE?View.GONE:View.VISIBLE));
+    box.addView(advanced);box=advanced;
     label(box,UiConfig.text("brouter_regional_tiles_india"),18);
     label(box,UiConfig.text("choose_every_5_tile_along_your_journey_including_detours_tile_na"),13);
     List<String> tiles=RoutingPacks.indiaTiles();Spinner tile=spinner(box,tiles);
@@ -35,7 +60,7 @@ public final class RoutingControls {
     TextView bs=label(bstatus,"",13);ProgressBar bp=progress(bstatus);
     button(box,UiConfig.text("download_update_selected_brouter_tile"),()->{
       String key=tile.getSelectedItem().toString();a.getSharedPreferences("routing-packs",0).edit().putString("selected",key).apply();
-      try{packs.download(key,"https://brouter.de/brouter/segments4/"+key+".rd5","");}catch(Exception e){message(e.getMessage());}
+      try{packs.download(key,RoutingConfig.BROUTER_TILE_BASE_URL+key+".rd5","");}catch(Exception e){message(e.getMessage());}
     });
     button(box,UiConfig.text("cancel_selected_tile_download"),()->packs.cancel(tile.getSelectedItem().toString()));
     button(box,UiConfig.text("import_retained_brouter_tile"),()->pick(tile.getSelectedItem().toString()));

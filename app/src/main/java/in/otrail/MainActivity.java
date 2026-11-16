@@ -4,7 +4,13 @@ import android.Manifest;
 import android.app.*;
 import android.content.*;
 import android.content.pm.PackageManager;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.*;
 import android.location.*;
@@ -60,7 +66,10 @@ public final class MainActivity extends Activity {
   private LiveLocationContext liveContext;
   private GpsBubble liveBubble;
   private MapMenu mapMenu;
+  private MapThemeButton mapThemeButton;
+  private boolean darkMapMode;
   private TextView lookupNotes;
+  private CharSequence liveBubbleStatus;
   private ResonationsWidget resonations;
   private GeoPoint liveBubblePoint;
   private TextView roadInfo;
@@ -122,6 +131,7 @@ public final class MainActivity extends Activity {
     MapsForgeTileSource.createInstance(getApplication());
     offlineOnly = getPreferences(0).getBoolean("offline", false);
     provider = getPreferences(0).getInt("provider", 0);
+    darkMapMode=getPreferences(0).getBoolean("dark_map_mode",false);
     wtfEnabled=getPreferences(0).getBoolean("wtf_mode",false);
     wtfCourse=getPreferences(0).getFloat("wtf_course",Float.NaN);
     showMap();
@@ -307,12 +317,20 @@ public final class MainActivity extends Activity {
     LocateLogoButton locateButton=new LocateLogoButton(this,this::locate);
     locateButton.setContentDescription(UiConfig.text("locate_me_and_follow_gps"));
     LinearLayout mapControls=new LinearLayout(this);mapControls.setGravity(Gravity.CENTER_VERTICAL);
+    mapThemeButton=new MapThemeButton(darkMapMode,()->toggleMapTheme());
+    LinearLayout.LayoutParams themePosition=new LinearLayout.LayoutParams(dp(UiConfig.MAP_THEME_ICON_SIZE_DP),dp(UiConfig.MAP_THEME_ICON_SIZE_DP));themePosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(mapThemeButton,themePosition);
     wtfButton=new WtfButton(this,wtfActive(),this::toggleWtf);
     LinearLayout.LayoutParams wtfPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));wtfPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(wtfButton,wtfPosition);
     if(camVisible){
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
+    ScreenShareButton screenShare=new ScreenShareButton(this,
+        ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
+    LinearLayout.LayoutParams screenSharePosition=new LinearLayout.LayoutParams(
+        dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));
+    screenSharePosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);
+    mapControls.addView(screenShare,screenSharePosition);
     mapControls.addView(locateButton,new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP)));
     HorizontalScrollView mapIconBar=new HorizontalScrollView(this);mapIconBar.setHorizontalScrollBarEnabled(false);mapIconBar.setFillViewport(true);mapIconBar.addView(mapControls,new HorizontalScrollView.LayoutParams(-2,-2));mapControls.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
     FrameLayout.LayoutParams controlPosition=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.END);controlPosition.setMargins(dp(76),dp(10),dp(10),dp(8));mapFrame.addView(mapIconBar,controlPosition);
@@ -438,6 +456,7 @@ public final class MainActivity extends Activity {
   private void applyProvider() {
     if (map == null) { return; }
     try {
+      map.setBackgroundColor(darkMapMode?UiConfig.MAP_DARK_BACKGROUND:UiConfig.MAP_LIGHT_BACKGROUND);
       if (provider == 2) {
         if (!packs.active().exists()) {
           map.setUseDataConnection(false);
@@ -450,7 +469,7 @@ public final class MainActivity extends Activity {
         org.mapsforge.map.model.DisplayModel.textScale=UiConfig.OFFLINE_MAP_TEXT_SCALE;
         MapsForgeTileSource source =
             MapsForgeTileSource.createFromFiles(
-                new File[] {packs.active()}, new OfflineMapTheme(), "India-render-v4-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE + "-city-" + OfflineMapTheme.cacheKey());
+                new File[] {packs.active()}, new OfflineMapTheme(darkMapMode), "India-render-v4-" + packs.active().lastModified() + "-text-" + UiConfig.OFFLINE_MAP_TEXT_SCALE + "-city-" + OfflineMapTheme.cacheKey(darkMapMode));
         map.setTileProvider(
             new MapsForgeTileProvider(new SimpleRegisterReceiver(this), source, null));
       } else {
@@ -477,17 +496,75 @@ public final class MainActivity extends Activity {
                         + MapTileIndex.getX(index);
                   }
                 };
-        map.setTileProvider(new MapTileProviderBasic(this, source));
+        map.setTileProvider(darkMapMode
+            ?new DarkRasterTileProvider(this,source)
+            :new MapTileProviderBasic(this,source));
       }
       map.setUseDataConnection(!offlineOnly && provider != 2);
       map.getOverlays().removeIf(o -> o instanceof CopyrightOverlay);
       CopyrightOverlay attribution=new CopyrightOverlay(this);
-      attribution.setTextColor(UiConfig.INK);
+      attribution.setTextColor(darkMapMode
+          ?UiConfig.MAP_DARK_ROAD_LABEL_COLOR:UiConfig.INK);
       map.getOverlays().add(attribution);
       map.invalidate();
     } catch (Exception e) {
       toast(UiConfig.text("map_unavailable") + e.getMessage());
     }
+
+  }
+
+  private void toggleMapTheme() {
+    darkMapMode=!darkMapMode;
+    getPreferences(0).edit().putBoolean("dark_map_mode",darkMapMode).apply();
+    if(mapThemeButton!=null)mapThemeButton.setDarkMode(darkMapMode);
+    applyProvider();
+  }
+
+  private final class MapThemeButton extends ImageButton {
+    private final TriangleIcon icon;
+    MapThemeButton(boolean dark,Runnable toggle) {
+      super(MainActivity.this);
+      setScaleType(ImageView.ScaleType.FIT_CENTER);
+      int padding=dp(Math.round((UiConfig.MAP_THEME_ICON_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2));
+      setPadding(padding,padding,padding,padding);
+      icon=new TriangleIcon(dark);
+      setImageDrawable(icon);
+      setBackground(NeonBorderDrawable.menuIcon(this,UiConfig.MAP_THEME_ICON_BORDER_COLOR));
+      setDarkMode(dark);
+      setOnClickListener(view->toggle.run());
+    }
+
+    void setDarkMode(boolean dark) {
+      icon.setDarkMode(dark);
+      setContentDescription(UiConfig.text(dark?"switch_to_light_map":"switch_to_dark_map"));
+      setTooltipText(getContentDescription());
+    }
+  }
+
+  private static final class TriangleIcon extends Drawable {
+    private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+    private boolean dark;
+    TriangleIcon(boolean dark){this.dark=dark;}
+    void setDarkMode(boolean dark){this.dark=dark;invalidateSelf();}
+    @Override public void draw(Canvas canvas) {
+      Rect bounds=getBounds();
+      float inset=Math.min(bounds.width(),bounds.height())*.18f;
+      Path triangle=new Path();
+      triangle.moveTo(bounds.exactCenterX(),bounds.top+inset);
+      triangle.lineTo(bounds.right-inset,bounds.bottom-inset);
+      triangle.lineTo(bounds.left+inset,bounds.bottom-inset);
+      triangle.close();
+      paint.setStyle(Paint.Style.FILL);
+      paint.setColor(dark?UiConfig.MAP_THEME_ICON_DARK_COLOR:UiConfig.MAP_THEME_ICON_LIGHT_COLOR);
+      canvas.drawPath(triangle,paint);
+      paint.setStyle(Paint.Style.STROKE);
+      paint.setStrokeWidth(Math.max(1,bounds.width()*.055f));
+      paint.setColor(UiConfig.MAP_THEME_ICON_BORDER_COLOR);
+      canvas.drawPath(triangle,paint);
+    }
+    @Override public void setAlpha(int alpha){paint.setAlpha(alpha);invalidateSelf();}
+    @Override public void setColorFilter(ColorFilter filter){paint.setColorFilter(filter);invalidateSelf();}
+    @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
   }
 
   private void refresh() {
@@ -613,6 +690,9 @@ public final class MainActivity extends Activity {
     String speed=stopped?String.format(Locale.US,UiConfig.text("0f_m_hr"),0.0)
         :stale||uncertain?UiConfig.text("speed_unknown_m_hr")
         :String.format(Locale.US,UiConfig.text("0f_m_hr"),last.speed()*3600);
+    String bubbleDrive=!recorded&&!stopped&&driveMetrics!=null
+        ?String.format(Locale.US,UiConfig.text("current_drive_distance_2f_km"),driveMetrics.current().meters()/1000):"";
+    liveBubbleStatus=GpsBubble.status(speed,bubbleDrive);
     String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
     android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
     statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -1649,9 +1729,9 @@ public final class MainActivity extends Activity {
 
   private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){
     String address=liveContext.address(),addressNote="";if(LivePopupText.addressPending(address)){addressNote=address;address="";}
-    address = address.trim();
-    String road=roadControls.roadName();if(!road.isBlank()&&!address.contains(road))address+=(address.isBlank()?"":"\n")+road;
-    liveBubble.update(liveBubblePoint,status.getText(),address,"");
+    String road=roadControls.roadName();
+    address=GpsBubble.location(address,road);
+    liveBubble.update(liveBubblePoint,liveBubbleStatus==null?status.getText():liveBubbleStatus,address,"");
     if(lookupNotes!=null){String note=(addressNote.isBlank()?"":addressNote+"\n")+liveContext.worship(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude());android.text.SpannableString linked=new android.text.SpannableString(note.trim());
       for(NearbySites.Site site:liveContext.sites(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude())){int start=linked.toString().indexOf(site.line());if(start>=0)linked.setSpan(new android.text.style.ClickableSpan(){public void onClick(View view){confirmNavigation(new DestinationSearch.Result(site.name(),new RoutePlan.Point(site.lat(),site.lon())));}public void updateDrawState(android.text.TextPaint paint){paint.setColor(UiConfig.LIME);paint.setUnderlineText(true);}},start,start+site.line().length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);}
       int heading=linked.toString().indexOf("Religious places nearby");if(heading>=0)linked.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.ORANGE),heading,heading+"Religious places nearby".length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

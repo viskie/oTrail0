@@ -47,6 +47,10 @@ A stop requires >120 seconds within a 35 m anchored radius with speed ≤1.5 m/s
 
 JDK 21 and Android SDK platform 35 required. Use `./gradlew testDebugUnitTest lintDebug assembleDebug`, then `adb install -r app/build/outputs/apk/debug/app-debug.apk`. Open `in.otrail/.MainActivity`. Wi-Fi ADB must already be paired and connected. Gradle wrapper 9.6.0; AGP 9.4.0. Debug signing is for local testing. APK snapshots and checksums are committed under `releases/`. No signing keys or provider credentials in this repository.
 
+### Laptop screen sharing from the phone
+
+The optional Debian 12 `otrail-screen` package shares a selected X11 window with oTraiL over an authorized USB ADB reverse tunnel. Build it with `./scripts/build-debian12-screen.sh`; install the generated `.deb`, then use `otrail-screen windows` and `otrail-screen start N` from the logged-in desktop session. The heptagonal icon opens the phone's collapsible remote viewer. This initial implementation supports X11/XWayland windows only; native Wayland capture requires compositor permission portals. See [the screen-sharing guide](docs/laptop-screen-sharing.md).
+
 ## Scaffold limits
 
 In-app online navigation uses OSRM with written guidance and rerouting. No voice guidance, live traffic, embedded offline routing engine or offline graph is included. Google Maps/OsmAnd remain optional external choices. Commercial providers such as Mappls/Google/Mapbox require separate SDK credentials and terms before integration. Raw PBF is an optional source archive only. No GPX importer, map delta updates, or validated all-day battery guarantee yet. Drive provider upload and full physical reboot behavior require device/account testing. osmdroid 6.1.20 is a legacy renderer; evaluate a maintained renderer before production. UI loads collected fixes before thinning display geometry; multi-year datasets will need paginated queries and simplification.

@@ -47,6 +47,27 @@ public final class RoutePlan {
     return cumulative[cumulative.length - 1];
   }
 
+  public List<Point> prefix(double along) {
+    double end=Math.max(0,Math.min(length(),along));
+    List<Point> result=new ArrayList<>();
+    result.add(points.get(0));
+    for(int i=1;i<points.size();i++) {
+      if(cumulative[i]<end) {
+        result.add(points.get(i));
+        continue;
+      }
+      Point a=points.get(i-1),b=points.get(i);
+      double segment=cumulative[i]-cumulative[i-1];
+      if(segment>0&&end>cumulative[i-1]) {
+        double fraction=(end-cumulative[i-1])/segment;
+        result.add(new Point(a.lat()+(b.lat()-a.lat())*fraction,
+            a.lon()+(b.lon()-a.lon())*fraction));
+      } else if(end>=cumulative[i])result.add(b);
+      break;
+    }
+    return List.copyOf(result);
+  }
+
   public static double metres(Point a, Point b) {
     return StopDetector.distance(a.lat, a.lon, b.lat, b.lon);
   }

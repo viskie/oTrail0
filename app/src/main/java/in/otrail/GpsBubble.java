@@ -7,6 +7,8 @@
   import android.widget.*;
   import org.osmdroid.util.GeoPoint;
   import org.osmdroid.views.MapView;
+  import java.util.Locale;
+  import java.util.regex.Pattern;
 
   /** One persistent screen-space bubble anchored above the live dot, including during map rotation. */
   final class GpsBubble extends LinearLayout {
@@ -56,6 +58,45 @@
     }
 
     void update(GeoPoint point,CharSequence status,String locality,String temples){this.point=point;setChangedText(state,status);setChangedText(coordinates,String.format(java.util.Locale.US,"%.4f · %.4f",point.getLatitude(),point.getLongitude()));setChangedText(address,locality);((LayoutParams)address.getLayoutParams()).bottomMargin=0;address.setVisibility(locality.isBlank()?GONE:VISIBLE);setChangedText(worship,temples);worship.setVisibility(temples.isBlank()?GONE:VISIBLE);setVisibility(VISIBLE);position();}
+    static String roadLabel(String road) {
+      if(road==null||road.isBlank())return "";
+      String[] parts=road.split("\\s*·\\s*",2);
+      String reference=parts[0].trim();
+      boolean expressway=road.toLowerCase(Locale.ROOT).contains("expressway");
+      if(expressway)return "Exp:"+(isHighwayReference(reference)?" "+reference:"");
+      return isHighwayReference(reference)?reference:road.trim();
+    }
+    static String status(String speed,String driveDistance) {
+      String cleanSpeed=speed==null?"":speed.trim().replaceFirst("^[\\s·]+","");
+      return driveDistance==null||driveDistance.isBlank()
+          ?cleanSpeed:cleanSpeed+" · "+driveDistance;
+    }
+    static String location(String locality,String road) {
+      String label=roadLabel(road);
+      if(label.isBlank())return locality==null?"":locality.trim();
+      String result=locality==null?"":locality.trim();
+      if(road!=null&&road.contains("·")) {
+        String name=road.substring(road.indexOf('·')+1).trim();
+        if(!name.isBlank()) {
+          String normalizedName=normalize(name);
+          StringBuilder retained=new StringBuilder();
+          for(String line:result.split("\\n")) {
+            if(normalize(line).contains(normalizedName))continue;
+            if(retained.length()>0)retained.append('\n');
+            retained.append(line.trim());
+          }
+          result=retained.toString().trim();
+        }
+      }
+      if(!result.contains(label))result+=(result.isBlank()?"":"\n")+label;
+      return result;
+    }
+    private static boolean isHighwayReference(String value) {
+      return value.matches("(?i)^(NH|SH|NE|MDR|ODR|NHAI)\\s*[- ]?\\s*[A-Z0-9][A-Z0-9/-]*$");
+    }
+    private static String normalize(String value) {
+      return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]","");
+    }
     private static void setChangedText(TextView view,CharSequence value){if(!android.text.TextUtils.equals(view.getText(),value))view.setText(value);}
     private void position(){if(point==null||getVisibility()!=VISIBLE||map.getWidth()==0)return;int maximum=Math.min(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),map.getWidth()-dp(16));int natural=0;for(TextView v:new TextView[]{state,coordinates,address})if(v.getVisibility()!=GONE){String[] lines=v.getText().toString().split("\n");for(String line:lines)natural=Math.max(natural,(int)Math.ceil(v.getPaint().measureText(line)));}int width=Math.min(maximum,natural+getPaddingLeft()+getPaddingRight()+dp(2*UiConfig.LIVE_BUBBLE_BORDER_DP+2));if(width<=0)return;android.view.ViewGroup.LayoutParams p=getLayoutParams();if(p!=null&&p.width!=width){p.width=width;setLayoutParams(p);}
     Point screen=map.getProjection().toPixels(point,null);map.getProjection().rotateAndScalePoint(screen.x,screen.y,screen);
