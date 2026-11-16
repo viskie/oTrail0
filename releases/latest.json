@@ -1,8 +1,8 @@
 {
-  "versionCode": 40,
-  "versionName": "0.4.17",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.17-debug.apk",
-  "sha256": "3165c9c8b1eff955828ad566781b754a8cf443bd819ebeec9465ca28a2aae998",
-  "sizeBytes": 55038518,
-  "notes": "Historical multi-file CSV/list imports: road previews, approval before merging, yellow trails, per-file visibility/edit/reload and total distance; independent atomic storage included in trail backups. Road hierarchy/lane-dependent widths and source highway ref labels on India offline map; two-finger rotation outside WTF mode. Religious heading/list left aligned. Adaptive GPS requests: 1s moving/poor reception, 13s stationary, 30s extended stop with motion wakeup. Conservative stop/go traffic episode grouping; raw GPS preserved. Retains existing fonts, palette, modules and data. Build, 111 tests and lint passed. Final UI: centered green GPS lines with zero extra spacing and pearl-white speed; orange religious title right, entries left."
+  "versionCode": 42,
+  "versionName": "0.4.19",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.19-debug.apk",
+  "sha256": "0b1dcdb962942e58a68abcebb4ac7b476b4f45dd3df9529c3cf82de57f94389b",
+  "sizeBytes": 55189502,
+  "notes": "Authoritative manually updated source preserved. Single-button India offline BRouter data download, installed-tile progress and sizes, Wi-Fi/cellular, advanced imports/updates/Valhalla collapsed. Includes island/frontier coverage. Offline routing defaults editable in RoutingConfig.java. Portable restored photo/audio provider. Existing data, modules and settings retained."
 }
