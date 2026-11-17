@@ -11,8 +11,8 @@ import java.util.*;
 
 /** Compact player pinned directly above total trail statistics. */
 final class ResonationsWidget extends LinearLayout {
-  static final int PICK_FILES=74;
-  private final Activity activity;private final TextView title;private final LinearLayout names;private final Button play;
+  static final int PICK_FILES=74, RECORD_PERMISSION=75;
+  private final Activity activity;private final TextView title;private final LinearLayout names;private final Button play,record;
   private final Runnable listener=this::refresh;
  ResonationsWidget(Activity activity) {
     super(activity);
@@ -38,13 +38,21 @@ final class ResonationsWidget extends LinearLayout {
     names.setOrientation(VERTICAL);
     addView(names);
     LinearLayout controls=new LinearLayout(activity);
-    Button choose=button(UiConfig.text("resonations_files"),this::pick);controls.addView(choose,new LayoutParams(0,dp(32),1));
+    Button choose=button("＋",this::pick);choose.setContentDescription("Choose audio files");controls.addView(choose,new LayoutParams(0,dp(32),1));
     play=button(UiConfig.text("resonations_play"),()->{Intent intent=new Intent(activity,ResonationsService.class).setAction(ResonationsService.active?ResonationsService.PAUSE:ResonationsService.PLAY);try{if(ResonationsService.active)activity.startService(intent);else activity.startForegroundService(intent);}catch(RuntimeException error){Toast.makeText(activity,"Cannot start audio: "+error.getMessage(),Toast.LENGTH_LONG).show();}});controls.addView(play,new LayoutParams(0,dp(32),1));
-    Button clear=button(UiConfig.text("resonations_clear"),()->{activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist","[]").putInt("position",0).putInt("index",0).apply();ResonationsService.message="";refresh();});controls.addView(clear,new LayoutParams(0,dp(32),1));
+    Button clear=button("×",()->{activity.stopService(new Intent(activity,ResonationsService.class));ResonationsService.prefs(activity).edit().putString("playlist","[]").putInt("position",0).putInt("index",0).apply();ResonationsService.message="";refresh();});controls.addView(clear,new LayoutParams(0,dp(32),1));
+    record=button("●",this::toggleRecord);record.setContentDescription("Record microphone to WAV / stop and save");controls.addView(record,new LayoutParams(0,dp(32),1));
+    Button audioSettings=button("⚙",()->ResonationsAudioSettings.show(activity));audioSettings.setContentDescription("Audio input, outputs and recording quality");controls.addView(audioSettings,new LayoutParams(0,dp(32),1));
+    for(int i=0;i<controls.getChildCount();i++){Button b=(Button)controls.getChildAt(i);b.setTextSize(18);b.setPadding(0,0,0,0);}
     for(int i=0;i<controls.getChildCount();i++){LayoutParams p=(LayoutParams)controls.getChildAt(i).getLayoutParams();p.setMargins(dp(2),dp(2),dp(2),0);}addView(controls);refresh();
   }
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
   private Button button(String text,Runnable action){Button b=new Button(activity);b.setText(text);AppStyle.button(b);b.setMinHeight(0);b.setMinimumHeight(0);b.setOnClickListener(v->action.run());return b;}
+  void toggleRecord(){
+    if(WavRecordingService.active){activity.startService(new Intent(activity,WavRecordingService.class).setAction(WavRecordingService.STOP));return;}
+    if(activity.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)!=android.content.pm.PackageManager.PERMISSION_GRANTED){activity.requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO},RECORD_PERMISSION);return;}
+    try{activity.startForegroundService(new Intent(activity,WavRecordingService.class));}catch(RuntimeException e){Toast.makeText(activity,"Cannot record: "+e.getMessage(),Toast.LENGTH_LONG).show();}
+  }
   private void pick(){Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true).putExtra(Intent.EXTRA_MIME_TYPES,new String[]{"audio/*","video/mp4","video/3gpp","application/ogg"}).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);activity.startActivityForResult(intent,PICK_FILES);}
   void selected(Intent data){
     LinkedHashSet<Uri> uris=new LinkedHashSet<>();if(data.getClipData()!=null)for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());else if(data.getData()!=null)uris.add(data.getData());
@@ -95,18 +103,17 @@ final class ResonationsWidget extends LinearLayout {
           names.addView(line);
       }
 
-      play.setText(
-          UiConfig.text(
-              ResonationsService.active
-                  ? "resonations_pause"
-                  : "resonations_play"
-          )
-      );
+      play.setText(ResonationsService.active?"Ⅱ":"▶");
+      play.setContentDescription(ResonationsService.active?"Pause looping audio":"Play looping audio");
+      record.setText(WavRecordingService.active?"■":"●");
+      record.setTextColor(WavRecordingService.active?UiConfig.PINK:UiConfig.BUTTON_TEXT);
 
       play.setEnabled(!tracks.isEmpty());
+      if(WavRecordingService.active){title.setText("Resonations · "+WavRecordingService.status);title.setContentDescription(WavRecordingService.status);}
+      else if(!WavRecordingService.status.isBlank())title.setContentDescription(WavRecordingService.status);
 
       if (!ResonationsService.message.isBlank()
-              && !ResonationsService.active) {
+              && !ResonationsService.active && !WavRecordingService.active) {
           title.setText(
               UiConfig.text("resonations_title")
                   + " · "

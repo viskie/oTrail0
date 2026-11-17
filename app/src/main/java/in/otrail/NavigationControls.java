@@ -41,6 +41,8 @@ final class NavigationControls implements AutoCloseable {
   private volatile boolean closed;
   private DestinationSearch.Result pending,autoStartTarget;
   private boolean searching;
+  private List<RoutePlan.Point> pendingVia=List.of();
+  private String pendingPreference="auto";
   java.util.function.Consumer<GeoPoint> roadTap;
 
   NavigationControls(Activity a, Supplier<Location> origin, Runnable locate, Runnable changed) {
@@ -221,7 +223,7 @@ void search() {
     final Runnable[] pending = new Runnable[1];
     final AppDialogs.Style resultStyle =
         AppDialogs.Style.builder()
-            .bodyColor(UiConfig.NAV_TEXT_COLOR)
+            .bodyColor(UiConfig.DIALOG_BODY_COLOR)
             .bodySizeSp(14)
             .build();
 
@@ -364,7 +366,7 @@ void search() {
                         item.setBackground(
                             AppStyle.panel(
                                 item,
-                                UiConfig.CYAN
+                                UiConfig.DIALOG_SURFACE
                             )
                         );
 
@@ -477,6 +479,11 @@ void search() {
   void plan(DestinationSearch.Result destination){plan(destination,false);}
   void confirmedPlan(DestinationSearch.Result destination){plan(destination,true);}
   private void plan(DestinationSearch.Result destination,boolean autoStart) {
+    RouteOptionsDialog.show(activity,destination,searches,(via,preference)->{
+      pendingVia=via;pendingPreference=preference;executePlan(destination,autoStart);
+    });
+  }
+  private void executePlan(DestinationSearch.Result destination,boolean autoStart) {
     if (!DestinationSearch.india(destination.point())) {
       toast(UiConfig.text("choose_a_destination_in_india"));
       return;
@@ -501,7 +508,7 @@ void search() {
     manager.preview(
         new RoutePlan.Point(current.getLatitude(), current.getLongitude()),
         target.point(),
-        target.name());
+        target.name(),pendingVia,pendingPreference);
   }
 
   void refresh(MapView map) {
@@ -742,7 +749,7 @@ void search() {
     BoundingBox bounds = BoundingBox.fromGeoPoints(points);
     if (bounds.getLatitudeSpan() < .0001 && bounds.getLongitudeSpan() < .0001) {
       map.getController().setCenter(points.get(0));
-      map.getController().setZoom(16.0);
+      map.getController().setZoom(UiConfig.NAV_FOLLOW_ZOOM);
     } else map.zoomToBoundingBox(bounds, false, dp(25));
     return true;
   }

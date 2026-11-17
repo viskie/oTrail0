@@ -40,6 +40,8 @@ public final class NavigationManager {
   private long ticket, lastRequest;
   private boolean fetching;
   private String routeJson;
+  private java.util.List<RoutePlan.Point> remainingVia=java.util.List.of();
+  private String routePreference="auto";
 
   private NavigationManager(Context c) {
     context = c;
@@ -69,11 +71,14 @@ public final class NavigationManager {
   }
 
   public void preview(RoutePlan.Point origin, RoutePlan.Point destination, String name) {
-    request(origin, destination, name, false);
+    preview(origin,destination,name,java.util.List.of(),"auto");
   }
 
+  public void preview(RoutePlan.Point origin,RoutePlan.Point destination,String name,java.util.List<RoutePlan.Point> via,String preference) {
+    request(origin,destination,name,false,java.util.List.copyOf(via),RoutePreferences.valid(preference));
+  }
   private synchronized void request(
-      RoutePlan.Point origin, RoutePlan.Point target, String name, boolean reroute) {
+      RoutePlan.Point origin, RoutePlan.Point target, String name, boolean reroute,java.util.List<RoutePlan.Point> via,String preference) {
     if (offline() && !OfflineRouting.selected(context)) {
       state =
           new State(
@@ -108,13 +113,15 @@ public final class NavigationManager {
         () -> {
           try {
             String engine = OfflineRouting.engine(context);
-            String json = engine.equals("online") ? OnlineRouting.route(server(), origin, target)
-                : OfflineRouting.route(context, engine, origin, target);
+            java.util.List<RoutePlan.Point> points=new java.util.ArrayList<>();points.add(origin);points.addAll(via);points.add(target);
+            String json = engine.equals("online") ? OnlineRouting.route(server(), points,preference)
+                : OfflineRouting.route(context, engine, points,preference);
             RoutePlan plan = OsrmRouteParser.parse(json);
             synchronized (this) {
               if (request != ticket) return;
               if(!reroute&&before.route()!=null)rememberHistory(before);
               routeJson = json;
+              remainingVia=java.util.List.copyOf(via);routePreference=preference;
               tracker = new NavigationProgress(plan);
               state =
                   new State(
@@ -174,7 +181,7 @@ public final class NavigationManager {
   public synchronized void clear() {
     ticket++;
     fetching = false;
-    routeJson = null;
+    routeJson = null;remainingVia=java.util.List.of();routePreference="auto";
     lastGoodState=null;
     tracker = null;
     state = new State(null, null, "", "NONE", "", null, state.revision + 1, 0);
@@ -197,6 +204,9 @@ public final class NavigationManager {
     RoutePlan.Point point = new RoutePlan.Point(fix.getLatitude(), fix.getLongitude());
     NavigationProgress.Guidance g = tracker.update(point, fix.getAccuracy(), fix.getTime());
     if (!g.accepted()) return;
+    if(!remainingVia.isEmpty()&&RoutePlan.metres(point,remainingVia.get(0))<1000) {
+      remainingVia=java.util.List.copyOf(remainingVia.subList(1,remainingVia.size()));persist();
+    }
     boolean arrived =
         g.arrived() && state.target != null && RoutePlan.metres(point, state.target) <= 70;
     String note =
@@ -225,19 +235,21 @@ public final class NavigationManager {
       ticket++;
       fetching = false;
       persist();
-    } else if (g.offRoute() && (!offline() || OfflineRouting.selected(context))) request(point, state.target, state.name, true);
+    } else if (g.offRoute() && (!offline() || OfflineRouting.selected(context))) request(point, state.target, state.name, true,remainingVia,routePreference);
   }
 
   private void persist() {
     if (routeJson == null || state.target == null) return;
     String response = routeJson;
     State snapshot = state;
+    java.util.List<RoutePlan.Point> viaSnapshot=java.util.List.copyOf(remainingVia);String preferenceSnapshot=routePreference;
     cacheWriter.execute(
         () -> {
           AtomicFile file =
               new AtomicFile(new File(context.getFilesDir(), "navigation-route.json"));
           FileOutputStream out = null;
           try {
+            JSONArray vias=new JSONArray();for(RoutePlan.Point p:viaSnapshot)vias.put(new JSONObject().put("lat",p.lat()).put("lon",p.lon()));
             JSONObject saved =
                 new JSONObject()
                     .put("version", 1)
@@ -245,7 +257,7 @@ public final class NavigationManager {
                     .put("name", snapshot.name)
                     .put("latitude", snapshot.target.lat())
                     .put("longitude", snapshot.target.lon())
-                    .put("mode", snapshot.mode);
+                    .put("mode", snapshot.mode).put("via",vias).put("roadPreference",preferenceSnapshot);
             out = file.startWrite();
             out.write(saved.toString().getBytes(StandardCharsets.UTF_8));
             file.finishWrite(out);
@@ -267,6 +279,9 @@ public final class NavigationManager {
       synchronized (this) {
         if (ticket != 0) return;
         routeJson = cached;
+        java.util.List<RoutePlan.Point> vias=new java.util.ArrayList<>();JSONArray rawVia=saved.optJSONArray("via");
+        if(rawVia!=null)for(int i=0;i<Math.min(8,rawVia.length());i++){JSONObject p=rawVia.getJSONObject(i);vias.add(new RoutePlan.Point(p.getDouble("lat"),p.getDouble("lon")));}
+        remainingVia=java.util.List.copyOf(vias);routePreference=RoutePreferences.valid(saved.optString("roadPreference","auto"));
         state =
             new State(
                 route,

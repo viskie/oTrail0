@@ -69,3 +69,39 @@ and downloads; retry the action after a failure. Sizes are reported by Android a
 jobs start; the ready count represents validated installed tiles. Advanced expands
 individual updates/imports and Valhalla URL/checksum controls. Valhalla still requires
 a separately prepared compatible graph: BRouter files cannot be used by Valhalla.
+
+Navigation camera: `NAV_FOLLOW_ZOOM` defaults to 16 and `NAV_FOLLOW_MIN_ZOOM` to 14;
+`WTF_DEFAULT_ZOOM` is the initial WTF camera zoom (saved user zoom takes precedence).
+Zoom is a map level, not a percentage: each +1 halves ground distance per pixel.
+`RASTER_TILE_SCALE` enlarges whole OSM/Esri tiles because their text is baked into images.
+Offline vector text is independently controlled by `OFFLINE_MAP_TEXT_SCALE`, city
+factor bands/min/max, and `ROAD_LABEL_MIN_SIZE/MAX_SIZE/SIZE_SCALE`; theme cache keys
+include these settings. Road width and navigation line colours remain separate.
+
+Route options appear before calculating a new destination. Up to eight intermediate
+cities are resolved and explicitly selected in travel order; coordinates also work
+without online search. Active-route cache retains remaining via points and road
+preference across restart and recalculation. Soft preferences never prohibit necessary
+connectors. Online OSRM ranks the alternatives the server actually returns using
+available refs/classes; alternatives and complete NH/SH references aren't guaranteed.
+BRouter uses encoded highway hierarchy as an approximation for NH/SH; Valhalla uses
+its general highway preference and cannot distinguish exact NH versus SH designations.
+No engine promises a strict EX/NH/SH-only route. Dialog text is black on the light
+surface using `DIALOG_*_COLOR`, independent of cyan map panels.
+
+Repeated recorded passes: `TRAIL_LANE_SPACING_DP` controls screen-space separation;
+the newest pass remains centred and older passes expand on alternate sides. The
+source GPS coordinates and metrics are unchanged. `TRAIL_WIDTH_DP` and
+`TRAIL_BORDER_DP` control the shared-path rounded colour/casing, independently of
+navigation lines and the live trail's configured outline.
+
+Resonations adds record/stop and audio-settings icons to its existing controls row.
+Recording requires microphone permission and a visible user start, runs in a microphone
+foreground service, and saves uncompressed PCM16 WAV at 48/44.1 kHz mono/stereo.
+WAV headers are checkpointed every two seconds; capture stops at the RIFF size limit.
+Files are app-private and appended to the looping playlist after capture. Input/output
+choices are remembered; unavailable input devices fail clearly. Multiple playback
+outputs use per-player device preferences and inspect actual routed devices, removing
+duplicate streams if Android sends them to one output. Dual Bluetooth or Bluetooth +
+aux remains dependent on OS/device support, with system Bluetooth settings provided.
+App-level multi-device playback is best effort, not guaranteed sample-synchronised.

@@ -308,7 +308,7 @@ public final class MainActivity extends Activity {
           }
           return false;
         });
-    map.getController().setZoom(wtfActive()?getPreferences(0).getFloat("wtf_zoom",16f):5.0);
+    map.getController().setZoom(wtfActive()?getPreferences(0).getFloat("wtf_zoom",UiConfig.WTF_DEFAULT_ZOOM):5.0);
     map.getController().setCenter(new GeoPoint(22.5, 79));
     map.setMinZoomLevel(4.0);
     map.setScrollableAreaLimitDouble(new BoundingBox(38, 98, 6, 68));
@@ -500,6 +500,8 @@ public final class MainActivity extends Activity {
             ?new DarkRasterTileProvider(this,source)
             :new MapTileProviderBasic(this,source));
       }
+      map.setTilesScaledToDpi(true);
+      map.setTilesScaleFactor(provider==2?1f:UiConfig.RASTER_TILE_SCALE);
       map.setUseDataConnection(!offlineOnly && provider != 2);
       map.getOverlays().removeIf(o -> o instanceof CopyrightOverlay);
       CopyrightOverlay attribution=new CopyrightOverlay(this);
@@ -755,18 +757,22 @@ public final class MainActivity extends Activity {
                     && (!(o instanceof Polyline)
                         || ((Polyline) o).getId() == null
                         || !((Polyline) o).getId().startsWith("navigation:")));
+    map.getOverlays().removeIf(o->o instanceof TrailRibbonOverlay);
     long liveRunStart=driveMetrics==null?last.time():driveMetrics.current().start();
     if(stopped&&current!=null&&driveMetrics!=null){
       DriveMetrics.Leg arrivedLeg=driveMetrics.stops().get(current.id());
       if(arrivedLeg!=null)liveRunStart=arrivedLeg.start();
     }
-    for (TrailPalette.Stroke stroke : recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart)) {
+    List<TrailPalette.Stroke> displayStrokes=recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart);
+    List<TrailRibbonOverlay.Ribbon> ribbons=new ArrayList<>();
+    for (TrailPalette.Stroke stroke : displayStrokes) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       if(stroke.pass()==0){for(RoutePlan.Point p:gapRoadRoutes.geometry(stroke.points(),offlineOnly))points.add(new GeoPoint(p.lat(),p.lon()));}
       else for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
       if(points.size()<2)continue;
-      line(points, stroke.color(), stroke.ongoing());
+      ribbons.add(new TrailRibbonOverlay.Ribbon(points,stroke,stroke.color(),stroke.ongoing()));
     }
+    map.getOverlays().add(new TrailRibbonOverlay(ribbons,displayStrokes));
     List<HistoricalTrails.Entry> reconstructed=new ArrayList<>(historicalTrails.entries());reconstructed.addAll(historicalTrails.drafts());
     for(HistoricalTrails.Entry entry:reconstructed)if(entry.visible()){ArrayList<GeoPoint> geometry=new ArrayList<>();int step=Math.max(1,entry.points().size()/20000);for(int i=0;i<entry.points().size();i+=step){RoutePlan.Point p=entry.points().get(i);geometry.add(new GeoPoint(p.lat(),p.lon()));}RoutePlan.Point end=entry.points().get(entry.points().size()-1);geometry.add(new GeoPoint(end.lat(),end.lon()));line(geometry,UiConfig.YELLOW,false);}
     stopDots.reset();
@@ -842,7 +848,7 @@ public final class MainActivity extends Activity {
       }
       if (north - south < .001 && east - west < .001) {
         map.getController().setCenter(dot.getPosition());
-        map.getController().setZoom(16.0);
+        map.getController().setZoom(UiConfig.NAV_FOLLOW_ZOOM);
       } else {
         if (north - south < .001) { north += .0005; south -= .0005; }
         if (east - west < .001) { east += .0005; west -= .0005; }
@@ -888,21 +894,7 @@ public final class MainActivity extends Activity {
 
   private void line(ArrayList<GeoPoint> pts, int color, boolean ongoing) {
     if (pts.size() < 2) return;
-    Polyline p = new Polyline(map);
-    p.setPoints(pts);
-    p.setOnClickListener((poly, view, point) -> {
-      roadControls.tapped(point.getLatitude(), point.getLongitude(), offlineOnly);
-      return true;
-    });
-    p.getOutlinePaint().setColor(color);
-    p.getOutlinePaint().setStrokeWidth(dp(4));
-    android.graphics.Paint stroke = p.getOutlinePaint();
-    stroke.setStyle(android.graphics.Paint.Style.STROKE);stroke.setStrokeCap(android.graphics.Paint.Cap.ROUND);stroke.setStrokeJoin(android.graphics.Paint.Join.ROUND);stroke.setAntiAlias(true);stroke.setPathEffect(null);
-    android.graphics.Paint halo = new android.graphics.Paint(stroke);
-    halo.setColor(ongoing?UiConfig.LIVE_TRAIL_OUTLINE:UiConfig.TRAIL_OUTLINE); halo.setStrokeWidth(dp(6));
-    p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
-    p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(stroke));
-    map.getOverlays().add(p);
+    map.getOverlays().add(new TrailRibbonOverlay(List.of(new TrailRibbonOverlay.Ribbon(pts,null,color,ongoing)),List.of()));
   }
 
   private LayerDrawable dot(int color, int size) {return dot(color,size,UiConfig.DOT_OUTLINE_WIDTH_DP);}
@@ -950,6 +942,8 @@ public final class MainActivity extends Activity {
   @Override
   public void onRequestPermissionsResult(int request, String[] p, int[] results) {
     super.onRequestPermissionsResult(request, p, results);
+    if(request==ResonationsWidget.RECORD_PERMISSION){if(checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED&&resonations!=null)resonations.toggleRecord();else toast("Microphone access denied; recording not started");return;}
+    if(request==ResonationsAudioSettings.PERMISSION){if(android.os.Build.VERSION.SDK_INT<31||checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)==android.content.pm.PackageManager.PERMISSION_GRANTED)ResonationsAudioSettings.show(this);else toast("Bluetooth access denied; system audio settings remain available");return;}
     if (request == 1) {
       if (TrackingStartup.hasLocation(this)) {
         TrackingStartup.start(this, false);
@@ -996,7 +990,7 @@ public final class MainActivity extends Activity {
           m.setTitle(UiConfig.text("current_gps_location"));
           m.setSnippet("±" + Math.round(l.getAccuracy()) + UiConfig.text("m_2"));
           registerMarker("live", m);
-          map.getController().setZoom(16.0);
+          map.getController().setZoom(UiConfig.NAV_FOLLOW_ZOOM);
           if(wtfActive()){wtfTarget=m.getPosition();wtfCenter();}else map.getController().setCenter(m.getPosition());
         });
   }
@@ -1749,7 +1743,7 @@ public final class MainActivity extends Activity {
     if(wtfEnabled&&history){history=false;showMap();}
     for(org.osmdroid.views.overlay.Overlay overlay:map.getOverlays())if(overlay instanceof org.osmdroid.views.overlay.gestures.RotationGestureOverlay)((org.osmdroid.views.overlay.gestures.RotationGestureOverlay)overlay).setEnabled(!wtfActive());
     if(wtfButton!=null)wtfButton.update(wtfActive());if(wtfNorth!=null)wtfNorth.setVisibility(wtfActive()?View.VISIBLE:View.GONE);
-    if(wtfEnabled){fitTrail=false;follow=true;navigationFollow=true;if(Float.isFinite(wtfCourse))wtfRotate(WtfCamera.rotation(wtfCourse));if(map.getZoomLevelDouble()<14)map.getController().setZoom(16.0);}
+    if(wtfEnabled){fitTrail=false;follow=true;navigationFollow=true;if(Float.isFinite(wtfCourse))wtfRotate(WtfCamera.rotation(wtfCourse));if(map.getZoomLevelDouble()<UiConfig.NAV_FOLLOW_MIN_ZOOM)map.getController().setZoom(UiConfig.NAV_FOLLOW_ZOOM);}
     else{wtfTarget=null;if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}map.setMapOrientation(0);map.invalidate();}
     lastFixId=-1;refresh();navigationTick();toast(wtfEnabled?"WTF! enabled · GPS centered · travel follows diagonal":"WTF! disabled · north-up restored");
   }
@@ -1788,7 +1782,7 @@ public final class MainActivity extends Activity {
       Location fix = navigationOrigin();
       if (fix != null) {
         map.getController().setCenter(new GeoPoint(fix.getLatitude(), fix.getLongitude()));
-        if (map.getZoomLevelDouble() < 14) map.getController().setZoom(16.0);
+        if (map.getZoomLevelDouble() < UiConfig.NAV_FOLLOW_MIN_ZOOM) map.getController().setZoom(UiConfig.NAV_FOLLOW_ZOOM);
       }
     }
   }

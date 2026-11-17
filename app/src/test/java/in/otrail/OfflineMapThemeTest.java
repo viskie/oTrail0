@@ -39,6 +39,10 @@ public class OfflineMapThemeTest {
       assertTrue(roads>30);assertTrue(water);
     }
   }
+  @Test public void roadLabelsGrowWithZoomAndRespectConfiguredBounds(){
+    assertTrue(OfflineMapTheme.roadLabelSize(10,10)<OfflineMapTheme.roadLabelSize(10,13));assertTrue(OfflineMapTheme.roadLabelSize(10,13)<OfflineMapTheme.roadLabelSize(10,16));assertTrue(OfflineMapTheme.roadLabelSize(10,16)<OfflineMapTheme.roadLabelSize(10,20));
+    assertEquals(UiConfig.ROAD_LABEL_MAX_SIZE*UiConfig.ROAD_LABEL_SIZE_SCALE,OfflineMapTheme.roadLabelSize(100,20),.001);
+  }
   @Test public void roadWidthProgressivelyGainsDetailWithoutReturningToOriginalHeavyWidth(){
     assertTrue(OfflineMapTheme.roadWidthScale(9)<OfflineMapTheme.roadWidthScale(12));assertTrue(OfflineMapTheme.roadWidthScale(12)<OfflineMapTheme.roadWidthScale(15));assertTrue(OfflineMapTheme.roadWidthScale(15)<OfflineMapTheme.roadWidthScale(18));assertTrue(OfflineMapTheme.roadWidthScale(18)<1);
   }

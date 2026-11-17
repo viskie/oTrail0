@@ -14,6 +14,7 @@ public final class ResonationsService extends Service {
   static final String PLAY="in.otrail.RESONATIONS_PLAY", PAUSE="in.otrail.RESONATIONS_PAUSE";
   static final Set<Runnable> listeners=new CopyOnWriteArraySet<>();
   static boolean active;static String message="";
+  private final List<MediaPlayer> additionalOutputs=new ArrayList<>();
   private MediaPlayer player;private AudioManager audio;private AudioFocusRequest focus;private MediaSession session;
   private List<ResonationsPlaylist.Track> tracks=List.of();private int index,failed;private boolean prepared;
   static android.content.SharedPreferences prefs(Context c){return c.getSharedPreferences("resonations",0);}
@@ -38,18 +39,37 @@ public final class ResonationsService extends Service {
   }
   private void load(int position,AudioAttributes attributes){
     release();if(!active)return;message="Loading · "+tracks.get(index).name();changed();
-    MediaPlayer current=new MediaPlayer();player=current;current.setAudioAttributes(attributes);current.setWakeMode(this,PowerManager.PARTIAL_WAKE_LOCK);
-    current.setOnPreparedListener(p->{if(player!=p||!active)return;prepared=true;try{if(p.getDuration()<=0){skip(attributes);return;}if(position>0&&position<p.getDuration())p.seekTo(position);p.start();}catch(RuntimeException error){skip(attributes);return;}message=tracks.get(index).name();session.setMetadata(new MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE,message).putLong(MediaMetadata.METADATA_KEY_DURATION,p.getDuration()).build());session.setPlaybackState(new PlaybackState.Builder().setActions(PlaybackState.ACTION_PAUSE|PlaybackState.ACTION_STOP).setState(PlaybackState.STATE_PLAYING,position,1).build());prefs(this).edit().putInt("index",index).putInt("position",0).apply();((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(24,notification(message));changed();});
+    MediaPlayer current=new MediaPlayer();player=current;current.setAudioAttributes(attributes);
+    List<AudioDeviceInfo> outputs=ResonationsAudioSettings.outputs(this);if(!outputs.isEmpty())current.setPreferredDevice(outputs.get(0));current.setWakeMode(this,PowerManager.PARTIAL_WAKE_LOCK);
+    current.setOnPreparedListener(p->{if(player!=p||!active)return;prepared=true;try{if(p.getDuration()<=0){skip(attributes);return;}if(position>0&&position<p.getDuration())p.seekTo(position);p.start();startAdditionalOutputs(p,attributes,outputs);}catch(RuntimeException error){skip(attributes);return;}message=tracks.get(index).name();session.setMetadata(new MediaMetadata.Builder().putString(MediaMetadata.METADATA_KEY_TITLE,message).putLong(MediaMetadata.METADATA_KEY_DURATION,p.getDuration()).build());session.setPlaybackState(new PlaybackState.Builder().setActions(PlaybackState.ACTION_PAUSE|PlaybackState.ACTION_STOP).setState(PlaybackState.STATE_PLAYING,position,1).build());prefs(this).edit().putInt("index",index).putInt("position",0).apply();((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(24,notification(message));changed();});
     current.setOnCompletionListener(p->{if(player!=p||!active)return;failed=0;index=ResonationsPlaylist.next(index,tracks.size());load(0,attributes);});
     current.setOnErrorListener((p,what,extra)->{if(player==p)skip(attributes);return true;});
     try{current.setDataSource(this,Uri.parse(tracks.get(index).uri()));current.prepareAsync();}catch(Exception error){skip(attributes);}
+  }
+  private void startAdditionalOutputs(MediaPlayer primary,AudioAttributes attributes,List<AudioDeviceInfo> outputs){
+    for(int i=1;i<outputs.size();i++){
+      MediaPlayer copy=new MediaPlayer();copy.setAudioAttributes(attributes);
+      if(!copy.setPreferredDevice(outputs.get(i))){copy.release();continue;}
+      additionalOutputs.add(copy);
+      copy.setOnPreparedListener(p->{if(player!=primary||!active){return;}try{p.seekTo(primary.getCurrentPosition());p.start();}catch(RuntimeException e){additionalOutputs.remove(p);p.release();}});
+      copy.setOnErrorListener((p,w,e)->{additionalOutputs.remove(p);p.release();return true;});
+      try{copy.setDataSource(this,Uri.parse(tracks.get(index).uri()));copy.prepareAsync();}catch(Exception e){additionalOutputs.remove(copy);copy.release();}
+    }
+    new Handler(getMainLooper()).postDelayed(()->{
+      if(player!=primary||!active)return;
+      Set<Integer> actual=new HashSet<>();AudioDeviceInfo routed=primary.getRoutedDevice();if(routed!=null)actual.add(routed.getId());
+      for(java.util.Iterator<MediaPlayer> it=additionalOutputs.iterator();it.hasNext();){MediaPlayer p=it.next();AudioDeviceInfo d=p.getRoutedDevice();if(d!=null&&!actual.add(d.getId())){it.remove();p.setOnErrorListener(null);p.release();}}
+      if(outputs.size()>1&&actual.size()<outputs.size())message="Phone routed to "+actual.size()+" output(s); use system Dual Audio for additional Bluetooth devices";
+      else if(outputs.size()>1)message=tracks.get(index).name()+" · "+actual.size()+" outputs (device delays vary)";
+      changed();
+    },1500);
   }
   private void skip(AudioAttributes attributes){
     if(++failed>=tracks.size()){message="Files unavailable or unsupported · choose again";prefs(this).edit().putInt("position",0).apply();pause();return;}
     index=ResonationsPlaylist.next(index,tracks.size());new Handler(getMainLooper()).post(()->{if(active)load(0,attributes);});
   }
   private void pause(){if(prepared&&player!=null)try{prefs(this).edit().putInt("index",index).putInt("position",player.getCurrentPosition()).apply();}catch(IllegalStateException ignored){}active=false;release();if(focus!=null){audio.abandonAudioFocusRequest(focus);focus=null;}stopForeground(STOP_FOREGROUND_REMOVE);changed();stopSelf();}
-  private void release(){prepared=false;if(player!=null){MediaPlayer old=player;player=null;old.setOnPreparedListener(null);old.setOnCompletionListener(null);old.setOnErrorListener(null);old.release();}}
+  private void release(){for(MediaPlayer p:additionalOutputs){p.setOnPreparedListener(null);p.setOnErrorListener(null);p.release();}additionalOutputs.clear();prepared=false;if(player!=null){MediaPlayer old=player;player=null;old.setOnPreparedListener(null);old.setOnCompletionListener(null);old.setOnErrorListener(null);old.release();}}
   @Override public void onDestroy(){if(session!=null){session.setActive(false);session.release();}active=false;release();if(focus!=null)audio.abandonAudioFocusRequest(focus);changed();super.onDestroy();}
   @Override public IBinder onBind(Intent intent){return null;}
 }

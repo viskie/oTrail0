@@ -14,6 +14,12 @@ public final class OfflineRouting {
   public static boolean selected(Context c) { return !engine(c).equals("online"); }
   public static File root(Context c) { File f=new File(c.getFilesDir(),"routing");f.mkdirs();return f; }
   public static synchronized String route(Context c,String engine,RoutePlan.Point from,RoutePlan.Point to) throws Exception {
+    return route(c,engine,List.of(from,to),"auto");
+  }
+  public static synchronized String route(Context c,String engine,List<RoutePlan.Point> points,String preference) throws Exception {
+    if(points.size()<2||points.size()>10)throw new IOException("Choose 2–10 route points");
+    for(RoutePlan.Point p:points)if(!DestinationSearch.india(p))throw new IOException("Offline routing is configured for India");
+    RoutePlan.Point from=points.get(0),to=points.get(points.size()-1);
     if(from.lat()<6 || from.lat()>38 || from.lon()<68 || from.lon()>98 || to.lat()<6 || to.lat()>38 || to.lon()<68 || to.lon()>98)
       throw new IOException("Offline routing is configured for India");
     if(engine.equals("brouter")) {
@@ -22,9 +28,12 @@ public final class OfflineRouting {
         File file=new File(rules,name);
         try(InputStream in=c.getAssets().open("brouter/"+name); FileOutputStream out=new FileOutputStream(file)) { TrailBackup.copy(in,out); }
       }
+      File profile=new File(rules,"car-vario.brf");
+      String original=new String(java.nio.file.Files.readAllBytes(profile.toPath()),StandardCharsets.UTF_8);
+      java.nio.file.Files.write(profile.toPath(),RoutePreferences.brouterProfile(original,preference).getBytes(StandardCharsets.UTF_8));
       File segments=new File(root(c),"segments4");segments.mkdirs();
       List<OsmNodeNamed> waypoints=new ArrayList<>();
-      for(RoutePlan.Point p:List.of(from,to)) {
+      for(RoutePlan.Point p:points) {
         OsmNodeNamed n=new OsmNodeNamed();n.name=waypoints.isEmpty()?"from":"to";
         n.ilon=(int)Math.round((p.lon()+180)*1e6);n.ilat=(int)Math.round((p.lat()+90)*1e6);waypoints.add(n);
       }
@@ -49,10 +58,11 @@ public final class OfflineRouting {
     mj.put("max_cache_size",134217728);mj.remove("tile_url");mj.remove("traffic_extract");
     File conf=new File(root(c),"valhalla.json");
     try(FileOutputStream out=new FileOutputStream(conf)){out.write(config.toString().getBytes(StandardCharsets.UTF_8));}
-    JSONObject req=new JSONObject().put("locations",new JSONArray()
-      .put(new JSONObject().put("lat",from.lat()).put("lon",from.lon()))
-      .put(new JSONObject().put("lat",to.lat()).put("lon",to.lon())))
-      .put("costing","auto").put("units","kilometers").put("language","en-US");
+    JSONArray locations=new JSONArray();
+    for(RoutePlan.Point p:points)locations.put(new JSONObject().put("lat",p.lat()).put("lon",p.lon()).put("type","break"));
+    JSONObject req=new JSONObject().put("locations",locations)
+      .put("costing","auto").put("units","kilometers").put("language","en-US")
+      .put("costing_options",new JSONObject().put("auto",new JSONObject().put("use_highways",RoutePreferences.highwayUse(preference))));
     try(Valhalla actor=new Valhalla(conf.getAbsolutePath())) {
       return OfflineRouteCodec.valhalla(actor.routeRaw(req.toString()));
     } catch(LinkageError e) { throw new IOException("Valhalla is unavailable on this phone architecture",e); }

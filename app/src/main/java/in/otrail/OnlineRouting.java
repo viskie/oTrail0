@@ -24,16 +24,18 @@ public final class OnlineRouting {
 
   public static String route(String endpoint, RoutePlan.Point from, RoutePlan.Point to)
       throws Exception {
-    String url =
-        server(endpoint)
-            + String.format(
-                Locale.US,
-                "%.6f,%.6f;%.6f,%.6f?steps=true&overview=full&geometries=geojson&alternatives=false",
-                from.lon(),
-                from.lat(),
-                to.lon(),
-                to.lat());
-    return get(url, 12_000_000);
+    return route(endpoint,java.util.List.of(from,to),"auto");
+  }
+
+  public static String route(String endpoint,java.util.List<RoutePlan.Point> points,String preference) throws Exception {
+    return RoutePreferences.select(get(routeUrl(endpoint,points,preference),12_000_000),preference);
+  }
+  static String routeUrl(String endpoint,java.util.List<RoutePlan.Point> points,String preference)throws Exception {
+    if(points.size()<2||points.size()>10)throw new IllegalArgumentException("Choose 2–10 route points");
+    StringBuilder coordinates=new StringBuilder();
+    for(RoutePlan.Point p:points){if(coordinates.length()>0)coordinates.append(';');coordinates.append(String.format(Locale.US,"%.6f,%.6f",p.lon(),p.lat()));}
+    String url=server(endpoint)+coordinates+"?steps=true&overview=full&geometries=geojson&alternatives="+(!RoutePreferences.valid(preference).equals("auto"));
+    return url;
   }
 
   static String get(String url, int maxBytes) throws Exception {

@@ -44,7 +44,7 @@ public final class OsrmRouteParser {
         steps.add(
             new RoutePlan.Step(
                 geometry.cumulative[index],
-                s.optString("_instruction", instruction(m, s.optString("name"), s.optString("ref")))));
+                s.optString("_instruction", "arrive".equals(m.optString("type"))&&l<legs.length()-1?"Reach intermediate stop":instruction(m, s.optString("name"), s.optString("ref")))));
       }
     }
     if (steps.isEmpty()) throw new IllegalArgumentException("Route contains no turn instructions");

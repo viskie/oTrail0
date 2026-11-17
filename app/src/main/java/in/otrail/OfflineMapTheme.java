@@ -19,7 +19,7 @@ final class OfflineMapTheme implements XmlRenderTheme {
     return cacheKey(false);
   }
   static String cacheKey(boolean dark) {
-    return Integer.toHexString(Objects.hash("road-detail-v3",dark,UiConfig.MAP_DARK_BACKGROUND,
+    return Integer.toHexString(Objects.hash("readable-labels-v4",UiConfig.ROAD_LABEL_MIN_SIZE,UiConfig.ROAD_LABEL_MAX_SIZE,UiConfig.ROAD_LABEL_SIZE_SCALE,UiConfig.CITY_LABEL_FAR_FACTOR,UiConfig.CITY_LABEL_MID_FACTOR,UiConfig.CITY_LABEL_STREET_FACTOR,UiConfig.CITY_LABEL_CLOSE_FACTOR,dark,UiConfig.MAP_DARK_BACKGROUND,
         UiConfig.MAP_DARK_OUTSIDE_BACKGROUND,UiConfig.MAP_DARK_ROAD_CASING,
         UiConfig.MAP_DARK_ROAD_MOTORWAY,UiConfig.MAP_DARK_ROAD_TRUNK,
         UiConfig.MAP_DARK_ROAD_PRIMARY,UiConfig.MAP_DARK_ROAD_SECONDARY,
@@ -92,11 +92,17 @@ final class OfflineMapTheme implements XmlRenderTheme {
         }
       }
       NodeList roadLabels=document.getElementsByTagName("pathText");
-      for(int i=0;i<roadLabels.getLength();i++) {
-        Element text=(Element)roadLabels.item(i);
-        text.setAttribute("fill",color(roadLabel));
-        text.setAttribute("stroke",color(textOutline));
-        text.setAttribute("font-family",UiConfig.MAP_TEXT_FONT);
+      List<Element> labels=new ArrayList<>();for(int i=0;i<roadLabels.getLength();i++)labels.add((Element)roadLabels.item(i));
+      for(Element text:labels) {
+        text.setAttribute("fill",color(roadLabel));text.setAttribute("stroke",color(textOutline));text.setAttribute("font-family",UiConfig.MAP_TEXT_FONT);
+        if(!text.hasAttribute("font-size"))continue;
+        float original=Float.parseFloat(text.getAttribute("font-size"));Element parent=(Element)text.getParentNode();
+        for(int[] band:new int[][]{{0,10},{11,13},{14,16},{17,22}}) {
+          Element rule=document.createElement("rule");rule.setAttribute("e","way");rule.setAttribute("k","*");rule.setAttribute("v","*");
+          rule.setAttribute("zoom-min",Integer.toString(band[0]));rule.setAttribute("zoom-max",Integer.toString(band[1]));
+          Element scaled=(Element)text.cloneNode(true);scaled.setAttribute("font-size",Float.toString(roadLabelSize(original,band[1])));rule.appendChild(scaled);parent.appendChild(rule);
+        }
+        parent.removeChild(text);
       }
       ByteArrayOutputStream output=new ByteArrayOutputStream();
       TransformerFactory.newInstance().newTransformer().transform(new DOMSource(document),new StreamResult(output));
@@ -123,8 +129,12 @@ final class OfflineMapTheme implements XmlRenderTheme {
     return 0xff000000|((red*42/100+8)<<16)|((green*42/100+8)<<8)|(blue*42/100+8);
   }
   static float citySize(float original,int zoom) {
-    float factor=zoom<=7?.36f:zoom<=10?.40f:zoom<=13?.48f:.56f;
+    float factor=zoom<=7?UiConfig.CITY_LABEL_FAR_FACTOR:zoom<=10?UiConfig.CITY_LABEL_MID_FACTOR:zoom<=13?UiConfig.CITY_LABEL_STREET_FACTOR:UiConfig.CITY_LABEL_CLOSE_FACTOR;
     return Math.max(UiConfig.CITY_LABEL_MIN_SIZE,Math.min(UiConfig.CITY_LABEL_MAX_SIZE,original*factor))*UiConfig.CITY_LABEL_SIZE_SCALE;
+  }
+  static float roadLabelSize(float original,int zoom){
+    float factor=zoom<=10?1.1f:zoom<=13?1.4f:zoom<=16?1.7f:2f;
+    return Math.max(UiConfig.ROAD_LABEL_MIN_SIZE,Math.min(UiConfig.ROAD_LABEL_MAX_SIZE,original*factor))*UiConfig.ROAD_LABEL_SIZE_SCALE;
   }
   static float roadClassScale(String highway){if(highway.contains("motorway"))return 1.65f;if(highway.contains("trunk"))return 1.4f;if(highway.contains("primary"))return 1.2f;if(highway.contains("secondary"))return 1.05f;if(highway.contains("tertiary"))return .9f;return .65f;}
   static float roadWidthScale(int zoom){return zoom<=10?UiConfig.MAP_ROAD_WIDTH_FAR:zoom<=13?UiConfig.MAP_ROAD_WIDTH_MID:zoom<=16?UiConfig.MAP_ROAD_WIDTH_STREET:UiConfig.MAP_ROAD_WIDTH_CLOSE;}

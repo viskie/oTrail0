@@ -66,13 +66,14 @@ public class UiConfig {
   public static final String TOTAL_STATS_DELIMITER="  ||  ";
   public static final int TOTAL_STATS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final int RESONATIONS_TITLE_SP=12, RESONATIONS_TEXT_SP=11, RESONATIONS_TEXT=0xff00ffff;
+  public static final float TRAIL_WIDTH_DP=4f, TRAIL_BORDER_DP=1f, TRAIL_LANE_SPACING_DP=8f;
   public static final float TEXT_SCALE=1f;
   public static final int CAPTION_SIZE_SP=11, SECONDARY_SIZE_SP=12, MODE_SIZE_SP=13,
       SUBHEADING_SIZE_SP=14, HEADING_SIZE_SP=18, CARD_TITLE_SIZE_SP=19,
       SETTINGS_TITLE_SIZE_SP=25, APP_TITLE_SIZE_SP=27;
-  public static final int DIALOG_TITLE_COLOR=HEADING, DIALOG_BODY_COLOR=BLACK,
-      DIALOG_LINK_COLOR=ACCENT_TEXT, DIALOG_HINT_COLOR=MUTED,
-      DIALOG_BUTTON_TEXT_COLOR=BUTTON_TEXT,
+  public static final int DIALOG_TITLE_COLOR=BLACK, DIALOG_BODY_COLOR=BLACK,
+      DIALOG_LINK_COLOR=BLACK, DIALOG_HINT_COLOR=0xff444444,
+      DIALOG_BUTTON_TEXT_COLOR=BLACK,
       DIALOG_BUTTON_DISABLED_TEXT_COLOR=BUTTON_DISABLED_TEXT,
       DIALOG_SURFACE=SURFACE, DIALOG_ACCENT=PURPLE;
   public static final String DIALOG_TITLE_FONT=HEADING_FONT,
@@ -102,7 +103,15 @@ public class UiConfig {
       MENU_ICON_UPDATES_COLOR=0xff00c853;
   public static final int RECORDED_STOP_EMPHASIS_AFTER_HOURS=4,
       RECORDED_STOP_EMPHASIS_SIZE_SP=DIALOG_BODY_SIZE_SP+1;
+  // Camera zoom: each +1 halves ground metres per pixel. User pinch zoom remains available.
+  public static final double NAV_FOLLOW_ZOOM=16.0, NAV_FOLLOW_MIN_ZOOM=14.0;
+  public static final float WTF_DEFAULT_ZOOM=16f;
+  // Raster providers bake labels into tiles; enlarge the entire tile for legibility.
+  public static final float RASTER_TILE_SCALE=1.25f;
   public static final float OFFLINE_MAP_TEXT_SCALE=1f;
+  public static final float ROAD_LABEL_MIN_SIZE=11f, ROAD_LABEL_MAX_SIZE=22f, ROAD_LABEL_SIZE_SCALE=1f;
+  public static final float CITY_LABEL_FAR_FACTOR=.55f, CITY_LABEL_MID_FACTOR=.75f,
+      CITY_LABEL_STREET_FACTOR=1f, CITY_LABEL_CLOSE_FACTOR=1.2f;
   // Offline basemap names such as Bilaspur (cities, towns, villages and suburbs).
   // Mapsforge families: default, sans_serif, serif, monospace.
   // Styles: normal, bold, italic, bold_italic. Size multiplier preserves zoom rules.
@@ -110,7 +119,7 @@ public class UiConfig {
   public static final int CITY_LABEL_COLOR=0xff6b3f20, CITY_LABEL_OUTLINE_COLOR=0xfffff7e8;
   public static final float CITY_LABEL_SIZE_SCALE=1f, CITY_LABEL_OUTLINE_WIDTH=.35f;
   // Theme pixels before screen density; city names get progressively larger with zoom.
-  public static final float CITY_LABEL_MIN_SIZE=8f, CITY_LABEL_MAX_SIZE=14f;
+  public static final float CITY_LABEL_MIN_SIZE=11f, CITY_LABEL_MAX_SIZE=30f;
   public static final int BIG_CITY_LABEL_COLOR=CITY_LABEL_COLOR, LONG_STOP_COLOR=0xffff0000,
       LONG_STOP_LABEL_BACKGROUND=0xeefaf6ff;
   public static final String BIG_CITY_LABEL_STYLE="italic";
