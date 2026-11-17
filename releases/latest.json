@@ -1,8 +1,8 @@
 {
-  "versionCode": 42,
-  "versionName": "0.4.19",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.19-debug.apk",
-  "sha256": "0b1dcdb962942e58a68abcebb4ac7b476b4f45dd3df9529c3cf82de57f94389b",
-  "sizeBytes": 55189502,
-  "notes": "Authoritative manually updated source preserved. Single-button India offline BRouter data download, installed-tile progress and sizes, Wi-Fi/cellular, advanced imports/updates/Valhalla collapsed. Includes island/frontier coverage. Offline routing defaults editable in RoutingConfig.java. Portable restored photo/audio provider. Existing data, modules and settings retained."
+  "versionCode": 43,
+  "versionName": "0.4.20",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.20-debug.apk",
+  "sha256": "ccfef4acea25a81fb7c6e64dca55dfee6328274e190d13382195043298af9d69",
+  "sizeBytes": 55252110,
+  "notes": "Route-options dialog before planning: soft EX/NH/SH preferences and up to eight explicitly selected via cities; active-route cache retains remaining via points for reroutes/restarts. OSRM ranks returned alternatives; offline road-class approximations, not strict NH/SH exclusions. Configurable navigation zoom, larger offline city/road labels and raster tile scaling, black dialog text. Repeated passes separated in screen space, newest centred, rounded shared-path trail casing; GPS data unchanged. Resonations PCM16 WAV recording with microphone foreground service, 48/44.1 kHz mono/stereo, input/output selectors and best-effort multiple output players; hardware routing restrictions displayed and duplicate outputs removed. 135 tests, build and lint passed; physical device audio/UI validation pending."
 }
