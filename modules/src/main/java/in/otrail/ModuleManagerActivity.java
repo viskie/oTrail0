@@ -49,7 +49,7 @@ public final class ModuleManagerActivity extends Activity {
       .setNegativeButton("Cancel",null).show();
   }
   private void download(SignedModuleCatalog.Release r,char[] password){status.setText("Downloading "+r.name()+" "+r.version());progress.setProgress(0);worker.execute(()->{try{
-    store.install(r,password,p->ui(()->{progress.setProgress(p);status.setText("Downloading "+r.name()+" · "+p+"%");}));ui(()->refresh(false));
+    store.install(r,password,p->ui(()->{progress.setProgress(p);status.setText("Downloading "+r.name()+" · "+p+"%");}));if(r.id().equals("mod3"))store.activate(r);ui(()->{refresh(false);if(r.id().equals("mod3"))open(r);});
   }catch(Exception e){error(e);}});}
   private void activate(SignedModuleCatalog.Release r){worker.execute(()->{try{store.activate(r);ui(()->{refresh(false);open(r);});}catch(Exception e){error(e);}});}
   private void open(SignedModuleCatalog.Release r){startActivity(new Intent(this,ModuleActivity.class).putExtra("id",r.id()));}

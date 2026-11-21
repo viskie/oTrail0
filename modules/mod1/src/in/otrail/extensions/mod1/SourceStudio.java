@@ -41,7 +41,7 @@ public final class SourceStudio implements ModuleV1 {
   private final ExecutorService io=Executors.newSingleThreadExecutor();private final Handler handler=new Handler(Looper.getMainLooper());
   private final ExecutorService shellIo=Executors.newCachedThreadPool();private java.lang.Process shellProcess;private OutputStream shellInput;private TextView shellOutput;private final StringBuilder shellTranscript=new StringBuilder();
   private final LinkedHashMap<String,Buffer> buffers=new LinkedHashMap<>();
-  private String current="",editorPath="",draftProject="",tab="Shell";private JSONObject metadata,state=new JSONObject();
+  private String current="",editorPath="",draftProject="",tab="Project";private JSONObject metadata,state=new JSONObject();
   private final Runnable draftSave=()->saveDrafts();
   private boolean running,closed,polling,suppress,treeExpanded,autoShellLaunch=true;private int pendingLine=-1;private File exportFile;private String exportMime;
   private static final int EXPORT=710,KEYSTORE=711;
@@ -57,9 +57,9 @@ public final class SourceStudio implements ModuleV1 {
     metadata=new JSONObject(asset("studio.json"));try{mergeMetadata(new JSONObject(host.selectedToolchain()));}catch(Exception ignored){}restoreDrafts();
     root=new LinearLayout(a);root.setOrientation(1);root.setPadding(dp(8),dp(6),dp(8),dp(6));root.setBackgroundColor(BG);
     LinearLayout top=row();top.addView(button("← Modules",()->activity.finish()),new LinearLayout.LayoutParams(0,dp(44),1));top.addView(label("GOD · Source Studio",18),new LinearLayout.LayoutParams(0,-2,2));headerBar=top;root.addView(top);
-    GridLayout names=new GridLayout(a);names.setColumnCount(3);int index=0;for(String name:new String[]{"Project","Editor","Build","APKs","Tools","Shell"}){Button b=button(name,()->show(name));GridLayout.LayoutParams p=new GridLayout.LayoutParams(GridLayout.spec(index/3),GridLayout.spec(index%3,1f));p.width=0;p.height=dp(44);p.setMargins(dp(3),dp(2),dp(3),dp(2));names.addView(b,p);index++;}navigationBar=names;root.addView(names,new LinearLayout.LayoutParams(-1,-2));
+    GridLayout names=new GridLayout(a);names.setColumnCount(3);int index=0;for(String name:new String[]{"Project","Editor","Build","APKs","Tools"}){Button b=button(name,()->show(name));GridLayout.LayoutParams p=new GridLayout.LayoutParams(GridLayout.spec(index/3),GridLayout.spec(index%3,1f));p.width=0;p.height=dp(44);p.setMargins(dp(3),dp(2),dp(3),dp(2));names.addView(b,p);index++;}navigationBar=names;root.addView(names,new LinearLayout.LayoutParams(-1,-2));
     status=label("In-app engine ready · select source and download compiler tools",12);root.addView(status);progress=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(5)));
-    content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));show("Shell");ensureShell();return root;
+    content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));show("Project");return root;
   }
   private SharedPreferences preferences(){return activity.getSharedPreferences("mod1_studio",0);}
   private int dp(int value){return Math.round(value*activity.getResources().getDisplayMetrics().density);}
@@ -83,6 +83,8 @@ public final class SourceStudio implements ModuleV1 {
       panel.addView(label("No external app or build server is used.",12));
       try{JSONArray sources=metadata.getJSONArray("sources");for(int i=0;i<sources.length();i++){final JSONObject source=sources.getJSONObject(i);panel.addView(button("Download source · "+source.getString("version"),()->work(()->{call(obj("action","source","source",source));ui(()->status.setText("Source download started; progress below"));})));}}catch(Exception e){error(e);}
       panel.addView(button("Browse project files",this::browse));
+      panel.addView(button("Open internal-storage source folder",this::importFolder));
+      panel.addView(button("SCP workspace configuration",this::scpConfig));
       panel.addView(button("Functions added in this release",this::latestFunctions));
       panel.addView(button("Export source snapshot ZIP",()->work(()->{JSONObject result=call(obj("action","export"));download(result.getString("name"),false,true);})));
       panel.addView(label("Return to an existing workspace by selecting its source version; existing edits are retained. Source downloads work over Wi-Fi or cellular.",12));
@@ -139,6 +141,8 @@ public final class SourceStudio implements ModuleV1 {
     StringBuilder text=new StringBuilder(latest.optString("commit")).append(" · ").append(latest.optString("title"));JSONArray functions=latest.optJSONArray("functions");if(functions!=null)for(int i=0;i<functions.length();i++)text.append("\n\n• ").append(functions.optString(i));
     new AlertDialog.Builder(activity).setTitle("GOD v3 functions").setMessage(text.toString()).setPositiveButton("Close",null).show();
   }
+  private void importFolder(){EditText path=new EditText(activity);path.setHint("/storage/emulated/0/Projects/my-source");new AlertDialog.Builder(activity).setTitle("Open source folder").setMessage("GOD copies the selected folder into its protected editable workspace. Enable shared-storage access first.").setView(path).setPositiveButton("Import",(d,w)->work(()->call(obj("action","importFolder","path",path.getText().toString().trim())))).setNegativeButton("Cancel",null).show();}
+  private void scpConfig(){LinearLayout form=new LinearLayout(activity);form.setOrientation(1);EditText hostName=new EditText(activity),user=new EditText(activity),remote=new EditText(activity);hostName.setHint("SSH host");user.setHint("SSH user");remote.setHint("Remote project path");form.addView(hostName);form.addView(user);form.addView(remote);try{JSONObject saved=StudioFiles.json(new File(host.privateDirectory(),"scp.json"));hostName.setText(saved.optString("host"));user.setText(saved.optString("user"));remote.setText(saved.optString("path"));}catch(Exception ignored){}new AlertDialog.Builder(activity).setTitle("SCP project").setMessage("Configuration is shared with the standalone Debian module. Use its scp command to sync this path into /app-data/files/modules/data/mod1/projects/scp-workspace, then refresh GOD.").setView(form).setPositiveButton("Save",(d,w)->work(()->StudioFiles.write(new File(host.privateDirectory(),"scp.json"),obj("host",hostName.getText().toString().trim(),"user",user.getText().toString().trim(),"path",remote.getText().toString().trim()).toString().getBytes(StandardCharsets.UTF_8)))).setNegativeButton("Cancel",null).show();}
 
   private void shellScreen(){
     LinearLayout panel=new LinearLayout(activity);panel.setOrientation(1);content.addView(panel,new LinearLayout.LayoutParams(-1,-1));
@@ -278,7 +282,7 @@ public final class SourceStudio implements ModuleV1 {
       JSONArray outputs=new JSONArray();File[] files=new File(data,"outputs").listFiles();if(files!=null){Arrays.sort(files,Comparator.comparing(File::getName).reversed());for(File f:files)if(f.getName().endsWith(".apk"))outputs.put(obj("name",f.getName(),"size",f.length()));}return result.put("outputs",outputs);
     }
     if(action.equals("cancel")){host.cancelTask();return obj("ok",true);}
-    if(action.equals("source")||action.equals("setup")||action.equals("shellSetup")||action.equals("build")||action.startsWith("github")){
+    if(action.equals("source")||action.equals("importFolder")||action.equals("setup")||action.equals("shellSetup")||action.equals("build")||action.startsWith("github")){
       if(new JSONObject(host.taskStatus()).optBoolean("busy"))throw new IOException("Another tool task is running");
       if(action.equals("source")&&!buffers.isEmpty())throw new IOException("Save and close editor tabs before selecting a source workspace");
       host.startTask(request.toString());return obj("ok",true);

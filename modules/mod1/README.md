@@ -1,25 +1,10 @@
-# GOD — downloadable source studio (module ID `mod1`, version 3.2.2)
+# GOD — downloadable source studio (module ID `mod1`, version 4.0.0)
 
-All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. The editor, compiler and Debian shell controller are downloaded as GOD; the host APK contains only the signed module host and the ARM64 PRoot executable required by Android's native-execution policy.
-
-## Debian shell
-
-The Shell tab includes a checksum-pinned Debian Bookworm ARM64 root filesystem inside GOD and expands it under private `modules/data/mod1/debian/` without a second network download. oTraiL 0.4.22 raises the signed-module ceiling to 240 MB for this verified package. It launches `/usr/bin/bash --login` through PRoot and `script`, providing a PTY-backed session over GOD's terminal controls. Type `exit` or tap **Exit shell** to terminate only the Debian process and return to the GOD UI; oTraiL and its tracking service remain running.
-
-The guest exposes these explicit bindings:
-
-- `/project`: selected GOD source workspace, when one has been downloaded.
-- `/god-data`: GOD's private data, tools, outputs and shell installation.
-- `/app-data`, `/app-files`, `/app-cache`: oTraiL package-private directories under the same Android UID.
-- `/external-app`: oTraiL's app-specific external-storage directory.
-- `/shared-storage`: shared external storage, only after the user enables Android's special all-files access setting.
-- `/dev`, `/proc`, `/sys`: Android views made available to PRoot; Android UID and SELinux restrictions still apply.
-
-The shell's fake UID 0 permits Debian package management inside the rootfs; it is not Android root and cannot access another app's private data. Shell commands can modify or erase oTraiL data through `/app-data`, so launch requires an explicit warning confirmation. All-files access is a special Android permission and may make a general Play Store distribution ineligible; it is never silently granted. The current native executable supports `arm64-v8a` only.
+All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. GOD contains the editor and native build workflow. Debian Shell is now the independent `mod3` module with its own nine-sided map launcher.
 
 ## Use
 
-1. On Android 15 or later, update oTraiL to 0.4.22 or later. Android still requires confirmation to install the main APK update.
+1. On Android 15 or later, update oTraiL to 0.4.23 or later. Android still requires confirmation to install the main APK update.
 2. Settings → Extension modules → Refresh versions → GOD → Download & install. Enter the installation password supplied by the owner, then Activate.
 3. Tools → Refresh / choose toolchain. Review licenses and download the compatible toolchain. Downloads show sizes/progress and support Wi-Fi/cellular.
 4. Project → Download source → Editor. The Sora/TextMate workspace shows its expandable project tree in the editor, opens files full-screen with a floating GOD return control, and provides file tabs, undo/redo, Java highlighting, find/replace, project-wide search, save/save-all and recoverable drafts.

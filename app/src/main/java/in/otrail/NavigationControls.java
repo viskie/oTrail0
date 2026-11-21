@@ -39,6 +39,7 @@ final class NavigationControls implements AutoCloseable {
   private String tollRequestKey;
   private long tollTicket;
   private volatile boolean closed;
+  private double crawlUntil=Double.NaN,lastGuidanceUntil=Double.NaN;private long crawlStarted;private float crawlSpeed;
   private DestinationSearch.Result pending,autoStartTarget;
   private boolean searching;
   private List<RoutePlan.Point> pendingVia=List.of();
@@ -535,7 +536,9 @@ void search() {
     boolean active = "ACTIVE".equals(s.mode());
     boolean stale =
         active && (s.fixTime() == 0 || System.currentTimeMillis() - s.fixTime() > 30_000);
-    instruction.setText(
+    if(g!=null&&active&&!g.arrived()&&(!Double.isFinite(lastGuidanceUntil)||Math.abs(g.untilTurn()-lastGuidanceUntil)>.01)){lastGuidanceUntil=g.untilTurn();crawlUntil=g.untilTurn();crawlStarted=System.currentTimeMillis();Location moving=origin.get();crawlSpeed=moving==null?0:Math.max(0,moving.getSpeed());}
+    double shownUntil=g==null?0:Math.max(0,Double.isFinite(crawlUntil)?crawlUntil-crawlSpeed*Math.max(0,System.currentTimeMillis()-crawlStarted)/1000.0:g.untilTurn());
+    String guidanceText=
         pending != null
             ? UiConfig.text("waiting_for_a_fresh_gps_fix")
             : stale
@@ -543,8 +546,9 @@ void search() {
                 : g != null && g.offRoute()
                     ? s.note()
                     : g != null && active && !g.arrived()
-                    ? distance(g.untilTurn()) + UiConfig.text("left_on_this_road") + g.instruction()
-                        : s.note());
+                    ? distance4(shownUntil) + UiConfig.text("left_on_this_road") + g.instruction()
+                        : s.note();
+    instruction.setText(guidanceText==null||guidanceText.isBlank()?"--":guidanceText);
     double remaining = g != null ? g.remaining() : has ? s.route().distance : 0,
         seconds = g != null ? g.seconds() : has ? s.route().duration : 0;
     summary.setText(
@@ -784,6 +788,7 @@ void search() {
         ? Math.round(m) + UiConfig.text("m_2")
         : String.format(Locale.getDefault(), UiConfig.text("1f_km"), m / 1000);
   }
+  static String distance4(double m){return m<1000?String.format(Locale.US,"%.4f m",Math.max(0,m)):String.format(Locale.US,"%.4f km",Math.max(0,m)/1000.0);}
 
   private void toast(String message) {
     if (!activity.isDestroyed()) Toast.makeText(activity, message, Toast.LENGTH_LONG).show();

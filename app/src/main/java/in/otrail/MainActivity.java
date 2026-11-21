@@ -55,7 +55,7 @@ public final class MainActivity extends Activity {
   private StopDotOverlay stopDots;
   private FrameLayout mapFrame;
   private LinearLayout root, body, downloadCards;
-  private TextView status, stats, mode, packSummary;
+  private TextView status, stats, statusClock, mode, packSummary;
   private GapRoadRoutes gapRoadRoutes;
   private HistoricalTrails historicalTrails;
   private final Handler handler = new Handler(Looper.getMainLooper());
@@ -72,6 +72,7 @@ public final class MainActivity extends Activity {
   private CharSequence liveBubbleStatus;
   private ResonationsWidget resonations;
   private GeoPoint liveBubblePoint;
+  private GeoPoint animatedGpsPoint;private android.animation.ValueAnimator gpsMotion;
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
   private ModuleHost moduleHost;
@@ -94,6 +95,7 @@ public final class MainActivity extends Activity {
   private final Runnable ticker =
       new Runnable() {
         public void run() {
+          if(statusClock!=null)statusClock.setText(new SimpleDateFormat("dd--MM--yyyy HH:mm:ss",Locale.US).format(new Date()));
           if (downloads) {
             for (Runnable r : cardUpdates) r.run();
           } else {
@@ -325,6 +327,7 @@ public final class MainActivity extends Activity {
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
+    ImageButton debian=new ImageButton(this);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell");debian.setTooltipText("Debian shell");debian.setOnClickListener(v->{String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
     ScreenShareButton screenShare=new ScreenShareButton(this,
         ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
     LinearLayout.LayoutParams screenSharePosition=new LinearLayout.LayoutParams(
@@ -405,10 +408,9 @@ public final class MainActivity extends Activity {
     GradientDrawable totalBackground=bg(UiConfig.TOTAL_STATS_BACKGROUND,9);
     totalBackground.setStroke(dp(1),UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setBackground(totalBackground);
-    HorizontalScrollView totalsFloat=new HorizontalScrollView(this);totalsFloat.setHorizontalScrollBarEnabled(false);totalsFloat.setElevation(dp(4));
-    totalsFloat.addView(stats,new HorizontalScrollView.LayoutParams(-2,-2));
+    LinearLayout totalsBar=new LinearLayout(this);totalsBar.setGravity(Gravity.CENTER_VERTICAL);statusClock=text("",12,Color.WHITE);statusClock.setTypeface(Typeface.MONOSPACE);statusClock.setSingleLine(true);totalsBar.addView(statusClock,new LinearLayout.LayoutParams(-2,-2));HorizontalScrollView totalsFloat=new HorizontalScrollView(this);totalsFloat.setHorizontalScrollBarEnabled(false);totalsFloat.setElevation(dp(4));totalsFloat.addView(stats,new HorizontalScrollView.LayoutParams(-2,-2));totalsBar.addView(totalsFloat,new LinearLayout.LayoutParams(0,-2,1));
     FrameLayout.LayoutParams totalsPosition=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM|Gravity.END);
-    totalsPosition.setMargins(dp(UiConfig.MAP_COPYRIGHT_SPACE_DP),0,dp(8),dp(UiConfig.MAP_TOTALS_BOTTOM_DP));mapFrame.addView(totalsFloat,totalsPosition);
+    totalsPosition.setMargins(dp(8),0,dp(8),dp(UiConfig.MAP_TOTALS_BOTTOM_DP));mapFrame.addView(totalsBar,totalsPosition);
     TextView legend =
         text(UiConfig.text("green_ready_blue_moving_turquoise_stopped_cyan_history"), 10, MUTED);
     legend.setVisibility(View.GONE);
@@ -531,7 +533,7 @@ public final class MainActivity extends Activity {
       setPadding(padding,padding,padding,padding);
       icon=new TriangleIcon(dark);
       setImageDrawable(icon);
-      setBackground(NeonBorderDrawable.menuIcon(this,UiConfig.MAP_THEME_ICON_BORDER_COLOR));
+      setBackgroundColor(Color.TRANSPARENT);setPadding(0,0,0,0);
       setDarkMode(dark);
       setOnClickListener(view->toggle.run());
     }
@@ -568,6 +570,7 @@ public final class MainActivity extends Activity {
     @Override public void setColorFilter(ColorFilter filter){paint.setColorFilter(filter);invalidateSelf();}
     @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
   }
+  private static final class NonagonIcon extends Drawable {private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);public void draw(Canvas canvas){Rect b=getBounds();float cx=b.exactCenterX(),cy=b.exactCenterY(),r=Math.min(b.width(),b.height())*.43f;Path p=new Path();for(int i=0;i<9;i++){double a=-Math.PI/2+i*2*Math.PI/9;float x=cx+(float)Math.cos(a)*r,y=cy+(float)Math.sin(a)*r;if(i==0)p.moveTo(x,y);else p.lineTo(x,y);}p.close();paint.setStyle(Paint.Style.FILL);paint.setColor(0xff050509);canvas.drawPath(p,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(Math.max(2,b.width()*.06f));paint.setColor(UiConfig.CYAN);canvas.drawPath(p,paint);paint.setStyle(Paint.Style.FILL);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(r*.7f);paint.setColor(0xffff00ff);canvas.drawText("$",cx,cy-paint.ascent()/3,paint);}public void setAlpha(int a){paint.setAlpha(a);}public void setColorFilter(ColorFilter f){paint.setColorFilter(f);}public int getOpacity(){return PixelFormat.TRANSLUCENT;}}
 
   private void refresh() {
     if (busy || map == null) return;
@@ -689,9 +692,10 @@ public final class MainActivity extends Activity {
         :uncertain?UiConfig.text("gps_uncertain")
         :last.speed()>1.5?UiConfig.text("on_the_move"):UiConfig.text("recording");
     String drive=driveMetrics==null?"":String.format(Locale.US,UiConfig.text("drive_2f_km"),driveMetrics.current().meters()/1000);
-    String speed=stopped?String.format(Locale.US,UiConfig.text("0f_m_hr"),0.0)
+    float averageSpeed=0;int speedCount=0;for(int i=Math.max(0,fixes.size()-5);i<fixes.size();i++){float sample=fixes.get(i).speed();if(Float.isFinite(sample)&&sample>=0){averageSpeed+=sample;speedCount++;}}if(speedCount>0)averageSpeed/=speedCount;
+    String speed=stopped?String.format(Locale.US," · %.4f m/hr",0.0)
         :stale||uncertain?UiConfig.text("speed_unknown_m_hr")
-        :String.format(Locale.US,UiConfig.text("0f_m_hr"),last.speed()*3600);
+        :String.format(Locale.US," · %.4f m/hr",averageSpeed*3600.0);
     String bubbleDrive=!recorded&&!stopped&&driveMetrics!=null
         ?String.format(Locale.US,UiConfig.text("current_drive_distance_2f_km"),driveMetrics.current().meters()/1000):"";
     liveBubbleStatus=GpsBubble.status(speed,bubbleDrive);
@@ -701,7 +705,7 @@ public final class MainActivity extends Activity {
     status.setVisibility(history?View.VISIBLE:View.GONE);
     status.setText(history?statusText:speed);
     if(!history&&mode!=null){mode.setText(state.trim());mode.setTextSize(UiConfig.LIVE_BUBBLE_SIZE_SP);}
-    if(!history){liveBubblePoint=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());liveContext.update(liveBubblePoint.getLatitude(),liveBubblePoint.getLongitude(),roadControls.roadName());refreshLiveBubble();}
+    if(!history){GeoPoint measuredBubble=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());liveContext.update(measuredBubble.getLatitude(),measuredBubble.getLongitude(),roadControls.roadName());liveBubblePoint=animatedGpsPoint==null?measuredBubble:animatedGpsPoint;refreshLiveBubble();}
     else if(liveBubble!=null)liveBubble.setVisibility(View.GONE);
     stopLabels.liveBubble(!history);
     roadControls.update(last, fixes.size()>1?fixes.get(fixes.size()-2):null, !stale && !uncertain && !stopped && last.speed()>1.5, offlineOnly, history);
@@ -718,6 +722,7 @@ public final class MainActivity extends Activity {
             + UiConfig.text("m")
             + (stale ? UiConfig.text("last_fix") + duration(age) + UiConfig.text("ago") : clock(last.time()));
     stats.setText(totalStatus.replace(" · ",UiConfig.TOTAL_STATS_DELIMITER));
+    if(statusClock!=null)statusClock.setText(new SimpleDateFormat("dd--MM--yyyy HH:mm:ss",Locale.US).format(new Date()));
     if(moduleHost!=null)moduleHost.update(new TrailModule.Snapshot(System.currentTimeMillis(),last.time(),last.lat(),last.lon(),last.accuracy(),driveMetrics==null?0:driveMetrics.totalMeters()+historicalTrails.totalMeters(),stops.size(),history));
     if(wtfActive()){
       wtfTarget=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(),last.lon());
@@ -810,8 +815,8 @@ public final class MainActivity extends Activity {
       registerMarker("stop:" + s.id(), m);
       stopDots.add(s.id(),m,StopLabelsOverlay.longStop(s));
     }
-    Marker dot = new Marker(map);
-    dot.setPosition(stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon()));
+    Marker dot = new Marker(map);GeoPoint measured=stopped&&uncertain&&current!=null?new GeoPoint(current.lat(),current.lon()):new GeoPoint(last.lat(), last.lon());GeoPoint motionTarget=projectMotion(fixes,measured,stopped||stale||uncertain);
+    dot.setPosition(animatedGpsPoint==null?measured:animatedGpsPoint);
     dot.setAnchor(.5f, .5f);
     if(recorded)dot.setIcon(dot(color,32));else dot.setIcon(GpsMarkerStyle.icon(this,color,()->{
       LayerDrawable classic=dot(color,32);if(!stale&&!uncertain&&last.accuracy()>0&&last.accuracy()<=UiConfig.GPS_SMILE_MAX_ACCURACY_M)classic.addLayer(new HappyGpsFace());return classic;
@@ -827,6 +832,7 @@ public final class MainActivity extends Activity {
             last.accuracy(),
             clock(last.time())));
     registerMarker("live", dot);
+    animateGps(dot,motionTarget);
     map.getOverlays().remove(stopLabels);map.getOverlays().add(stopLabels);
     drawHistoricPlaces();
     Marker reopen = visibleMarkers.get(openMarkerKey);
@@ -1742,6 +1748,8 @@ public final class MainActivity extends Activity {
       lookupNotes.setGravity(Gravity.LEFT);if(heading>=0)linked.setSpan(new android.text.style.AlignmentSpan.Standard(android.text.Layout.Alignment.ALIGN_OPPOSITE),heading,Math.min(linked.length(),heading+"Religious places nearby".length()+1),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);lookupNotes.setText(linked);lookupNotes.setMovementMethod(android.text.method.LinkMovementMethod.getInstance());lookupNotes.setVisibility(note.isBlank()?View.GONE:View.VISIBLE);}
 
   }}
+  private GeoPoint projectMotion(List<TrailDb.Fix> fixes,GeoPoint measured,boolean hold){if(hold||fixes.size()<2)return measured;int from=Math.max(0,fixes.size()-5);double speed=0;int count=0;for(int i=from;i<fixes.size();i++){float value=fixes.get(i).speed();if(Float.isFinite(value)&&value>=0){speed+=value;count++;}}if(count==0||speed<=.05)return measured;TrailDb.Fix first=fixes.get(from),last=fixes.get(fixes.size()-1);double a=Math.toRadians(first.lat()),b=Math.toRadians(last.lat()),dl=Math.toRadians(last.lon()-first.lon());double bearing=(Math.toDegrees(Math.atan2(Math.sin(dl)*Math.cos(b),Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(dl)))+360)%360;return measured.destinationPoint(Math.min(50,speed/count*1.2),bearing);}
+  private void animateGps(Marker marker,GeoPoint target){if(gpsMotion!=null)gpsMotion.cancel();GeoPoint start=animatedGpsPoint==null?marker.getPosition():animatedGpsPoint;gpsMotion=android.animation.ValueAnimator.ofFloat(0f,1f);gpsMotion.setDuration(1100);gpsMotion.setInterpolator(new android.view.animation.LinearInterpolator());gpsMotion.addUpdateListener(value->{float t=(float)value.getAnimatedValue();double lat=start.getLatitude()+(target.getLatitude()-start.getLatitude())*t,lon=start.getLongitude()+(target.getLongitude()-start.getLongitude())*t;animatedGpsPoint=new GeoPoint(lat,lon);marker.setPosition(animatedGpsPoint);liveBubblePoint=animatedGpsPoint;if(liveBubble!=null)liveBubble.move(animatedGpsPoint);map.invalidate();});gpsMotion.start();}
   private void confirmNavigation(DestinationSearch.Result target){
     NavigationManager.State active=NavigationManager.get(this).state();String replace=active.route()!=null?"\nCurrent destination: "+DestinationLabel.format(active.name())+"\nThis will replace the current route after calculation.":"";
     new AppDialogs(this).setTitle("Navigate to "+target.name()+"?").setMessage(String.format(Locale.US,"Destination: %.4f, %.4f",target.point().lat(),target.point().lon())+replace).setPositiveButton("Start navigation",(dialog,which)->{if(history){history=false;showMap();}navigation.confirmedPlan(target);}).setNegativeButton("Cancel",null).show();

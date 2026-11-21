@@ -39,12 +39,14 @@ final class StudioTasks {
     if(action.equals("source")){
       JSONObject spec=args.getJSONObject("source");String version=spec.getString("version");boolean trusted=false;JSONArray sources=meta.getJSONArray("sources");for(int i=0;i<sources.length();i++)if(sources.getJSONObject(i).getString("url").equals(spec.getString("url"))&&sources.getJSONObject(i).getString("sha256").equals(spec.getString("sha256"))&&sources.getJSONObject(i).getString("version").equals(version))trusted=true;
       if(!trusted||!version.matches("[0-9]+\\.[0-9]+\\.[0-9]+"))throw new SecurityException("Source version is not in this module's verified manifest");
-      File dest=new File(data,"projects/otrail-"+version);
+      File dest=new File(data,"projects/otrail-"+version+"-"+spec.getString("sha256").substring(0,12));
       if(!dest.isDirectory()){
         File zip=download(spec,new File(data,"downloads/source-"+version+".zip"),progress,"Download source",0,90);
         File stage=new File(data,"projects/stage-"+System.currentTimeMillis());try{StudioFiles.unzip(zip,stage);if(!new File(stage,"settings.gradle").isFile())throw new IOException("Invalid project archive");if(!stage.renameTo(dest))throw new IOException("Cannot activate source workspace");}finally{StudioFiles.remove(stage);}
       }
       StudioFiles.write(new File(data,"project.json"),new JSONObject().put("path",dest.getCanonicalPath()).toString().getBytes(StandardCharsets.UTF_8));progress.update("Source ready",100,"Existing workspace edits retained.");
+    }else if(action.equals("importFolder")){
+      File source=new File(args.getString("path")).getCanonicalFile(),external=android.os.Environment.getExternalStorageDirectory().getCanonicalFile();if(!source.isDirectory()||!source.getPath().startsWith(external.getPath()+File.separator))throw new IOException("Choose an existing shared-storage folder");File dest=new File(data,"projects/import-"+System.currentTimeMillis());copyTree(source,dest,source,progress,new int[]{0});if(!new File(dest,"settings.gradle").isFile())throw new IOException("Selected folder is not an Android source project");StudioFiles.write(new File(data,"project.json"),new JSONObject().put("path",dest.getCanonicalPath()).toString().getBytes(StandardCharsets.UTF_8));progress.update("Folder ready",100,dest.getName());
     }else if(action.equals("setup")){
       if(!args.optBoolean("acceptLicenses"))throw new IOException("Review and accept tool licenses first");
       JSONArray artifacts=meta.getJSONArray("tools");File target=new File(data,"tools");target.mkdirs();
@@ -79,6 +81,7 @@ final class StudioTasks {
       args.put("toolchain",meta);publisher.run(action,data,args.toString(),progress);
     }else throw new IOException("Unknown in-app task");
   }
+  private static void copyTree(File source,File target,File root,ModuleV1.Progress progress,int[] count)throws Exception{if(progress.cancelled())throw new IOException("Cancelled");if(++count[0]>50000)throw new IOException("Folder contains too many files");String relative=root.toURI().relativize(source.toURI()).getPath();if(relative.contains("/.git/")||relative.startsWith(".git/")||relative.contains("/build/")||relative.startsWith("build/"))return;if(source.isDirectory()){if(!target.mkdirs()&&!target.isDirectory())throw new IOException("Cannot create workspace folder");File[] children=source.listFiles();if(children==null)throw new IOException("Cannot read "+source);for(File child:children)copyTree(child,new File(target,child.getName()),root,progress,count);}else{if(source.length()>100000000)throw new IOException("Workspace file too large: "+relative);Files.copy(source.toPath(),target.toPath(),StandardCopyOption.REPLACE_EXISTING);}if(count[0]%250==0)progress.update("Import folder",Math.min(95,count[0]/500),count[0]+" entries");}
 
   private static void setupShell(File pkg,JSONObject meta,File data,ModuleV1.Progress progress)throws Exception{
     JSONObject spec=meta.getJSONObject("debianRootfs");
