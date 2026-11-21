@@ -181,3 +181,7 @@ GPS popup 40% narrower than measured phone UI with a 3dp thicker border. Named w
 ## 0.4.23 — 2026-11-21
 
 Smooth projected GPS dot and bubble motion based on the latest five fixes, four-decimal speed and remaining-road distance, `--` for an unavailable road value, and a white live clock in the bottom status bar. The map theme triangle is no longer boxed. GOD 4 provides fresh buildable current-source workspaces, internal-folder import and SCP configuration. Debian Shell 1.0 is an independent downloadable module opened from the new nine-sided map icon. See docs/0.4.23-motion-god4-debian.md.
+
+## 0.4.24 — 2026-11-21
+
+Fixes the Debian module activation crash caused by headless validation calling `close()` before an Activity existed. Adds a cumulative rotating error log for app activities, downloaded modules and background module tasks; Settings can copy or export it. Profile cards now use a dark-grey gradient with lime text, action text remains purple and visible, and map-row icon visuals share consistent sizing. GOD 4.0.1 and Debian Shell 1.0.1 target this host.
