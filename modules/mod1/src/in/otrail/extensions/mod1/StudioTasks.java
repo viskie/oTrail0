@@ -120,8 +120,10 @@ final class StudioTasks {
 
   private static void createArchiveParents(File root,File target)throws IOException{
     Path base=root.toPath().toAbsolutePath().normalize(),normalized=target.toPath().toAbsolutePath().normalize();if(normalized.equals(base))return;Path parent=normalized.getParent();
-    if(parent==null||!parent.startsWith(base))throw new IOException("Invalid rootfs parent");
-    Path current=base;for(Path part:base.relativize(parent)){current=current.resolve(part);if(Files.isSymbolicLink(current))throw new IOException("Rootfs entry traverses symlink: "+target);Files.createDirectories(current);}
+    if(parent==null)throw new IOException("Invalid rootfs parent: "+target);
+    Path relative;try{relative=base.relativize(parent);}catch(IllegalArgumentException error){throw new IOException("Rootfs parent is on another filesystem: "+target,error);}
+    if(relative.isAbsolute()||relative.startsWith(".."))throw new IOException("Rootfs parent escapes destination: "+target);
+    Path current=base;for(Path part:relative){current=current.resolve(part);if(Files.isSymbolicLink(current))throw new IOException("Rootfs entry traverses symlink: "+target);Files.createDirectories(current);}
   }
 
   private static void extractRootfs(File archive,File root,ModuleV1.Progress progress)throws Exception{
@@ -130,7 +132,7 @@ final class StudioTasks {
       TarArchiveEntry entry;byte[] buffer=new byte[65536];
       while((entry=tar.getNextEntry())!=null){
         if(++entries>250000)throw new IOException("Debian archive has too many entries");
-        File target=tarTarget(root,entry.getName());createArchiveParents(root,target);
+        File target=tarTarget(root,entry.getName());try{createArchiveParents(root,target);}catch(IOException error){throw new IOException(error.getMessage()+" [entry "+entry.getName()+"]",error);}
         if(entry.isDirectory()){target.mkdirs();}
         else if(entry.isSymbolicLink()){
           Files.deleteIfExists(target.toPath());Files.createSymbolicLink(target.toPath(),Paths.get(entry.getLinkName()));

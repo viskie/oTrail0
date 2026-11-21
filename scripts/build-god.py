@@ -149,7 +149,7 @@ def source(version="0.4.24"):
   out.writestr('.studio-baseline.json',raw)
  return path,hashlib.sha256(raw).hexdigest()
 
-def package():
+def package(debian_only=False):
  state=json.loads((BUILD/'prepared.json').read_text());sourcezip,baseline=source()
  prefix='https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'
  def artifact(path,**kwargs):return dict(file=path.name,url=prefix+path.name,sha256=sha(path),sizeBytes=path.stat().st_size,**kwargs)
@@ -170,20 +170,21 @@ def package():
  moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*modulelibs,*[LIBS/(name+'.jar') for name in SORA]]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar',*modulelibs],[CLASSES,*[LIBS/(name+'.jar') for name in SORA]])
  manifest=dict(id='mod1',name='GOD',version='4.0.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
  module=RELEASES/'GOD-4.0.1.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
- with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
-  out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
-  for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
-  out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
-  out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
- debianManifest=dict(id='mod3',name='Debian Shell',version='1.0.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
- debian=RELEASES/'DEBIAN-1.0.1.oTrail0'
+ if not debian_only:
+  with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
+   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
+   for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
+   out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
+   out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
+ debianManifest=dict(id='mod3',name='Debian Shell',version='1.0.2',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
+ debian=RELEASES/'DEBIAN-1.0.2.oTrail0'
  with zipfile.ZipFile(debian,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(debianManifest));out.writestr('studio.json',json.dumps(metadata));out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED);out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)
  verifier=dict(installSalt=base64.b64encode(salt).decode(),installHash=base64.b64encode(hashlib.pbkdf2_hmac('sha256',password,salt,120000,32)).decode())
  release=dict(manifest,url=prefix+module.name,sha256=sha(module),sizeBytes=module.stat().st_size,**verifier,notes='Native Sora editor, project tree, source/build tools and workspace support. Debian is now a separate module.')
  debianRelease=dict(debianManifest,url=prefix+debian.name,sha256=sha(debian),sizeBytes=debian.stat().st_size,**verifier,notes='Standalone Debian Bookworm ARM64 PRoot shell with bundled verified rootfs. Installs and opens directly from its nine-sided map icon.')
- versions=[debianRelease,release];chains=[metadata]
+ versions=[debianRelease]+([] if debian_only else [release]);chains=[] if debian_only else [metadata]
  old=RELEASES/'catalog.json'
  if old.exists():
   envelope=json.loads(old.read_text());previous=base64.b64decode(envelope['payload']);sig=BUILD/'old-catalog.sig';sig.write_bytes(base64.b64decode(envelope['signature']));public=BUILD/'publisher-public.pem'
@@ -194,8 +195,9 @@ def package():
    legacy=BUILD/'legacy-catalog-public.der';legacy.write_bytes(base64.b64decode(LEGACY_CATALOG_PUBLIC_KEY))
    subprocess.run(['openssl','dgst','-sha256','-keyform','DER','-verify',str(legacy),'-signature',str(sig)],input=previous,check=True,stdout=subprocess.DEVNULL)
   catalog=json.loads(previous)
-  versions += [item for item in catalog.get('versions',[]) if (item['id'],item['version']) not in {(release['id'],release['version']),(debianRelease['id'],debianRelease['version'])} and item.get('sizeBytes',0)<=240000000]
-  chains += [item for item in catalog.get('toolchains',[]) if item['id']!=metadata['id']]
+  replaced={(debianRelease['id'],debianRelease['version'])};replaced.update(set() if debian_only else {(release['id'],release['version'])})
+  versions += [item for item in catalog.get('versions',[]) if (item['id'],item['version']) not in replaced and item.get('sizeBytes',0)<=240000000]
+  chains += [item for item in catalog.get('toolchains',[]) if debian_only or item['id']!=metadata['id']]
  payload=json.dumps(dict(schema=1,repositories=[dict(name='viskie/oTrail0',url=prefix)],versions=versions,toolchains=chains),sort_keys=True,separators=(',',':')).encode()
  (BUILD/'catalog-payload.json').write_bytes(payload)
  key=pathlib.Path.home()/'.local/share/otrail/module-signing.pem';signature=subprocess.check_output(['openssl','dgst','-sha256','-sign',str(key)],input=payload)
@@ -204,5 +206,5 @@ def package():
  print('Packaged',module.name,module.stat().st_size,'bytes',flush=True)
 
 if __name__=='__main__':
- parser=argparse.ArgumentParser();parser.add_argument('action',choices=['prepare','package']);args=parser.parse_args()
- prepare() if args.action=='prepare' else package()
+ parser=argparse.ArgumentParser();parser.add_argument('action',choices=['prepare','package','package-debian']);args=parser.parse_args()
+ prepare() if args.action=='prepare' else package(args.action=='package-debian')
