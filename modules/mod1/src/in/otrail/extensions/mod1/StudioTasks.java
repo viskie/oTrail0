@@ -108,14 +108,15 @@ final class StudioTasks {
 
   private static File tarTarget(File root,String raw)throws IOException{
     String name=raw.replace('\\','/');while(name.startsWith("./"))name=name.substring(2);
-    if(name.isEmpty()||name.startsWith("/")||name.indexOf('\0')>=0)throw new IOException("Unsafe rootfs entry");
+    if(name.isEmpty())return root.getCanonicalFile();
+    if(name.startsWith("/")||name.indexOf('\0')>=0)throw new IOException("Unsafe rootfs entry");
     Path base=root.toPath().toAbsolutePath().normalize(),target=base.resolve(name).normalize();
     if(!target.startsWith(base))throw new IOException("Rootfs entry escapes destination: "+raw);
     return target.toFile();
   }
 
   private static void createArchiveParents(File root,File target)throws IOException{
-    Path base=root.toPath().toAbsolutePath().normalize(),parent=target.toPath().toAbsolutePath().normalize().getParent();
+    Path base=root.toPath().toAbsolutePath().normalize(),normalized=target.toPath().toAbsolutePath().normalize();if(normalized.equals(base))return;Path parent=normalized.getParent();
     if(parent==null||!parent.startsWith(base))throw new IOException("Invalid rootfs parent");
     Path current=base;for(Path part:base.relativize(parent)){current=current.resolve(part);if(Files.isSymbolicLink(current))throw new IOException("Rootfs entry traverses symlink: "+target);Files.createDirectories(current);}
   }
