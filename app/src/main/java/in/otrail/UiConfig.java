@@ -66,7 +66,6 @@ public class UiConfig {
   public static final String TOTAL_STATS_DELIMITER="  ||  ";
   public static final int TOTAL_STATS_FONT_STYLE=android.graphics.Typeface.BOLD_ITALIC;
   public static final int RESONATIONS_TITLE_SP=12, RESONATIONS_TEXT_SP=11, RESONATIONS_TEXT=0xff00ffff;
-  public static final float TRAIL_WIDTH_DP=4f, TRAIL_BORDER_DP=1f, TRAIL_LANE_SPACING_DP=8f;
   public static final float TEXT_SCALE=1f;
   public static final int CAPTION_SIZE_SP=11, SECONDARY_SIZE_SP=12, MODE_SIZE_SP=13,
       SUBHEADING_SIZE_SP=14, HEADING_SIZE_SP=18, CARD_TITLE_SIZE_SP=19,

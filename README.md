@@ -47,6 +47,8 @@ A stop requires >120 seconds within a 35 m anchored radius with speed ≤1.5 m/s
 
 JDK 21 and Android SDK platform 35 required. Use `./gradlew testDebugUnitTest lintDebug assembleDebug`, then `adb install -r app/build/outputs/apk/debug/app-debug.apk`. Open `in.otrail/.MainActivity`. Wi-Fi ADB must already be paired and connected. Gradle wrapper 9.6.0; AGP 9.4.0. Debug signing is for local testing. APK snapshots and checksums are committed under `releases/`. No signing keys or provider credentials in this repository.
 
+GOD 3.0 uses the host-packaged Sora 0.24.7/TextMate runtime for its native editor and offers an optional ARM64 Debian shell. Android requires the static PRoot executable to be packaged as `app/src/main/jniLibs/arm64-v8a/libproot.so` with native-library extraction enabled; the Debian rootfs remains a checksum-verified first-run download. Shared-storage binding requires the user to enable Android's special all-files access setting. Type `exit` in the shell to return to GOD without stopping oTraiL. See [the 0.4.21 release guide](docs/0.4.21-god-v3.md).
+
 ### Laptop screen sharing from the phone
 
 The optional Debian 12 `otrail-screen` package shares a selected X11 window with oTraiL over an authorized USB ADB reverse tunnel. Build it with `./scripts/build-debian12-screen.sh`; install the generated `.deb`, then use `otrail-screen windows` and `otrail-screen start N` from the logged-in desktop session. The heptagonal icon opens the phone's collapsible remote viewer. This initial implementation supports X11/XWayland windows only; native Wayland capture requires compositor permission portals. See [the screen-sharing guide](docs/laptop-screen-sharing.md).

@@ -2,24 +2,36 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 43; versionName '0.4.20'; testInstrumentationRunner (project.findProperty('testRunner') ?: 'in.otrail.BackupInstrumentation') }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 44; versionName '0.4.21'; testInstrumentationRunner (project.findProperty('testRunner') ?: 'in.otrail.BackupInstrumentation') }
     sourceSets.main.java.srcDir('../modules/src/main/java')
     sourceSets.main.java.srcDir('../modules/api/src/main/java')
-    if (System.getenv('OTRAIL_SIGNING_STORE')) {
+    def signingStore = System.getenv('OTRAIL_SIGNING_STORE') ?: providers.gradleProperty('otrailSigningStore').getOrNull()
+    def signingPassword = System.getenv('OTRAIL_SIGNING_PASSWORD') ?: providers.gradleProperty('otrailSigningPassword').getOrNull()
+    def signingAlias = System.getenv('OTRAIL_SIGNING_ALIAS') ?: providers.gradleProperty('otrailSigningAlias').getOrNull()
+    def signingKeyPassword = System.getenv('OTRAIL_SIGNING_KEY_PASSWORD') ?: providers.gradleProperty('otrailSigningKeyPassword').getOrNull()
+    if (signingStore) {
         signingConfigs.debug {
-            storeFile file(System.getenv('OTRAIL_SIGNING_STORE'))
-            storePassword System.getenv('OTRAIL_SIGNING_PASSWORD')
-            keyAlias System.getenv('OTRAIL_SIGNING_ALIAS')
-            keyPassword System.getenv('OTRAIL_SIGNING_KEY_PASSWORD')
+            storeFile file(signingStore)
+            storePassword signingPassword
+            keyAlias signingAlias
+            keyPassword signingKeyPassword
         }
     }
-    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    compileOptions { coreLibraryDesugaringEnabled true; sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    // PRoot is intentionally executed from applicationInfo.nativeLibraryDir.
+    // Legacy JNI packaging makes Android extract libproot.so with execute access.
+    packaging { jniLibs { useLegacyPackaging = true } }
 }
 dependencies {
     implementation project(':brouter')
     implementation 'io.github.rallista:valhalla-mobile:0.6.4'
     implementation 'org.osmdroid:osmdroid-android:6.1.20'
     implementation 'org.osmdroid:osmdroid-mapsforge:6.1.20'
+    // GOD v3 native editor. Resources/classes stay in the host APK because a
+    // downloaded DEX module cannot add Android resources at runtime.
+    implementation 'io.github.rosemoe:editor:0.24.7'
+    implementation 'io.github.rosemoe:language-textmate:0.24.7'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
 }

@@ -1,13 +1,28 @@
-# GOD — downloadable source studio (module ID `mod1`, version 1.0.0)
+# GOD — downloadable source studio (module ID `mod1`, version 3.0.0)
 
-All screens and work execute inside oTraiL. No Termux, external application, shell, build server or remote compiler. The editor and compiler code are not bundled in the main APK.
+All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. The editor, compiler and Debian shell controller are downloaded as GOD; the host APK contains only the signed module host and the ARM64 PRoot executable required by Android's native-execution policy.
+
+## Debian shell
+
+The Shell tab downloads a checksum-pinned Debian Bookworm ARM64 root filesystem on first use and expands it under private `modules/data/mod1/debian/`. It launches `/usr/bin/bash --login` through PRoot and `script`, providing a PTY-backed session over GOD's terminal controls. Type `exit` or tap **Exit shell** to terminate only the Debian process and return to the GOD UI; oTraiL and its tracking service remain running.
+
+The guest exposes these explicit bindings:
+
+- `/project`: selected GOD source workspace, when one has been downloaded.
+- `/god-data`: GOD's private data, tools, outputs and shell installation.
+- `/app-data`, `/app-files`, `/app-cache`: oTraiL package-private directories under the same Android UID.
+- `/external-app`: oTraiL's app-specific external-storage directory.
+- `/shared-storage`: shared external storage, only after the user enables Android's special all-files access setting.
+- `/dev`, `/proc`, `/sys`: Android views made available to PRoot; Android UID and SELinux restrictions still apply.
+
+The shell's fake UID 0 permits Debian package management inside the rootfs; it is not Android root and cannot access another app's private data. Shell commands can modify or erase oTraiL data through `/app-data`, so launch requires an explicit warning confirmation. All-files access is a special Android permission and may make a general Play Store distribution ineligible; it is never silently granted. The current native executable supports `arm64-v8a` only.
 
 ## Use
 
-1. On Android 15 or later, update oTraiL to 0.4.0 or later. Android still requires confirmation to install the main APK update.
+1. On Android 15 or later, update oTraiL to 0.4.21 or later. Android still requires confirmation to install the main APK update.
 2. Settings → Extension modules → Refresh versions → GOD → Download & install. Enter the installation password supplied by the owner, then Activate.
 3. Tools → Refresh / choose toolchain. Review licenses and download the compatible toolchain. Downloads show sizes/progress and support Wi-Fi/cellular.
-4. Project → Download source → Browse files. The editor has file tabs, undo/redo, search, keyword highlighting, save/save-all and recoverable drafts.
+4. Project → Download source → Browse files. The Sora/TextMate editor has an expandable file tree, file tabs, undo/redo, Java highlighting, find/replace, project-wide search, save/save-all and recoverable drafts.
 5. Import the existing PKCS12 APK signing keystore in Tools. The password/alias and key remain private on this phone, outside source/snapshots/exports. A mismatched certificate is rejected; never uninstall the app to bypass it.
 6. Save all & build APK. The dedicated in-app compiler process compiles Java with ECJ, builds DEX with D8, retains verified resources/native libraries, aligns native entries, then signs with apksig. APKs can be exported or installed after identity verification.
 7. Generate GitHub SSH key → Download SSH public key. Add it to the GitHub account or repository deploy keys with write access. Configure the repository/branch and test the uploaded key.

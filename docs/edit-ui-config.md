@@ -89,12 +89,6 @@ its general highway preference and cannot distinguish exact NH versus SH designa
 No engine promises a strict EX/NH/SH-only route. Dialog text is black on the light
 surface using `DIALOG_*_COLOR`, independent of cyan map panels.
 
-Repeated recorded passes: `TRAIL_LANE_SPACING_DP` controls screen-space separation;
-the newest pass remains centred and older passes expand on alternate sides. The
-source GPS coordinates and metrics are unchanged. `TRAIL_WIDTH_DP` and
-`TRAIL_BORDER_DP` control the shared-path rounded colour/casing, independently of
-navigation lines and the live trail's configured outline.
-
 Resonations adds record/stop and audio-settings icons to its existing controls row.
 Recording requires microphone permission and a visible user start, runs in a microphone
 foreground service, and saves uncompressed PCM16 WAV at 48/44.1 kHz mono/stereo.

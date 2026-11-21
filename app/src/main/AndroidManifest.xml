@@ -20,6 +20,10 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- GOD's optional Debian shell can bind shared storage only after the user
+         explicitly enables Android's special all-files access screen. App-private
+         and app-specific external directories do not depend on this permission. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <application android:name=".CrashReports" android:label="oTraiL" android:theme="@style/AppTheme" android:allowBackup="false" android:largeHeap="true" android:dataExtractionRules="@xml/data_extraction_rules" android:usesCleartextTraffic="false" android:icon="@android:drawable/ic_menu_mylocation" android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
         <activity android:name=".RemoteDesktopActivity" android:exported="false" android:screenOrientation="unspecified"/>

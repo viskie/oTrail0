@@ -8,6 +8,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.zip.ZipFile;
+import android.system.Os;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
 import org.json.*;
 
 final class StudioTasks {
@@ -22,7 +26,7 @@ final class StudioTasks {
   static JSONObject metadata(File pkg)throws Exception{try(ZipFile zip=new ZipFile(pkg);InputStream in=zip.getInputStream(zip.getEntry("studio.json"))){return new JSONObject(new String(StudioFiles.read(in,100000),StandardCharsets.UTF_8));}}
   static File download(JSONObject spec,File target,ModuleV1.Progress progress,String phase,int base,int span)throws Exception{
     String url=spec.getString("url");long size=spec.getLong("sizeBytes");
-    if((!url.startsWith("https://raw.githubusercontent.com/viskie/oTrail0/main/")&&!url.startsWith("https://dl.google.com/android/repository/"))||url.contains("..")||size<1||size>250000000)throw new IOException("Untrusted or oversized tool artifact");
+    if((!url.startsWith("https://raw.githubusercontent.com/viskie/oTrail0/main/")&&!url.startsWith("https://dl.google.com/android/repository/")&&!url.startsWith("https://images.linuxcontainers.org/images/debian/"))||url.contains("..")||size<1||size>250000000)throw new IOException("Untrusted or oversized tool artifact");
     if(target.isFile()&&target.length()==size&&StudioFiles.sha(target).equals(spec.getString("sha256")))return target;
     File part=new File(target.getPath()+".part");target.getParentFile().mkdirs();HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(45000);c.setInstanceFollowRedirects(false);
     try{if(c.getResponseCode()!=200)throw new IOException("Download HTTP "+c.getResponseCode());try(InputStream in=c.getInputStream();FileOutputStream out=new FileOutputStream(part)){
@@ -57,6 +61,8 @@ final class StudioTasks {
       }
       JSONObject checks=meta.getJSONObject("toolFiles");for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(target,name)).equals(checks.getString(name)))throw new IOException("Tool verification failed: "+name);}
       StudioFiles.write(new File(target,"ready.json"),checks.toString().getBytes(StandardCharsets.UTF_8));progress.update("Tools ready",100,"Compiler, SDK classpath, dependency DEX and APK template verified. Compilation is entirely offline.");
+    }else if(action.equals("shellSetup")){
+      setupShell(meta,data,progress);
     }else if(action.equals("build")){
       File tools=new File(data,"tools"),dex=new File(tools,"compiler.jar");JSONObject checks=meta.getJSONObject("toolFiles");
       for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(tools,name)).equals(checks.getString(name)))throw new IOException("Download/repair build tools first: "+name);}
@@ -72,5 +78,64 @@ final class StudioTasks {
       PublisherV1 publisher=(PublisherV1)loader.loadClass("in.otrail.extensions.god.compiler.GitPublisher").getDeclaredConstructor().newInstance();
       args.put("toolchain",meta);publisher.run(action,data,args.toString(),progress);
     }else throw new IOException("Unknown in-app task");
+  }
+
+  private static void setupShell(JSONObject meta,File data,ModuleV1.Progress progress)throws Exception{
+    JSONObject spec=meta.getJSONObject("debianRootfs");
+    File shellDir=new File(data,"debian"),root=new File(shellDir,"rootfs"),ready=new File(shellDir,"ready.json");
+    if(ready.isFile()&&root.isDirectory()){
+      JSONObject installed=StudioFiles.json(ready);
+      if(spec.getString("sha256").equals(installed.optString("sha256"))){progress.update("Debian ready",100,"Existing verified root filesystem retained.");return;}
+    }
+    File archive=download(spec,new File(data,"downloads/"+spec.getString("file")),progress,"Download Debian",0,55);
+    File stage=new File(shellDir,"stage-"+System.currentTimeMillis());StudioFiles.remove(stage);stage.mkdirs();
+    try{
+      extractRootfs(archive,stage,progress);
+      File etc=new File(stage,"etc");etc.mkdirs();File resolv=new File(etc,"resolv.conf");Files.deleteIfExists(resolv.toPath());
+      StudioFiles.write(resolv,("# Managed by GOD for the private Debian shell\n"+"nameserver 8.8.8.8\n"+"nameserver 1.1.1.1\n").getBytes(StandardCharsets.UTF_8));
+      StudioFiles.write(new File(etc,"hosts"),("127.0.0.1 localhost\n::1 localhost\n").getBytes(StandardCharsets.UTF_8));
+      new File(stage,"root").mkdirs();new File(stage,"project").mkdirs();new File(stage,"god-data").mkdirs();new File(stage,"app-data").mkdirs();new File(stage,"app-files").mkdirs();new File(stage,"app-cache").mkdirs();new File(stage,"external-app").mkdirs();new File(stage,"shared-storage").mkdirs();
+      if(!new File(stage,"usr/bin/bash").canExecute())throw new IOException("Debian rootfs does not contain executable bash");
+      StudioFiles.remove(root);if(!stage.renameTo(root))throw new IOException("Cannot activate Debian root filesystem");
+      StudioFiles.write(ready,new JSONObject().put("sha256",spec.getString("sha256")).put("installedMs",System.currentTimeMillis()).put("source",spec.getString("url")).toString().getBytes(StandardCharsets.UTF_8));
+      progress.update("Debian ready",100,"Root filesystem verified and installed privately.");
+    }finally{StudioFiles.remove(stage);}
+  }
+
+  private static File tarTarget(File root,String raw)throws IOException{
+    String name=raw.replace('\\','/');while(name.startsWith("./"))name=name.substring(2);
+    if(name.isEmpty()||name.startsWith("/")||name.indexOf('\0')>=0)throw new IOException("Unsafe rootfs entry");
+    Path base=root.toPath().toAbsolutePath().normalize(),target=base.resolve(name).normalize();
+    if(!target.startsWith(base))throw new IOException("Rootfs entry escapes destination: "+raw);
+    return target.toFile();
+  }
+
+  private static void createArchiveParents(File root,File target)throws IOException{
+    Path base=root.toPath().toAbsolutePath().normalize(),parent=target.toPath().toAbsolutePath().normalize().getParent();
+    if(parent==null||!parent.startsWith(base))throw new IOException("Invalid rootfs parent");
+    Path current=base;for(Path part:base.relativize(parent)){current=current.resolve(part);if(Files.isSymbolicLink(current))throw new IOException("Rootfs entry traverses symlink: "+target);Files.createDirectories(current);}
+  }
+
+  private static void extractRootfs(File archive,File root,ModuleV1.Progress progress)throws Exception{
+    long expanded=0;int entries=0;Map<File,String> hardLinks=new LinkedHashMap<>();
+    try(InputStream file=new BufferedInputStream(new FileInputStream(archive));XZCompressorInputStream xz=new XZCompressorInputStream(file,true);TarArchiveInputStream tar=new TarArchiveInputStream(xz)){
+      TarArchiveEntry entry;byte[] buffer=new byte[65536];
+      while((entry=tar.getNextEntry())!=null){
+        if(++entries>250000)throw new IOException("Debian archive has too many entries");
+        File target=tarTarget(root,entry.getName());createArchiveParents(root,target);
+        if(entry.isDirectory()){target.mkdirs();}
+        else if(entry.isSymbolicLink()){
+          Files.deleteIfExists(target.toPath());Files.createSymbolicLink(target.toPath(),Paths.get(entry.getLinkName()));
+        }else if(entry.isLink()){hardLinks.put(target,entry.getLinkName());}
+        else if(entry.isFile()){
+          try(OutputStream out=new BufferedOutputStream(new FileOutputStream(target))){int n;while((n=tar.read(buffer))!=-1){expanded+=n;if(expanded>1600000000L)throw new IOException("Debian rootfs exceeds expanded size limit");out.write(buffer,0,n);}}
+          try{Os.chmod(target.getAbsolutePath(),entry.getMode()&0777);}catch(Exception ignored){target.setExecutable((entry.getMode()&0111)!=0,false);}
+        }
+        if(entries%1000==0)progress.update("Extract Debian",55+Math.min(44,entries/2500),entries+" files");
+      }
+    }
+    for(Map.Entry<File,String> link:hardLinks.entrySet()){
+      File source=tarTarget(root,link.getValue());Files.deleteIfExists(link.getKey().toPath());Files.createLink(link.getKey().toPath(),source.toPath());
+    }
   }
 }

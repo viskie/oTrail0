@@ -15,6 +15,14 @@ MAVEN={'ecj':('org/eclipse/jdt/ecj/3.38.0','ecj-3.38.0.jar'),
 'slf4j':('org/slf4j/slf4j-api/1.7.36','slf4j-api-1.7.36.jar'),
 'ewah':('com/googlecode/javaewah/JavaEWAH/1.2.3','JavaEWAH-1.2.3.jar'),
 'codec':('commons-codec/commons-codec/1.17.0','commons-codec-1.17.0.jar')}
+MODULE_MAVEN={'compress':('org/apache/commons/commons-compress/1.28.0','commons-compress-1.28.0.jar'),
+'xz':('org/tukaani/xz/1.10','xz-1.10.jar'),
+'compress-io':('commons-io/commons-io/2.20.0','commons-io-2.20.0.jar'),
+'compress-lang':('org/apache/commons/commons-lang3/3.18.0','commons-lang3-3.18.0.jar'),
+'compress-codec':('commons-codec/commons-codec/1.19.0','commons-codec-1.19.0.jar')}
+SORA={'sora-editor':('io/github/rosemoe/editor/0.24.7','editor-0.24.7.aar'),
+'sora-textmate':('io/github/rosemoe/language-textmate/0.24.7','language-textmate-0.24.7.aar')}
+LEGACY_CATALOG_PUBLIC_KEY='MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA8R2LWyNyPH3GUwMwa/jT7Mhpm7FbS7UdnzfcV75HHX04iwn6+ziCqwTuN5okMR2fGJFf5D0WwgjTzHxTZVKVEHiblWipd07j9dMZr4mUUt/Zgg5eVe4aH/BfNBTXWoMXPkyh4wnPDMtn/ZYlowijFBKhb16YzSffAEENlupsZW3sxHLyFVw6JNvULFCOwCzU8nl+gJUxSwqgqiGWL0C+VeloZl1UWBpcUHSPtcKUn0Ynkhru6jSDmLvF8XyTWz7/0dVQgCi4Al5HA1nxcoenqKJNFsqgv1QRf74Y1bDXrJ3Lpfa+z6Um01k7YXRQdHtC5y3Kge02bxQn5vfYG9GYm4+J6KyEQJBxyx+/ptB4p9Juap63zjJ3xN6xI7cKKqDP6CiByA0nAFBLzfv3fY2ildKmYIpvK/JYhhnKpUB4Sc8Hhnw6PnZnyvFvA7B/Brsgvv22uVm8/4gkA+kddIkgCAjBHKYRnuL/lm406kD2zkfx9XcIh77ROFlx4xpRwrVRAgMBAAE='
 def run(args):subprocess.run([str(x) for x in args],cwd=ROOT,check=True)
 def sha(path):
  h=hashlib.sha256()
@@ -57,6 +65,10 @@ def dex(name,jars,classpath=()):
 
 def prepare():
  for name,(base,file) in MAVEN.items():download('https://repo.maven.apache.org/maven2/'+base+'/'+file,LIBS/(name+'.jar'))
+ for name,(base,file) in MODULE_MAVEN.items():download('https://repo.maven.apache.org/maven2/'+base+'/'+file,LIBS/(name+'.jar'))
+ for name,(base,file) in SORA.items():
+  aar=download('https://repo.maven.apache.org/maven2/'+base+'/'+file,LIBS/file)
+  with zipfile.ZipFile(aar) as archive:(LIBS/(name+'.jar')).write_bytes(archive.read('classes.jar'))
  # Public Java compiler APIs are absent on ART; include the OpenJDK java.compiler API under its Classpath Exception.
  api=BUILD/'java-compiler-api.jar'
  with zipfile.ZipFile(JAVA/'jmods/java.compiler.jmod') as source,zipfile.ZipFile(api,'w',zipfile.ZIP_DEFLATED) as out:
@@ -92,8 +104,8 @@ def prepare():
  pubclasses=BUILD/'publisher-classes';javac([ROOT/'modules/mod1/compiler/in/otrail/extensions/god/compiler/GitPublisher.java'],pubclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*[LIBS/(name+'.jar') for name in MAVEN if name!='ecj']]);jar(BUILD/'publisher-engine.jar',pubclasses)
  publisher=dex('publisher-code',[BUILD/'publisher-engine.jar',*[LIBS/(name+'.jar') for name in MAVEN if name!='ecj']],[CLASSES])
  licenses=BUILD/'LICENSES';licenses.mkdir(exist_ok=True)
- (licenses/'README.txt').write_text('GOD toolchain dependencies\nECJ 3.38 EPL-2.0: https://github.com/eclipse-jdt/eclipse.jdt.core\nD8 BSD-3-Clause: https://r8.googlesource.com/r8\nApksig Apache-2.0: https://android.googlesource.com/platform/tools/apksig\nOpenJDK java.compiler GPLv2 + Classpath Exception: https://openjdk.org/legal/gplv2+ce.html\nJGit EDL-1.0: https://www.eclipse.org/jgit/\nJSch BSD: https://github.com/mwiede/jsch\nSLF4J MIT: https://www.slf4j.org/license.html\nJavaEWAH Apache-2.0: https://github.com/lemire/javaewah\nCommons Codec Apache-2.0: https://commons.apache.org/proper/commons-codec/\nAndroid platform downloaded directly from Google after license acceptance.\n')
- for name,(base,file) in MAVEN.items():
+ (licenses/'README.txt').write_text('GOD toolchain dependencies\nECJ 3.38 EPL-2.0: https://github.com/eclipse-jdt/eclipse.jdt.core\nD8 BSD-3-Clause: https://r8.googlesource.com/r8\nApksig Apache-2.0: https://android.googlesource.com/platform/tools/apksig\nOpenJDK java.compiler GPLv2 + Classpath Exception: https://openjdk.org/legal/gplv2+ce.html\nJGit EDL-1.0: https://www.eclipse.org/jgit/\nJSch BSD: https://github.com/mwiede/jsch\nSLF4J MIT: https://www.slf4j.org/license.html\nJavaEWAH Apache-2.0: https://github.com/lemire/javaewah\nCommons Codec, Compress, IO and Lang Apache-2.0: https://commons.apache.org/\nXZ for Java public domain: https://tukaani.org/xz/java.html\nAndroid platform downloaded directly from Google after license acceptance.\n')
+ for name,(base,file) in {**MAVEN,**MODULE_MAVEN}.items():
   with zipfile.ZipFile(LIBS/(name+'.jar')) as z:
    for entry in z.namelist():
     if not entry.endswith('/') and any(x in entry.upper() for x in ['LICENSE','NOTICE','COPYING','ABOUT.HTML']):
@@ -119,7 +131,7 @@ def prepare():
  state={'toolFiles':toolFiles,'sdk':{'file':'google-platform-37.zip','url':url,'sha256':sha(platform),'sizeBytes':platform.stat().st_size,'extractFiles':{entry:'android.jar'}}}
  (BUILD/'prepared.json').write_text(json.dumps(state,indent=2));print('Tool packs prepared',flush=True)
 
-def source(version="0.4.0"):
+def source(version="0.4.21"):
  paths=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
  include=[]
  for name in paths:
@@ -142,26 +154,39 @@ def package():
  prefix='https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'
  def artifact(path,**kwargs):return dict(file=path.name,url=prefix+path.name,sha256=sha(path),sizeBytes=path.stat().st_size,**kwargs)
  tools=[artifact(RELEASES/'god-compiler-1.0.0.zip',archive=True),artifact(RELEASES/'god-publisher-1.0.0.zip',archive=True),artifact(RELEASES/'god-dependencies-0.4.0.zip',archive=True),state['sdk']]
- apk=ROOT/'releases/oTraiL-0.4.0-debug.apk'
+ apk=ROOT/'releases/oTraiL-0.4.21-debug.apk'
  tools.append(dict(file='template-0.4.0.apk',url='https://raw.githubusercontent.com/viskie/oTrail0/main/releases/'+apk.name,sha256=sha(apk),sizeBytes=apk.stat().st_size,target='template.apk'))
  checks=state['toolFiles'];checks['template.apk']=sha(apk)
  request=urllib.request.Request('https://api.github.com/meta',headers={'User-Agent':'oTraiL-GOD-build'})
- hosts=json.load(urllib.request.urlopen(request,timeout=30))['ssh_keys']
- metadata=dict(id='god-java-0.4.0-v1',name='GOD in-app Java toolchain',version='1.0.0',api=1,minApp=23,minSdk=35,sourceVersion='0.4.0',baselineSha256=baseline,signingCertificate='227e8f5912c78bab9cc3a016290aebf0b21b07aedaa520328cfea5ac0fcec051',sources=[dict(version='0.4.0',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts)
- moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar'],[CLASSES])
- manifest=dict(id='mod1',name='GOD',version='1.0.0',api=1,minApp=23,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
- module=RELEASES/'GOD-1.0.0.oTrail0'
+ try:hosts=json.load(urllib.request.urlopen(request,timeout=30))['ssh_keys']
+ except Exception:
+  oldEnvelope=json.loads((RELEASES/'catalog.json').read_text())
+  oldCatalog=json.loads(base64.b64decode(oldEnvelope['payload']))
+  hosts=oldCatalog['toolchains'][0]['githubHostKeys']
+ rootfs=dict(file='debian-bookworm-arm64-20261117-rootfs.tar.xz',url='https://images.linuxcontainers.org/images/debian/bookworm/arm64/default/20261117_05%3A24/rootfs.tar.xz',sha256='125416b51b1272db7abd932bc7cc5f286fd29a190cb5a1b18460500f5448d5fc',sizeBytes=95026816)
+ latestFunctions=dict(commit='0.4.21',title='GOD v3 native editor, project search and Debian shell',functions=['SourceStudio.configureTextMate','SourceStudio.createFindBar/searchNow/updateFindStatus','SourceStudio.showFileTree/sortTree/flattenTreeRows','SourceStudio.globalSearch/searchProject/showSearchResults','SourceStudio.shellScreen/launchShell/readShell/waitShell/exitShell','StudioTasks.setupShell/extractRootfs/tarTarget/createArchiveParents','StudioFiles.remove symlink-safe cleanup','MainActivity.line restored rounded polyline trail renderer'])
+ metadata=dict(id='god-java-0.4.21-v3',name='GOD v3 native editor + Debian shell toolchain',version='3.0.0',api=1,minApp=44,minSdk=35,sourceVersion='0.4.21',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.21',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
+ modulelibs=[LIBS/(name+'.jar') for name in MODULE_MAVEN]
+ moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*modulelibs,*[LIBS/(name+'.jar') for name in SORA]]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar',*modulelibs],[CLASSES,*[LIBS/(name+'.jar') for name in SORA]])
+ manifest=dict(id='mod1',name='GOD',version='3.0.0',api=1,minApp=44,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
+ module=RELEASES/'GOD-3.0.0.oTrail0'
  with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
+  for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
+  out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
+  out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)
- release=dict(manifest,url=prefix+module.name,sha256=sha(module),sizeBytes=module.stat().st_size,installSalt=base64.b64encode(salt).decode(),installHash=base64.b64encode(hashlib.pbkdf2_hmac('sha256',password,salt,120000,32)).decode(),notes='In-app multi-tab editor and offline Java APK build. Download tools separately; unsupported resources/build-system edits rejected. Phone-specific SSH key, GitHub test and named APK publication. Device validation pending.')
+ release=dict(manifest,url=prefix+module.name,sha256=sha(module),sizeBytes=module.stat().st_size,installSalt=base64.b64encode(salt).decode(),installHash=base64.b64encode(hashlib.pbkdf2_hmac('sha256',password,salt,120000,32)).decode(),notes='In-app editor/build tools plus optional ARM64 Debian PRoot shell. Type exit to return to GOD. App-private bindings are writable; shared storage requires explicit Android all-files access. Phone runtime validation pending.')
  versions=[release];chains=[metadata]
  old=RELEASES/'catalog.json'
  if old.exists():
   envelope=json.loads(old.read_text());previous=base64.b64decode(envelope['payload']);sig=BUILD/'old-catalog.sig';sig.write_bytes(base64.b64decode(envelope['signature']));public=BUILD/'publisher-public.pem'
   key=pathlib.Path.home()/'.local/share/otrail/module-signing.pem'
   public.write_bytes(subprocess.check_output(['openssl','pkey','-in',str(key),'-pubout']))
-  subprocess.run(['openssl','dgst','-sha256','-verify',str(public),'-signature',str(sig)],input=previous,check=True,stdout=subprocess.DEVNULL)
+  verified=subprocess.run(['openssl','dgst','-sha256','-verify',str(public),'-signature',str(sig)],input=previous,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0
+  if not verified:
+   legacy=BUILD/'legacy-catalog-public.der';legacy.write_bytes(base64.b64decode(LEGACY_CATALOG_PUBLIC_KEY))
+   subprocess.run(['openssl','dgst','-sha256','-keyform','DER','-verify',str(legacy),'-signature',str(sig)],input=previous,check=True,stdout=subprocess.DEVNULL)
   catalog=json.loads(previous)
   versions += [item for item in catalog.get('versions',[]) if (item['id'],item['version'])!=(release['id'],release['version'])]
   chains += [item for item in catalog.get('toolchains',[]) if item['id']!=metadata['id']]

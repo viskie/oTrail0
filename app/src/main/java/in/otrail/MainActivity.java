@@ -757,22 +757,18 @@ public final class MainActivity extends Activity {
                     && (!(o instanceof Polyline)
                         || ((Polyline) o).getId() == null
                         || !((Polyline) o).getId().startsWith("navigation:")));
-    map.getOverlays().removeIf(o->o instanceof TrailRibbonOverlay);
     long liveRunStart=driveMetrics==null?last.time():driveMetrics.current().start();
     if(stopped&&current!=null&&driveMetrics!=null){
       DriveMetrics.Leg arrivedLeg=driveMetrics.stops().get(current.id());
       if(arrivedLeg!=null)liveRunStart=arrivedLeg.start();
     }
-    List<TrailPalette.Stroke> displayStrokes=recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart);
-    List<TrailRibbonOverlay.Ribbon> ribbons=new ArrayList<>();
-    for (TrailPalette.Stroke stroke : displayStrokes) {
+    for (TrailPalette.Stroke stroke : recorded?colored:TrailPalette.highlightCurrent(colored,liveRunStart)) {
       ArrayList<GeoPoint> points = new ArrayList<>();
       if(stroke.pass()==0){for(RoutePlan.Point p:gapRoadRoutes.geometry(stroke.points(),offlineOnly))points.add(new GeoPoint(p.lat(),p.lon()));}
       else for (TrailSegments.Sample p : stroke.points()) points.add(new GeoPoint(p.lat(), p.lon()));
       if(points.size()<2)continue;
-      ribbons.add(new TrailRibbonOverlay.Ribbon(points,stroke,stroke.color(),stroke.ongoing()));
+      line(points, stroke.color(), stroke.ongoing());
     }
-    map.getOverlays().add(new TrailRibbonOverlay(ribbons,displayStrokes));
     List<HistoricalTrails.Entry> reconstructed=new ArrayList<>(historicalTrails.entries());reconstructed.addAll(historicalTrails.drafts());
     for(HistoricalTrails.Entry entry:reconstructed)if(entry.visible()){ArrayList<GeoPoint> geometry=new ArrayList<>();int step=Math.max(1,entry.points().size()/20000);for(int i=0;i<entry.points().size();i+=step){RoutePlan.Point p=entry.points().get(i);geometry.add(new GeoPoint(p.lat(),p.lon()));}RoutePlan.Point end=entry.points().get(entry.points().size()-1);geometry.add(new GeoPoint(end.lat(),end.lon()));line(geometry,UiConfig.YELLOW,false);}
     stopDots.reset();
@@ -894,7 +890,21 @@ public final class MainActivity extends Activity {
 
   private void line(ArrayList<GeoPoint> pts, int color, boolean ongoing) {
     if (pts.size() < 2) return;
-    map.getOverlays().add(new TrailRibbonOverlay(List.of(new TrailRibbonOverlay.Ribbon(pts,null,color,ongoing)),List.of()));
+    Polyline p = new Polyline(map);
+    p.setPoints(pts);
+    p.setOnClickListener((poly, view, point) -> {
+      roadControls.tapped(point.getLatitude(), point.getLongitude(), offlineOnly);
+      return true;
+    });
+    p.getOutlinePaint().setColor(color);
+    p.getOutlinePaint().setStrokeWidth(dp(4));
+    android.graphics.Paint stroke = p.getOutlinePaint();
+    stroke.setStyle(android.graphics.Paint.Style.STROKE);stroke.setStrokeCap(android.graphics.Paint.Cap.ROUND);stroke.setStrokeJoin(android.graphics.Paint.Join.ROUND);stroke.setAntiAlias(true);stroke.setPathEffect(null);
+    android.graphics.Paint halo = new android.graphics.Paint(stroke);
+    halo.setColor(ongoing?UiConfig.LIVE_TRAIL_OUTLINE:UiConfig.TRAIL_OUTLINE); halo.setStrokeWidth(dp(6));
+    p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(halo));
+    p.getOutlinePaintLists().add(new org.osmdroid.views.overlay.advancedpolyline.MonochromaticPaintList(stroke));
+    map.getOverlays().add(p);
   }
 
   private LayerDrawable dot(int color, int size) {return dot(color,size,UiConfig.DOT_OUTLINE_WIDTH_DP);}
