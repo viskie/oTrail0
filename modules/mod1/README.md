@@ -1,4 +1,4 @@
-# GOD — downloadable source studio (module ID `mod1`, version 3.0.0)
+# GOD — downloadable source studio (module ID `mod1`, version 3.0.1)
 
 All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. The editor, compiler and Debian shell controller are downloaded as GOD; the host APK contains only the signed module host and the ARM64 PRoot executable required by Android's native-execution policy.
 
