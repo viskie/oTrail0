@@ -9,9 +9,9 @@ import java.util.Map;
 public class UiConfig {
   protected UiConfig() {}
   public static final int BLUE=0xff0078ff,PURPLE=0xffbd00ff,ORANGE=0xffff9a00,LIME=0xff01ff1f,YELLOW=0xffe3ff00;
-  public static final int ACCENT_TEXT=0xff004fa8,HEADING=0xffbd00ff,SECONDARY=0xffFF00FF;
+  public static final int ACCENT_TEXT=0xff01ff1f,HEADING=0xffbd00ff,SECONDARY=0xffFF00FF;
   public static final int BUTTON=0xff17deee,BUTTON_TEXT=0xffbd00ff;
-  public static final int BACKGROUND=0xff000000,SURFACE=0xffe7e7eb,INK=0xff17deee,MUTED=0xffff7f50;
+  public static final int BACKGROUND=0xff000000,SURFACE=0xff202226,INK=0xff01ff1f,MUTED=0xffff7f50;
   public static final int CYAN=0xff17deee,CORAL=0xffff7f50,PINK=0xffff4162,LEMON=0xffecf284,TEAL=0xff10aeb2, BLACK=0xff000000;
   // Shared neon border palettes; button typography and ripple colors remain separate.
   public static final int NEON_CURRENT=0xff00eaff, NEON_LIME=LIME,
@@ -72,9 +72,9 @@ public class UiConfig {
       SETTINGS_TITLE_SIZE_SP=25, APP_TITLE_SIZE_SP=27;
   public static final int DIALOG_TITLE_COLOR=BLACK, DIALOG_BODY_COLOR=BLACK,
       DIALOG_LINK_COLOR=BLACK, DIALOG_HINT_COLOR=0xff444444,
-      DIALOG_BUTTON_TEXT_COLOR=BLACK,
+      DIALOG_BUTTON_TEXT_COLOR=PURPLE,
       DIALOG_BUTTON_DISABLED_TEXT_COLOR=BUTTON_DISABLED_TEXT,
-      DIALOG_SURFACE=SURFACE, DIALOG_ACCENT=PURPLE;
+      DIALOG_SURFACE=0xffe7e7eb, DIALOG_ACCENT=PURPLE;
   public static final String DIALOG_TITLE_FONT=HEADING_FONT,
       DIALOG_BODY_FONT=BODY_FONT, DIALOG_BUTTON_FONT=BUTTON_FONT;
   public static final int DIALOG_TITLE_FONT_STYLE=HEADING_FONT_STYLE,

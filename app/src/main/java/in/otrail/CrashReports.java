@@ -17,15 +17,19 @@ public final class CrashReports extends Application {
       else{android.os.Process.killProcess(android.os.Process.myPid());System.exit(10);}
     });
   }
-  static void save(Context c,String stage,Throwable error) {
-    try(FileOutputStream out=new FileOutputStream(new File(c.getFilesDir(),"last-crash.txt"))) {
-      out.write(("oTraiL 0.4.0"+" · "+new java.util.Date()+"\n"+stage+"\n"+android.util.Log.getStackTraceString(error)).getBytes(StandardCharsets.UTF_8));out.getFD().sync();
+  static synchronized void save(Context c,String stage,Throwable error) {
+    File file=new File(c.getFilesDir(),"otrail-errors.log");
+    try {
+      if(file.length()>1024*1024){File old=new File(c.getFilesDir(),"otrail-errors.previous.log");old.delete();file.renameTo(old);}
+      try(FileOutputStream out=new FileOutputStream(file,true)) {
+      String version="unknown";try{version=c.getPackageManager().getPackageInfo(c.getPackageName(),0).versionName;}catch(Exception ignored){}
+      out.write(("\n=== oTraiL "+version+" · "+new java.util.Date()+" · process "+android.os.Process.myPid()+" ===\n"+stage+"\n"+android.util.Log.getStackTraceString(error)+"\n").getBytes(StandardCharsets.UTF_8));out.getFD().sync();}
     }catch(Throwable ignored){}
   }
   static String read(Context c) {
     StringBuilder text=new StringBuilder();
-    try(BufferedReader r=new BufferedReader(new InputStreamReader(new FileInputStream(new File(c.getFilesDir(),"last-crash.txt")),StandardCharsets.UTF_8))) {
-      String s;while((s=r.readLine())!=null&&text.length()<48000)text.append(s).append('\n');
+    try(RandomAccessFile r=new RandomAccessFile(new File(c.getFilesDir(),"otrail-errors.log"),"r")) {
+      long start=Math.max(0,r.length()-96000);r.seek(start);if(start>0)r.readLine();byte[] data=new byte[(int)(r.length()-r.getFilePointer())];r.readFully(data);text.append(new String(data,StandardCharsets.UTF_8));
     }catch(IOException ignored){}
     try {
       ActivityManager am=(ActivityManager)c.getSystemService(Context.ACTIVITY_SERVICE);
@@ -39,8 +43,9 @@ public final class CrashReports extends Application {
     String report=read(a);
     android.widget.TextView t=new android.widget.TextView(a);t.setText(report);t.setTextIsSelectable(true);t.setPadding(24,16,24,16);
     android.widget.ScrollView sc=new android.widget.ScrollView(a);sc.addView(t);
-    new AppDialogs(a).setTitle("Last app crash").setView(sc).setPositiveButton("Close",null).setNeutralButton("Copy report",(d,w)->{
+    new AppDialogs(a).setTitle("App and module error log").setView(sc).setPositiveButton("Close",null).setNeutralButton("Copy report",(d,w)->{
       ((android.content.ClipboardManager)a.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("oTraiL crash",report));
-    }).show();
+    }).setNegativeButton("Export file",(d,w)->a.startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("text/plain").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,"otrail-errors.log"),24)).show();
   }
+  static void export(Context c,android.net.Uri target)throws IOException{try(InputStream in=new FileInputStream(new File(c.getFilesDir(),"otrail-errors.log"));OutputStream out=c.getContentResolver().openOutputStream(target,"wt")){if(out==null)throw new IOException("Cannot open export destination");byte[] buffer=new byte[16384];int count;while((count=in.read(buffer))>=0)out.write(buffer,0,count);out.flush();}}
 }

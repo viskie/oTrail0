@@ -327,7 +327,7 @@ public final class MainActivity extends Activity {
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
-    ImageButton debian=new ImageButton(this);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell");debian.setTooltipText("Debian shell");debian.setOnClickListener(v->{String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
+    ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);int iconInset=dp(Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2));debian.setPadding(iconInset,iconInset,iconInset,iconInset);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell");debian.setTooltipText("Debian shell");debian.setOnClickListener(v->{String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
     ScreenShareButton screenShare=new ScreenShareButton(this,
         ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
     LinearLayout.LayoutParams screenSharePosition=new LinearLayout.LayoutParams(
@@ -533,7 +533,7 @@ public final class MainActivity extends Activity {
       setPadding(padding,padding,padding,padding);
       icon=new TriangleIcon(dark);
       setImageDrawable(icon);
-      setBackgroundColor(Color.TRANSPARENT);setPadding(0,0,0,0);
+      setBackgroundColor(Color.TRANSPARENT);
       setDarkMode(dark);
       setOnClickListener(view->toggle.run());
     }
@@ -1647,6 +1647,7 @@ public final class MainActivity extends Activity {
     if(request==ResonationsWidget.PICK_FILES){if(result==RESULT_OK&&data!=null&&resonations!=null)resonations.selected(data);return;}
     if (result != RESULT_OK || data == null || data.getData() == null) return;
     Uri uri = data.getData();
+    if(request==24){try{CrashReports.export(this,uri);toast("Error log exported");}catch(Exception e){CrashReports.save(this,"Export error log",e);toast("Cannot export error log: "+e.getMessage());}return;}
     if (request == 31) {
       if (routingControls == null) routingControls = new RoutingControls(this);
       routingControls.imported(uri);
