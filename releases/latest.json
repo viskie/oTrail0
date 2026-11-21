@@ -1,8 +1,8 @@
 {
-  "versionCode": 45,
-  "versionName": "0.4.22",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.22-debug.apk",
-  "sha256": "7e151276b17890e3c38621a38805cf66b7207595b66472412936e2291bfcec14",
-  "sizeBytes": 41944452,
-  "notes": "Raises the signed extension-module ceiling to 240 MB so GOD 3.2 can include its verified Debian rootfs. GOD 3.2 fixes blank file opening, embeds the folder tree in the Editor, adds a full-screen workspace, floating GOD return control and hardware-keyboard shortcuts. Same APK certificate as 0.4.21; install as an in-place update. 132 tests, lint and app/module builds passed; physical-device editor and PRoot validation remain pending."
+  "versionCode": 46,
+  "versionName": "0.4.23",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.23-debug.apk",
+  "sha256": "0c1d6322606ecca3ebc16944c892fe336e94cc0651202c4dba20c279e6fd7dfd",
+  "sizeBytes": 41950204,
+  "notes": "Fluid projected GPS dot and bubble using five-fix speed averaging; four-decimal speed and route distance; blank road distance shown as --; white live clock; unboxed triangle control. GOD 4 adds fresh buildable source workspaces, internal-folder import and SCP configuration. Debian is now the separate Debian Shell 1.0 module with direct map access. Same signing certificate for an in-place update; module compilation passed."
 }

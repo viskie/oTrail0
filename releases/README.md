@@ -177,3 +177,7 @@ Zero-padding compact GPS bubble, uniform 11sp text and available values only; lo
 ## 0.4.7 — 2026-11-09
 
 GPS popup 40% narrower than measured phone UI with a 3dp thicker border. Named worship sites and nearest police station share the side-panel results list. Clickable places confirm before automatic navigation, preserving the current route if calculation fails. Persistent navigation history can be viewed/reloaded from the left menu. See docs/0.4.7-named-nearby-navigation.md.
+
+## 0.4.23 — 2026-11-21
+
+Smooth projected GPS dot and bubble motion based on the latest five fixes, four-decimal speed and remaining-road distance, `--` for an unavailable road value, and a white live clock in the bottom status bar. The map theme triangle is no longer boxed. GOD 4 provides fresh buildable current-source workspaces, internal-folder import and SCP configuration. Debian Shell 1.0 is an independent downloadable module opened from the new nine-sided map icon. See docs/0.4.23-motion-god4-debian.md.
