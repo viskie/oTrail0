@@ -1,5 +1,12 @@
 # Installable builds
 
+## 0.4.22 — 2026-11-21
+
+Raises the authenticated extension-module size ceiling from 20 MB to 240 MB,
+allowing GOD 3.2 to include its checksum-pinned Debian rootfs. No journal, map,
+routing or trail-rendering behavior changes. The certificate matches 0.4.21, so
+install this APK as an in-place update without uninstalling.
+
 ## 0.4.21 — 2026-11-21
 
 `oTraiL-0.4.21-debug.apk` — versionCode 44, GOD 3.0 native editor and optional

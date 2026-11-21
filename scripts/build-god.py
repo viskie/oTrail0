@@ -131,7 +131,7 @@ def prepare():
  state={'toolFiles':toolFiles,'sdk':{'file':'google-platform-37.zip','url':url,'sha256':sha(platform),'sizeBytes':platform.stat().st_size,'extractFiles':{entry:'android.jar'}}}
  (BUILD/'prepared.json').write_text(json.dumps(state,indent=2));print('Tool packs prepared',flush=True)
 
-def source(version="0.4.21"):
+def source(version="0.4.22"):
  paths=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
  include=[]
  for name in paths:
@@ -154,7 +154,7 @@ def package():
  prefix='https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'
  def artifact(path,**kwargs):return dict(file=path.name,url=prefix+path.name,sha256=sha(path),sizeBytes=path.stat().st_size,**kwargs)
  tools=[artifact(RELEASES/'god-compiler-1.0.0.zip',archive=True),artifact(RELEASES/'god-publisher-1.0.0.zip',archive=True),artifact(RELEASES/'god-dependencies-0.4.0.zip',archive=True),state['sdk']]
- apk=ROOT/'releases/oTraiL-0.4.21-debug.apk'
+ apk=ROOT/'releases/oTraiL-0.4.22-debug.apk'
  tools.append(dict(file='template-0.4.0.apk',url='https://raw.githubusercontent.com/viskie/oTrail0/main/releases/'+apk.name,sha256=sha(apk),sizeBytes=apk.stat().st_size,target='template.apk'))
  checks=state['toolFiles'];checks['template.apk']=sha(apk)
  request=urllib.request.Request('https://api.github.com/meta',headers={'User-Agent':'oTraiL-GOD-build'})
@@ -165,11 +165,11 @@ def package():
   hosts=oldCatalog['toolchains'][0]['githubHostKeys']
  rootfs=dict(file='debian-bookworm-arm64-20261117-rootfs.tar.xz',entry='debian/rootfs.tar.xz',url='https://images.linuxcontainers.org/images/debian/bookworm/arm64/default/20261117_05%3A24/rootfs.tar.xz',sha256='125416b51b1272db7abd932bc7cc5f286fd29a190cb5a1b18460500f5448d5fc',sizeBytes=95026816)
  latestFunctions=dict(commit='0.4.21',title='GOD 3.1 full-screen editor and bundled Debian',functions=['SourceStudio editorPath buffer ownership fix','SourceStudio.inlineFileTree/renderInlineFileTree','SourceStudio.moduleChrome full-screen workspace','SourceStudio hardware keyboard shortcuts and floating GOD return','StudioTasks.setupShell verified bundled rootfs extraction','SourceStudio.shellScreen responsive controls'])
- metadata=dict(id='god-java-0.4.21-v3',name='GOD 3.1 editor + offline Debian toolchain',version='3.1.0',api=1,minApp=44,minSdk=35,sourceVersion='0.4.21',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.21',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
+ metadata=dict(id='god-java-0.4.22-v3',name='GOD 3.2 full-screen editor + included Debian',version='3.2.0',api=1,minApp=45,minSdk=35,sourceVersion='0.4.22',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.22',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
  modulelibs=[LIBS/(name+'.jar') for name in MODULE_MAVEN]
  moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*modulelibs,*[LIBS/(name+'.jar') for name in SORA]]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar',*modulelibs],[CLASSES,*[LIBS/(name+'.jar') for name in SORA]])
- manifest=dict(id='mod1',name='GOD',version='3.1.0',api=1,minApp=44,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
- module=RELEASES/'GOD-3.1.0.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
+ manifest=dict(id='mod1',name='GOD',version='3.2.0',api=1,minApp=45,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
+ module=RELEASES/'GOD-3.2.0.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
  with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
   out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED)
@@ -189,7 +189,7 @@ def package():
    legacy=BUILD/'legacy-catalog-public.der';legacy.write_bytes(base64.b64decode(LEGACY_CATALOG_PUBLIC_KEY))
    subprocess.run(['openssl','dgst','-sha256','-keyform','DER','-verify',str(legacy),'-signature',str(sig)],input=previous,check=True,stdout=subprocess.DEVNULL)
   catalog=json.loads(previous)
-  versions += [item for item in catalog.get('versions',[]) if (item['id'],item['version'])!=(release['id'],release['version'])]
+  versions += [item for item in catalog.get('versions',[]) if (item['id'],item['version'])!=(release['id'],release['version']) and item.get('sizeBytes',0)<=240000000]
   chains += [item for item in catalog.get('toolchains',[]) if item['id']!=metadata['id']]
  payload=json.dumps(dict(schema=1,repositories=[dict(name='viskie/oTrail0',url=prefix)],versions=versions,toolchains=chains),sort_keys=True,separators=(',',':')).encode()
  (BUILD/'catalog-payload.json').write_bytes(payload)
