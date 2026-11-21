@@ -1,5 +1,22 @@
 # Installable builds
 
+## 0.4.21 — 2026-11-21
+
+`oTraiL-0.4.21-debug.apk` — versionCode 44, GOD 3.0 native editor and optional
+ARM64 Debian PRoot shell. Adds Sora/TextMate Java highlighting, find/replace,
+an expandable project tree and project-wide search. `exit` leaves the Debian
+shell and returns to GOD without stopping oTraiL. Reverts only the 0.4.20
+screen-space trail lane/ribbon renderer to the earlier rounded polyline drawing;
+recorded coordinates and other 0.4.20 features are unchanged.
+
+This build begins a new APK signing identity. It cannot update earlier builds in
+place. Export and verify a complete oTraiL backup outside app-private and
+app-specific storage before uninstalling, then install 0.4.21 and restore it.
+Android deletes private app data during uninstall. 132 JVM tests, lint, app and
+instrumentation assembly, GOD Java compilation and single-DEX conversion pass;
+phone-side migration, PRoot and touch-editor validation remain pending. See
+[`docs/0.4.21-god-v3.md`](../docs/0.4.21-god-v3.md).
+
 ## 0.2.4 — 2026-11-05
 
 `oTraiL-0.2.4-debug.apk` — source commit `3811a1d`, versionCode 6.

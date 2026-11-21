@@ -1,8 +1,8 @@
 {
-  "versionCode": 43,
-  "versionName": "0.4.20",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.20-debug.apk",
-  "sha256": "ccfef4acea25a81fb7c6e64dca55dfee6328274e190d13382195043298af9d69",
-  "sizeBytes": 55252110,
-  "notes": "Route-options dialog before planning: soft EX/NH/SH preferences and up to eight explicitly selected via cities; active-route cache retains remaining via points for reroutes/restarts. OSRM ranks returned alternatives; offline road-class approximations, not strict NH/SH exclusions. Configurable navigation zoom, larger offline city/road labels and raster tile scaling, black dialog text. Repeated passes separated in screen space, newest centred, rounded shared-path trail casing; GPS data unchanged. Resonations PCM16 WAV recording with microphone foreground service, 48/44.1 kHz mono/stereo, input/output selectors and best-effort multiple output players; hardware routing restrictions displayed and duplicate outputs removed. 135 tests, build and lint passed; physical device audio/UI validation pending."
+  "versionCode": 44,
+  "versionName": "0.4.21",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.21-debug.apk",
+  "sha256": "94733c68cad360fd03c19f502fd5beb7141ec5508bc160ae91a70e01b123ee1e",
+  "sizeBytes": 41944452,
+  "notes": "GOD 3.0 adds a native Sora/TextMate editor, expandable file tree, find/replace, project search and an optional ARM64 Debian PRoot shell; type exit to return to the app. Only the 0.4.20 trail lane/ribbon drawing algorithm is reverted to rounded polylines. Route preferences, labels and Resonations audio remain. New APK signing identity requires a one-time backup, uninstall, install and restore; uninstalling without an externally exported backup loses private app data. 132 tests, lint and app/module builds passed; physical-device shell/editor and restore validation remain pending."
 }
