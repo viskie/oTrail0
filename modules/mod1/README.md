@@ -1,10 +1,10 @@
-# GOD — downloadable source studio (module ID `mod1`, version 3.0.1)
+# GOD — downloadable source studio (module ID `mod1`, version 3.1.0)
 
 All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. The editor, compiler and Debian shell controller are downloaded as GOD; the host APK contains only the signed module host and the ARM64 PRoot executable required by Android's native-execution policy.
 
 ## Debian shell
 
-The Shell tab downloads a checksum-pinned Debian Bookworm ARM64 root filesystem on first use and expands it under private `modules/data/mod1/debian/`. It launches `/usr/bin/bash --login` through PRoot and `script`, providing a PTY-backed session over GOD's terminal controls. Type `exit` or tap **Exit shell** to terminate only the Debian process and return to the GOD UI; oTraiL and its tracking service remain running.
+The Shell tab includes a checksum-pinned Debian Bookworm ARM64 root filesystem inside the GOD module and expands it under private `modules/data/mod1/debian/` without a second network download. It launches `/usr/bin/bash --login` through PRoot and `script`, providing a PTY-backed session over GOD's terminal controls. Type `exit` or tap **Exit shell** to terminate only the Debian process and return to the GOD UI; oTraiL and its tracking service remain running.
 
 The guest exposes these explicit bindings:
 
@@ -22,7 +22,7 @@ The shell's fake UID 0 permits Debian package management inside the rootfs; it i
 1. On Android 15 or later, update oTraiL to 0.4.21 or later. Android still requires confirmation to install the main APK update.
 2. Settings → Extension modules → Refresh versions → GOD → Download & install. Enter the installation password supplied by the owner, then Activate.
 3. Tools → Refresh / choose toolchain. Review licenses and download the compatible toolchain. Downloads show sizes/progress and support Wi-Fi/cellular.
-4. Project → Download source → Browse files. The Sora/TextMate editor has an expandable file tree, file tabs, undo/redo, Java highlighting, find/replace, project-wide search, save/save-all and recoverable drafts.
+4. Project → Download source → Editor. The Sora/TextMate workspace shows its expandable project tree in the editor, opens files full-screen with a floating GOD return control, and provides file tabs, undo/redo, Java highlighting, find/replace, project-wide search, save/save-all and recoverable drafts.
 5. Import the existing PKCS12 APK signing keystore in Tools. The password/alias and key remain private on this phone, outside source/snapshots/exports. A mismatched certificate is rejected; never uninstall the app to bypass it.
 6. Save all & build APK. The dedicated in-app compiler process compiles Java with ECJ, builds DEX with D8, retains verified resources/native libraries, aligns native entries, then signs with apksig. APKs can be exported or installed after identity verification.
 7. Generate GitHub SSH key → Download SSH public key. Add it to the GitHub account or repository deploy keys with write access. Configure the repository/branch and test the uploaded key.

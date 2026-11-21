@@ -62,7 +62,7 @@ final class StudioTasks {
       JSONObject checks=meta.getJSONObject("toolFiles");for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(target,name)).equals(checks.getString(name)))throw new IOException("Tool verification failed: "+name);}
       StudioFiles.write(new File(target,"ready.json"),checks.toString().getBytes(StandardCharsets.UTF_8));progress.update("Tools ready",100,"Compiler, SDK classpath, dependency DEX and APK template verified. Compilation is entirely offline.");
     }else if(action.equals("shellSetup")){
-      setupShell(meta,data,progress);
+      setupShell(pkg,meta,data,progress);
     }else if(action.equals("build")){
       File tools=new File(data,"tools"),dex=new File(tools,"compiler.jar");JSONObject checks=meta.getJSONObject("toolFiles");
       for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(tools,name)).equals(checks.getString(name)))throw new IOException("Download/repair build tools first: "+name);}
@@ -80,14 +80,18 @@ final class StudioTasks {
     }else throw new IOException("Unknown in-app task");
   }
 
-  private static void setupShell(JSONObject meta,File data,ModuleV1.Progress progress)throws Exception{
+  private static void setupShell(File pkg,JSONObject meta,File data,ModuleV1.Progress progress)throws Exception{
     JSONObject spec=meta.getJSONObject("debianRootfs");
     File shellDir=new File(data,"debian"),root=new File(shellDir,"rootfs"),ready=new File(shellDir,"ready.json");
     if(ready.isFile()&&root.isDirectory()){
       JSONObject installed=StudioFiles.json(ready);
       if(spec.getString("sha256").equals(installed.optString("sha256"))){progress.update("Debian ready",100,"Existing verified root filesystem retained.");return;}
     }
-    File archive=download(spec,new File(data,"downloads/"+spec.getString("file")),progress,"Download Debian",0,55);
+    File archive=new File(data,"downloads/"+spec.getString("file"));archive.getParentFile().mkdirs();
+    if(!archive.isFile()||archive.length()!=spec.getLong("sizeBytes")||!StudioFiles.sha(archive).equals(spec.getString("sha256"))){
+      File part=new File(archive.getPath()+".part");try(ZipFile module=new ZipFile(pkg)){java.util.zip.ZipEntry entry=module.getEntry(spec.getString("entry"));if(entry==null||entry.getSize()!=spec.getLong("sizeBytes"))throw new IOException("GOD module does not contain the verified Debian image");try(InputStream in=module.getInputStream(entry);FileOutputStream out=new FileOutputStream(part)){byte[] buffer=new byte[65536];int n,last=-1;long copied=0;while((n=in.read(buffer))!=-1){if(progress.cancelled())throw new IOException("Cancelled");copied+=n;if(copied>spec.getLong("sizeBytes"))throw new IOException("Bundled Debian image exceeds verified size");out.write(buffer,0,n);int percent=(int)(copied*20/spec.getLong("sizeBytes"));if(percent!=last){last=percent;progress.update("Prepare included Debian",percent,copied+" / "+spec.getLong("sizeBytes")+" bytes");}}out.getFD().sync();}}
+      if(part.length()!=spec.getLong("sizeBytes")||!StudioFiles.sha(part).equals(spec.getString("sha256")))throw new SecurityException("Bundled Debian checksum mismatch");Files.move(part.toPath(),archive.toPath(),StandardCopyOption.REPLACE_EXISTING);part.delete();
+    }
     File stage=new File(shellDir,"stage-"+System.currentTimeMillis());StudioFiles.remove(stage);stage.mkdirs();
     try{
       extractRootfs(archive,stage,progress);
@@ -97,7 +101,7 @@ final class StudioTasks {
       new File(stage,"root").mkdirs();new File(stage,"project").mkdirs();new File(stage,"god-data").mkdirs();new File(stage,"app-data").mkdirs();new File(stage,"app-files").mkdirs();new File(stage,"app-cache").mkdirs();new File(stage,"external-app").mkdirs();new File(stage,"shared-storage").mkdirs();
       if(!new File(stage,"usr/bin/bash").canExecute())throw new IOException("Debian rootfs does not contain executable bash");
       StudioFiles.remove(root);if(!stage.renameTo(root))throw new IOException("Cannot activate Debian root filesystem");
-      StudioFiles.write(ready,new JSONObject().put("sha256",spec.getString("sha256")).put("installedMs",System.currentTimeMillis()).put("source",spec.getString("url")).toString().getBytes(StandardCharsets.UTF_8));
+      StudioFiles.write(ready,new JSONObject().put("sha256",spec.getString("sha256")).put("installedMs",System.currentTimeMillis()).put("source","bundled in GOD module").toString().getBytes(StandardCharsets.UTF_8));
       progress.update("Debian ready",100,"Root filesystem verified and installed privately.");
     }finally{StudioFiles.remove(stage);}
   }
@@ -131,7 +135,7 @@ final class StudioTasks {
           try(OutputStream out=new BufferedOutputStream(new FileOutputStream(target))){int n;while((n=tar.read(buffer))!=-1){expanded+=n;if(expanded>1600000000L)throw new IOException("Debian rootfs exceeds expanded size limit");out.write(buffer,0,n);}}
           try{Os.chmod(target.getAbsolutePath(),entry.getMode()&0777);}catch(Exception ignored){target.setExecutable((entry.getMode()&0111)!=0,false);}
         }
-        if(entries%1000==0)progress.update("Extract Debian",55+Math.min(44,entries/2500),entries+" files");
+        if(entries%1000==0)progress.update("Extract included Debian",20+Math.min(79,entries/1400),entries+" files");
       }
     }
     for(Map.Entry<File,String> link:hardLinks.entrySet()){
