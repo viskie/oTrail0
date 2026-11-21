@@ -142,7 +142,11 @@ final class StudioTasks {
       }
     }
     for(Map.Entry<Path,String> link:hardLinks.entrySet()){
-      Path source=tarTarget(base,link.getValue());Files.deleteIfExists(link.getKey());Files.createLink(link.getKey(),source);
+      Path target=link.getKey(),source=tarTarget(base,link.getValue());createArchiveParents(base,target);Files.deleteIfExists(target);
+      Path parent=target.getParent();if(parent==null)throw new IOException("Invalid hard-link parent: "+target);Path relative=parent.relativize(source);if(relative.isAbsolute())throw new IOException("Hard link escapes rootfs: "+link.getValue());
+      // Some Android app-data filesystems deny hard links. PRoot resolves this relative
+      // symlink to the identical Debian-visible file without crossing the rootfs boundary.
+      Files.createSymbolicLink(target,relative);
     }
   }
 }
