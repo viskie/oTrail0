@@ -165,19 +165,19 @@ def package(debian_only=False):
   hosts=oldCatalog['toolchains'][0]['githubHostKeys']
  rootfs=dict(file='debian-bookworm-arm64-20261117-rootfs.tar.xz',entry='debian/rootfs.tar.xz',url='https://images.linuxcontainers.org/images/debian/bookworm/arm64/default/20261117_05%3A24/rootfs.tar.xz',sha256='125416b51b1272db7abd932bc7cc5f286fd29a190cb5a1b18460500f5448d5fc',sizeBytes=95026816)
  latestFunctions=dict(commit='0.4.24',title='GOD 4.1 workspace UI',functions=['Session header and persistent bottom mode navigation','Full-height editor with bottom action strip','Integrated project tree, file tabs and TextMate editor','Internal-storage source folder import','SCP workspace configuration and Debian sync','Native on-phone build toolchain'])
- metadata=dict(id='god-java-0.4.24-v4.1',name='GOD 4 editor and native build toolchain',version='4.1.0',api=1,minApp=47,minSdk=35,sourceVersion='0.4.24',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.24',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
+ metadata=dict(id='god-java-0.4.24-v4.1.1',name='GOD 4 editor and native build toolchain',version='4.1.1',api=1,minApp=47,minSdk=35,sourceVersion='0.4.24',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.24',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
  modulelibs=[LIBS/(name+'.jar') for name in MODULE_MAVEN]
  moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*modulelibs,*[LIBS/(name+'.jar') for name in SORA]]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar',*modulelibs],[CLASSES,*[LIBS/(name+'.jar') for name in SORA]])
- manifest=dict(id='mod1',name='GOD',version='4.1.0',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
- module=RELEASES/'GOD-4.1.0.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
+ manifest=dict(id='mod1',name='GOD',version='4.1.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
+ module=RELEASES/'GOD-4.1.1.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
  if not debian_only:
   with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
    out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
    for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
    out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
    out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
- debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.0',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
- debian=RELEASES/'DEBIAN-1.1.0.oTrail0'
+ debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
+ debian=RELEASES/'DEBIAN-1.1.1.oTrail0'
  with zipfile.ZipFile(debian,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(debianManifest));out.writestr('studio.json',json.dumps(metadata));out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED);out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)

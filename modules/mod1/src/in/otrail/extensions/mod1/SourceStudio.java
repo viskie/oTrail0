@@ -36,7 +36,7 @@ import java.util.zip.ZipFile;
 
 /** Downloaded implementation: all editor/build screens remain inside the oTraiL module Activity. */
 public final class SourceStudio implements ModuleV1 {
-  private Activity activity;private Host host;private LinearLayout root,content,fileTabs;private View headerBar,navigationBar;private TextView status,log;
+  private Activity activity;private Host host;private LinearLayout root,content,fileTabs;private View headerBar,navigationBar;private TextView status,log,debug;
   private ProgressBar progress;private CodeEditor editor;private CheckBox offline,licenses;private LinearLayout findBar;private EditText findQuery,replaceQuery;private TextView findStatus;
   private final ExecutorService io=Executors.newSingleThreadExecutor();private final Handler handler=new Handler(Looper.getMainLooper());
   private final ExecutorService shellIo=Executors.newCachedThreadPool();private java.lang.Process shellProcess;private OutputStream shellInput;private TextView shellOutput;private final StringBuilder shellTranscript=new StringBuilder();
@@ -58,16 +58,17 @@ public final class SourceStudio implements ModuleV1 {
     root=new LinearLayout(a);root.setOrientation(1);root.setPadding(dp(8),dp(6),dp(8),dp(6));root.setBackgroundColor(BG);
     LinearLayout top=row();top.addView(button("←",()->activity.finish()),new LinearLayout.LayoutParams(dp(54),dp(42)));TextView online=label("●",15);online.setTextColor(0xff01ff1f);top.addView(online);top.addView(label("GOD · Source Studio",18),new LinearLayout.LayoutParams(0,-2,1));top.addView(button("HALT SESSION",()->activity.finish()));headerBar=top;root.addView(top);
     status=label("In-app engine ready · select source and download compiler tools",12);root.addView(status);progress=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(5)));
-    content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));
+    content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));debug=label("DEBUG · ready",10);debug.setTextColor(0xff01ff1f);debug.setBackgroundColor(0xff050509);debug.setMaxLines(2);debug.setTextIsSelectable(true);root.addView(debug,new LinearLayout.LayoutParams(-1,-2));
     LinearLayout names=row();String[][] destinations={{"▣ FILES","Project"},{"</> CODE","Editor"},{">_ SHELL","Shell"},{"◆ BUILD","Build"},{"APK","APKs"},{"⚙ TOOLS","Tools"}};for(String[] destination:destinations){Button b=button(destination[0],()->show(destination[1]));b.setTextSize(9);names.addView(b,new LinearLayout.LayoutParams(0,dp(52),1));}navigationBar=names;root.addView(names);show("Project");return root;
   }
   private SharedPreferences preferences(){return activity.getSharedPreferences("mod1_studio",0);}
   private int dp(int value){return Math.round(value*activity.getResources().getDisplayMetrics().density);}
   private LinearLayout row(){LinearLayout l=new LinearLayout(activity);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
   private TextView label(String value,int sp){TextView t=new TextView(activity);t.setText(value);t.setTextColor(TEXT);t.setTextSize(sp);t.setPadding(dp(6),dp(4),dp(6),dp(4));return t;}
-  private Button button(String value,Runnable action){Button b=new Button(activity);b.setText(value);AppStyle.button(b);b.setPadding(dp(6),0,dp(6),0);b.setOnClickListener(v->action.run());LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,dp(44));p.setMargins(dp(2),dp(2),dp(2),dp(2));b.setLayoutParams(p);return b;}
+  private Button button(String value,Runnable action){Button b=new Button(activity);b.setText(value);AppStyle.button(b);b.setPadding(dp(6),0,dp(6),0);b.setOnClickListener(v->{debug("RUN · "+value.replace('\n',' '));try{action.run();}catch(Throwable error){debug("FAIL · "+value.replace('\n',' ')+" · "+error.getClass().getSimpleName()+": "+String.valueOf(error.getMessage()));}});LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,dp(44));p.setMargins(dp(2),dp(2),dp(2),dp(2));b.setLayoutParams(p);return b;}
   private void ui(Runnable action){activity.runOnUiThread(()->{if(!closed&&!activity.isDestroyed()&&!activity.isFinishing())action.run();});}
-  private void error(Exception error){ui(()->{String message=error.getMessage()==null?error.toString():error.getMessage();if(status!=null)status.setText(message);else Toast.makeText(activity,message,Toast.LENGTH_LONG).show();});}
+  private void debug(String message){ui(()->{if(debug!=null)debug.setText("DEBUG · "+new java.text.SimpleDateFormat("HH:mm:ss",Locale.US).format(new Date())+" · "+message);});}
+  private void error(Exception error){ui(()->{String message=error.getMessage()==null?error.toString():error.getMessage();if(status!=null)status.setText(message);else Toast.makeText(activity,message,Toast.LENGTH_LONG).show();if(debug!=null)debug.setText("DEBUG · FAIL · "+error.getClass().getSimpleName()+": "+message);});}
   private JSONObject obj(Object... pairs)throws JSONException{JSONObject j=new JSONObject();for(int i=0;i<pairs.length;i+=2)j.put((String)pairs[i],pairs[i+1]);return j;}
   private interface Work {void run()throws Exception;}
   private void work(Work work){io.execute(()->{try{work.run();}catch(Exception e){error(e);}});}
