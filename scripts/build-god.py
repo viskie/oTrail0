@@ -176,8 +176,8 @@ def package(debian_only=False):
    for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
    out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
    out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
- debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
- debian=RELEASES/'DEBIAN-1.1.1.oTrail0'
+ debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.2',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
+ debian=RELEASES/'DEBIAN-1.1.2.oTrail0'
  with zipfile.ZipFile(debian,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(debianManifest));out.writestr('studio.json',json.dumps(metadata));out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED);out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)

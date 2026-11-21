@@ -64,7 +64,7 @@ final class StudioTasks {
       JSONObject checks=meta.getJSONObject("toolFiles");for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(target,name)).equals(checks.getString(name)))throw new IOException("Tool verification failed: "+name);}
       StudioFiles.write(new File(target,"ready.json"),checks.toString().getBytes(StandardCharsets.UTF_8));progress.update("Tools ready",100,"Compiler, SDK classpath, dependency DEX and APK template verified. Compilation is entirely offline.");
     }else if(action.equals("shellSetup")){
-      setupShell(pkg,meta,data,progress);
+      setupShell(pkg,meta,data,progress,args.optBoolean("force",false));
     }else if(action.equals("build")){
       File tools=new File(data,"tools"),dex=new File(tools,"compiler.jar");JSONObject checks=meta.getJSONObject("toolFiles");
       for(Iterator<String> it=checks.keys();it.hasNext();){String name=it.next();if(!StudioFiles.sha(new File(tools,name)).equals(checks.getString(name)))throw new IOException("Download/repair build tools first: "+name);}
@@ -83,10 +83,10 @@ final class StudioTasks {
   }
   private static void copyTree(File source,File target,File root,ModuleV1.Progress progress,int[] count)throws Exception{if(progress.cancelled())throw new IOException("Cancelled");if(++count[0]>50000)throw new IOException("Folder contains too many files");String relative=root.toURI().relativize(source.toURI()).getPath();if(relative.contains("/.git/")||relative.startsWith(".git/")||relative.contains("/build/")||relative.startsWith("build/"))return;if(source.isDirectory()){if(!target.mkdirs()&&!target.isDirectory())throw new IOException("Cannot create workspace folder");File[] children=source.listFiles();if(children==null)throw new IOException("Cannot read "+source);for(File child:children)copyTree(child,new File(target,child.getName()),root,progress,count);}else{if(source.length()>100000000)throw new IOException("Workspace file too large: "+relative);Files.copy(source.toPath(),target.toPath(),StandardCopyOption.REPLACE_EXISTING);}if(count[0]%250==0)progress.update("Import folder",Math.min(95,count[0]/500),count[0]+" entries");}
 
-  private static void setupShell(File pkg,JSONObject meta,File data,ModuleV1.Progress progress)throws Exception{
+  private static void setupShell(File pkg,JSONObject meta,File data,ModuleV1.Progress progress,boolean force)throws Exception{
     JSONObject spec=meta.getJSONObject("debianRootfs");
     File shellDir=new File(data,"debian"),root=new File(shellDir,"rootfs"),ready=new File(shellDir,"ready.json");
-    if(ready.isFile()&&root.isDirectory()){
+    if(!force&&ready.isFile()&&root.isDirectory()){
       JSONObject installed=StudioFiles.json(ready);
       if(spec.getString("sha256").equals(installed.optString("sha256"))){progress.update("Debian ready",100,"Existing verified root filesystem retained.");return;}
     }
@@ -95,6 +95,7 @@ final class StudioTasks {
       File part=new File(archive.getPath()+".part");try(ZipFile module=new ZipFile(pkg)){java.util.zip.ZipEntry entry=module.getEntry(spec.getString("entry"));if(entry==null||entry.getSize()!=spec.getLong("sizeBytes"))throw new IOException("GOD module does not contain the verified Debian image");try(InputStream in=module.getInputStream(entry);FileOutputStream out=new FileOutputStream(part)){byte[] buffer=new byte[65536];int n,last=-1;long copied=0;while((n=in.read(buffer))!=-1){if(progress.cancelled())throw new IOException("Cancelled");copied+=n;if(copied>spec.getLong("sizeBytes"))throw new IOException("Bundled Debian image exceeds verified size");out.write(buffer,0,n);int percent=(int)(copied*20/spec.getLong("sizeBytes"));if(percent!=last){last=percent;progress.update("Prepare included Debian",percent,copied+" / "+spec.getLong("sizeBytes")+" bytes");}}out.getFD().sync();}}
       if(part.length()!=spec.getLong("sizeBytes")||!StudioFiles.sha(part).equals(spec.getString("sha256")))throw new SecurityException("Bundled Debian checksum mismatch");Files.move(part.toPath(),archive.toPath(),StandardCopyOption.REPLACE_EXISTING);part.delete();
     }
+    if(force){StudioFiles.remove(ready);StudioFiles.remove(root);progress.update("Repair Debian",1,"Existing root filesystem removed; verified image retained for clean extraction.");}
     File stage=new File(shellDir,"stage-"+System.currentTimeMillis());StudioFiles.remove(stage);stage.mkdirs();
     try{
       extractRootfs(archive,stage,progress);
