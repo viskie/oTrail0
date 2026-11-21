@@ -109,43 +109,40 @@ final class StudioTasks {
     }finally{StudioFiles.remove(stage);}
   }
 
-  private static File tarTarget(File root,String raw)throws IOException{
+  private static Path tarTarget(Path root,String raw)throws IOException{
     String name=raw.replace('\\','/');while(name.startsWith("./"))name=name.substring(2);
-    if(name.isEmpty())return root.getCanonicalFile();
     if(name.startsWith("/")||name.indexOf('\0')>=0)throw new IOException("Unsafe rootfs entry");
-    Path base=root.toPath().toAbsolutePath().normalize(),target=base.resolve(name).normalize();
-    if(!target.startsWith(base))throw new IOException("Rootfs entry escapes destination: "+raw);
-    return target.toFile();
+    if(name.isEmpty())return root;
+    Path target=root.resolve(name).normalize();
+    if(!target.startsWith(root))throw new IOException("Rootfs entry escapes destination: "+raw);
+    return target;
   }
 
-  private static void createArchiveParents(File root,File target)throws IOException{
-    Path base=root.toPath().toAbsolutePath().normalize(),normalized=target.toPath().toAbsolutePath().normalize();if(normalized.equals(base))return;Path parent=normalized.getParent();
-    if(parent==null)throw new IOException("Invalid rootfs parent: "+target);
-    Path relative;try{relative=base.relativize(parent);}catch(IllegalArgumentException error){throw new IOException("Rootfs parent is on another filesystem: "+target,error);}
-    if(relative.isAbsolute()||relative.startsWith(".."))throw new IOException("Rootfs parent escapes destination: "+target);
-    Path current=base;for(Path part:relative){current=current.resolve(part);if(Files.isSymbolicLink(current))throw new IOException("Rootfs entry traverses symlink: "+target);Files.createDirectories(current);}
+  private static void createArchiveParents(Path root,Path target)throws IOException{
+    if(target.equals(root))return;
+    Path current=root;for(Path part:root.relativize(target.getParent())){current=current.resolve(part);if(Files.isSymbolicLink(current))throw new IOException("Rootfs entry traverses symlink: "+target);Files.createDirectories(current);}
   }
 
   private static void extractRootfs(File archive,File root,ModuleV1.Progress progress)throws Exception{
-    long expanded=0;int entries=0;Map<File,String> hardLinks=new LinkedHashMap<>();
+    long expanded=0;int entries=0;Map<Path,String> hardLinks=new LinkedHashMap<>();Path base=root.toPath().toAbsolutePath().normalize();
     try(InputStream file=new BufferedInputStream(new FileInputStream(archive));XZCompressorInputStream xz=new XZCompressorInputStream(file,true);TarArchiveInputStream tar=new TarArchiveInputStream(xz)){
       TarArchiveEntry entry;byte[] buffer=new byte[65536];
       while((entry=tar.getNextEntry())!=null){
         if(++entries>250000)throw new IOException("Debian archive has too many entries");
-        File target=tarTarget(root,entry.getName());try{createArchiveParents(root,target);}catch(IOException error){throw new IOException(error.getMessage()+" [entry "+entry.getName()+"]",error);}
-        if(entry.isDirectory()){target.mkdirs();}
+        Path target=tarTarget(base,entry.getName());try{createArchiveParents(base,target);}catch(IOException error){throw new IOException(error.getMessage()+" [entry "+entry.getName()+"]",error);}
+        if(entry.isDirectory()){target.toFile().mkdirs();}
         else if(entry.isSymbolicLink()){
-          Files.deleteIfExists(target.toPath());Files.createSymbolicLink(target.toPath(),Paths.get(entry.getLinkName()));
+          Files.deleteIfExists(target);Files.createSymbolicLink(target,Paths.get(entry.getLinkName()));
         }else if(entry.isLink()){hardLinks.put(target,entry.getLinkName());}
         else if(entry.isFile()){
-          try(OutputStream out=new BufferedOutputStream(new FileOutputStream(target))){int n;while((n=tar.read(buffer))!=-1){expanded+=n;if(expanded>1600000000L)throw new IOException("Debian rootfs exceeds expanded size limit");out.write(buffer,0,n);}}
-          try{Os.chmod(target.getAbsolutePath(),entry.getMode()&0777);}catch(Exception ignored){target.setExecutable((entry.getMode()&0111)!=0,false);}
+          File fileTarget=target.toFile();try(OutputStream out=new BufferedOutputStream(new FileOutputStream(fileTarget))){int n;while((n=tar.read(buffer))!=-1){expanded+=n;if(expanded>1600000000L)throw new IOException("Debian rootfs exceeds expanded size limit");out.write(buffer,0,n);}}
+          try{Os.chmod(fileTarget.getAbsolutePath(),entry.getMode()&0777);}catch(Exception ignored){fileTarget.setExecutable((entry.getMode()&0111)!=0,false);}
         }
         if(entries%1000==0)progress.update("Extract included Debian",20+Math.min(79,entries/1400),entries+" files");
       }
     }
-    for(Map.Entry<File,String> link:hardLinks.entrySet()){
-      File source=tarTarget(root,link.getValue());Files.deleteIfExists(link.getKey().toPath());Files.createLink(link.getKey().toPath(),source.toPath());
+    for(Map.Entry<Path,String> link:hardLinks.entrySet()){
+      Path source=tarTarget(base,link.getValue());Files.deleteIfExists(link.getKey());Files.createLink(link.getKey(),source);
     }
   }
 }
