@@ -164,12 +164,12 @@ def package(debian_only=False):
   oldCatalog=json.loads(base64.b64decode(oldEnvelope['payload']))
   hosts=oldCatalog['toolchains'][0]['githubHostKeys']
  rootfs=dict(file='debian-bookworm-arm64-20261117-rootfs.tar.xz',entry='debian/rootfs.tar.xz',url='https://images.linuxcontainers.org/images/debian/bookworm/arm64/default/20261117_05%3A24/rootfs.tar.xz',sha256='125416b51b1272db7abd932bc7cc5f286fd29a190cb5a1b18460500f5448d5fc',sizeBytes=95026816)
- latestFunctions=dict(commit='0.4.24',title='GOD 4.0.1 editor, external projects and SCP',functions=['Fresh hash-addressed current-source workspace','Internal-storage source folder import','SCP workspace configuration and Debian sync','Full-screen editor, project tree and native build toolchain','Debian lifecycle fix and exportable host diagnostics'])
- metadata=dict(id='god-java-0.4.24-v4',name='GOD 4 editor and native build toolchain',version='4.0.1',api=1,minApp=47,minSdk=35,sourceVersion='0.4.24',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.24',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
+ latestFunctions=dict(commit='0.4.24',title='GOD 4.0.2 editor, external projects and SCP',functions=['Fresh hash-addressed current-source workspace','Internal-storage source folder import','SCP workspace configuration and Debian sync','Full-screen editor, project tree and native build toolchain','Debian lifecycle fix and exportable host diagnostics'])
+ metadata=dict(id='god-java-0.4.24-v4',name='GOD 4 editor and native build toolchain',version='4.0.2',api=1,minApp=47,minSdk=35,sourceVersion='0.4.24',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.24',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
  modulelibs=[LIBS/(name+'.jar') for name in MODULE_MAVEN]
  moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*modulelibs,*[LIBS/(name+'.jar') for name in SORA]]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar',*modulelibs],[CLASSES,*[LIBS/(name+'.jar') for name in SORA]])
- manifest=dict(id='mod1',name='GOD',version='4.0.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
- module=RELEASES/'GOD-4.0.1.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
+ manifest=dict(id='mod1',name='GOD',version='4.0.2',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
+ module=RELEASES/'GOD-4.0.2.oTrail0';rootfsArchive=download(rootfs['url'],BUILD/rootfs['file'])
  if not debian_only:
   with zipfile.ZipFile(module,'w',zipfile.ZIP_DEFLATED) as out:
    out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
