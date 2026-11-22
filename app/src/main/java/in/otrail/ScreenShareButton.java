@@ -17,7 +17,7 @@ final class ScreenShareButton extends ImageButton {
   ScreenShareButton(Context context, Runnable open) {
     super(context);
     setScaleType(ScaleType.FIT_CENTER);
-    int inset = Math.round((UiConfig.LOCATE_SIZE_DP - 28 * UiConfig.LOCATE_VISUAL_SCALE) / 2
+    int inset = Math.round((UiConfig.LOCATE_SIZE_DP - 28) / 2
         * getResources().getDisplayMetrics().density);
     setPadding(inset, inset, inset, inset);
     setImageDrawable(new Glyph());
@@ -70,7 +70,9 @@ final class ScreenShareButton extends ImageButton {
     Heptagon(int fill, int edge) { this.fill = fill; this.edge = edge; }
     @Override public void draw(Canvas canvas) {
       Rect bounds = getBounds();
-      float radius = Math.min(bounds.width(), bounds.height()) * .43f;
+      float stroke = Math.max(2, bounds.width() * .035f);
+      float radius = (Math.min(bounds.width(), bounds.height()) / 2f - stroke)
+          * UiConfig.LOCATE_VISUAL_SCALE;
       Path polygon = new Path();
       for (int i = 0; i < 7; i++) {
         double angle = -Math.PI / 2 + i * Math.PI * 2 / 7;
@@ -83,7 +85,7 @@ final class ScreenShareButton extends ImageButton {
       paint.setColor(fill);
       canvas.drawPath(polygon, paint);
       paint.setStyle(Paint.Style.STROKE);
-      paint.setStrokeWidth(Math.max(2, bounds.width() * .035f));
+      paint.setStrokeWidth(stroke);
       paint.setColor(edge);
       canvas.drawPath(polygon, paint);
     }

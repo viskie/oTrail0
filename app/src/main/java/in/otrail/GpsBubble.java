@@ -59,6 +59,7 @@
 
     void update(GeoPoint point,CharSequence status,String locality,String temples){this.point=point;setChangedText(state,status);setChangedText(coordinates,String.format(java.util.Locale.US,"%.4f · %.4f",point.getLatitude(),point.getLongitude()));setChangedText(address,locality);((LayoutParams)address.getLayoutParams()).bottomMargin=0;address.setVisibility(locality.isBlank()?GONE:VISIBLE);setChangedText(worship,temples);worship.setVisibility(temples.isBlank()?GONE:VISIBLE);setVisibility(VISIBLE);position();}
     void move(GeoPoint point){this.point=point;setChangedText(coordinates,String.format(java.util.Locale.US,"%.4f · %.4f",point.getLatitude(),point.getLongitude()));position();}
+    void status(CharSequence value){setChangedText(state,value);position();}
     static String roadLabel(String road) {
       if(road==null||road.isBlank())return "";
       String[] parts=road.split("\\s*·\\s*",2);

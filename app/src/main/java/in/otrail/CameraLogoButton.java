@@ -11,7 +11,7 @@ import android.widget.ImageButton;
 final class CameraLogoButton extends ImageButton {
   CameraLogoButton(Context context,Runnable capture){
     super(context);setImageResource(android.R.drawable.ic_menu_camera);setColorFilter(UiConfig.CAM_LOGO_COLOR);setScaleType(ScaleType.FIT_CENTER);
-    int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2*getResources().getDisplayMetrics().density);setPadding(inset,inset,inset,inset);
+    int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28)/2*getResources().getDisplayMetrics().density);setPadding(inset,inset,inset,inset);
     setBackground(new RippleDrawable(ColorStateList.valueOf(UiConfig.LOCATE_RIPPLE_COLOR),new Pentagon(false),new Pentagon(true)));
     setContentDescription("CAM · Take a geotagged photo");setTooltipText("CAM");setOnClickListener(v->capture.run());
   }

@@ -75,6 +75,10 @@ public final class MainActivity extends Activity {
   private GeoPoint animatedGpsPoint;private android.animation.ValueAnimator gpsMotion;
   private TextView roadInfo;
   private DriveMetrics.Result driveMetrics;
+  private double driveBaseMeters = Double.NaN, driveDisplayMeters = Double.NaN, driveAverageSpeed;
+  private long driveLastFixTime;
+  private boolean driveMoving, driveVisible, driveTickerPosted;
+  private String driveSpeedText = "";
   private ModuleHost moduleHost;
   private boolean camVisible;
   private final ArrayList<Runnable> cardUpdates = new ArrayList<>();
@@ -327,7 +331,7 @@ public final class MainActivity extends Activity {
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
-    ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);int iconInset=dp(Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2));debian.setPadding(iconInset,iconInset,iconInset,iconInset);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell");debian.setTooltipText("Debian shell");debian.setOnClickListener(v->{String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
+    ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell");debian.setTooltipText("Debian shell");debian.setOnClickListener(v->{String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
     ScreenShareButton screenShare=new ScreenShareButton(this,
         ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
     LinearLayout.LayoutParams screenSharePosition=new LinearLayout.LayoutParams(
@@ -340,7 +344,7 @@ public final class MainActivity extends Activity {
     mapIconBar.post(()->mapIconBar.fullScroll(View.FOCUS_RIGHT));
     wtfNorth=new WtfNorthView(this);wtfNorth.setVisibility(wtfActive()?View.VISIBLE:View.GONE);
     FrameLayout.LayoutParams northPosition=new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.BOTTOM|Gravity.START);northPosition.setMargins(dp(10),0,0,dp(10));mapFrame.addView(wtfNorth,northPosition);
-    map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){if(wtfActive())map.post(()->{if(wtfActive())wtfCenter();});return false;}});
+    map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){map.post(()->{if(wtfActive())wtfCenter();publishLiveStatus();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
     mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads,()->updates.show(),()->historicalTrails.show());mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
@@ -529,7 +533,7 @@ public final class MainActivity extends Activity {
     MapThemeButton(boolean dark,Runnable toggle) {
       super(MainActivity.this);
       setScaleType(ImageView.ScaleType.FIT_CENTER);
-      int padding=dp(Math.round((UiConfig.MAP_THEME_ICON_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2));
+      int padding=dp(Math.round((UiConfig.MAP_THEME_ICON_SIZE_DP-28)/2));
       setPadding(padding,padding,padding,padding);
       icon=new TriangleIcon(dark);
       setImageDrawable(icon);
@@ -552,7 +556,7 @@ public final class MainActivity extends Activity {
     void setDarkMode(boolean dark){this.dark=dark;invalidateSelf();}
     @Override public void draw(Canvas canvas) {
       Rect bounds=getBounds();
-      float inset=Math.min(bounds.width(),bounds.height())*.18f;
+      float inset=Math.min(bounds.width(),bounds.height())*.2f;
       Path triangle=new Path();
       triangle.moveTo(bounds.exactCenterX(),bounds.top+inset);
       triangle.lineTo(bounds.right-inset,bounds.bottom-inset);
@@ -570,7 +574,7 @@ public final class MainActivity extends Activity {
     @Override public void setColorFilter(ColorFilter filter){paint.setColorFilter(filter);invalidateSelf();}
     @Override public int getOpacity(){return PixelFormat.TRANSLUCENT;}
   }
-  private static final class NonagonIcon extends Drawable {private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);public void draw(Canvas canvas){Rect b=getBounds();float cx=b.exactCenterX(),cy=b.exactCenterY(),r=Math.min(b.width(),b.height())*.43f;Path p=new Path();for(int i=0;i<9;i++){double a=-Math.PI/2+i*2*Math.PI/9;float x=cx+(float)Math.cos(a)*r,y=cy+(float)Math.sin(a)*r;if(i==0)p.moveTo(x,y);else p.lineTo(x,y);}p.close();paint.setStyle(Paint.Style.FILL);paint.setColor(0xff050509);canvas.drawPath(p,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(Math.max(2,b.width()*.06f));paint.setColor(UiConfig.CYAN);canvas.drawPath(p,paint);paint.setStyle(Paint.Style.FILL);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(r*.7f);paint.setColor(0xffff00ff);canvas.drawText("$",cx,cy-paint.ascent()/3,paint);}public void setAlpha(int a){paint.setAlpha(a);}public void setColorFilter(ColorFilter f){paint.setColorFilter(f);}public int getOpacity(){return PixelFormat.TRANSLUCENT;}}
+  private static final class NonagonIcon extends Drawable {private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);public void draw(Canvas canvas){Rect b=getBounds();float cx=b.exactCenterX(),cy=b.exactCenterY(),stroke=Math.max(2,b.width()*.06f),r=(Math.min(b.width(),b.height())/2f-stroke)*UiConfig.LOCATE_VISUAL_SCALE;Path p=new Path();for(int i=0;i<9;i++){double a=-Math.PI/2+i*2*Math.PI/9;float x=cx+(float)Math.cos(a)*r,y=cy+(float)Math.sin(a)*r;if(i==0)p.moveTo(x,y);else p.lineTo(x,y);}p.close();paint.setStyle(Paint.Style.FILL);paint.setColor(0xff050509);canvas.drawPath(p,paint);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(Math.max(2,b.width()*.06f));paint.setColor(UiConfig.CYAN);canvas.drawPath(p,paint);paint.setStyle(Paint.Style.FILL);paint.setTextAlign(Paint.Align.CENTER);paint.setTextSize(r*.7f);paint.setColor(0xffff00ff);canvas.drawText("$",cx,cy-paint.ascent()/3,paint);}public void setAlpha(int a){paint.setAlpha(a);}public void setColorFilter(ColorFilter f){paint.setColorFilter(f);}public int getOpacity(){return PixelFormat.TRANSLUCENT;}}
 
   private void refresh() {
     if (busy || map == null) return;
@@ -698,12 +702,25 @@ public final class MainActivity extends Activity {
     String speed=stopped?String.format(Locale.US," · %.3f m/hr",0.0)
         :stale||uncertain?UiConfig.text("speed_unknown_m_hr")
         :String.format(Locale.US," · %.3f m/hr",averageSpeed*3600.0);
-    String bubbleDrive=!recorded&&!stopped&&driveMetrics!=null
-        ?String.format(Locale.US,UiConfig.text("current_drive_distance_2f_km"),crawledDriveMeters/1000):"";
-    liveBubbleStatus=GpsBubble.status(speed,bubbleDrive);
+    driveSpeedText=speed;
+    if(driveMetrics==null||recorded){
+      stopDriveTicker();driveBaseMeters=Double.NaN;driveDisplayMeters=Double.NaN;driveVisible=false;
+    }else{
+      driveBaseMeters=driveMetrics.current().meters();
+      driveLastFixTime=last.time();
+      driveAverageSpeed=averageSpeed;
+      driveMoving=!stopped&&!stale&&!uncertain;
+      driveVisible=!stopped;
+      if(Double.isNaN(driveDisplayMeters))driveDisplayMeters=driveBaseMeters;
+      startDriveTicker();
+    }
+    publishLiveStatus();
+    String scale=mapScaleText();
+    String statusPrefix=scale.isBlank()?"":scale+" · ";
     String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
-    android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);
-    statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),state.length(),state.length()+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    android.text.SpannableString statusText=new android.text.SpannableString(statusPrefix+state+speed+(!recorded&&!stopped?drive:"")+quality);
+    int speedStart=statusPrefix.length()+state.length();
+    statusText.setSpan(new android.text.style.ForegroundColorSpan(UiConfig.STATUS_SPEED_COLOR),speedStart,speedStart+speed.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     status.setVisibility(history?View.VISIBLE:View.GONE);
     status.setText(history?statusText:speed);
     if(!history&&mode!=null){mode.setText(state.trim());mode.setTextSize(UiConfig.LIVE_BUBBLE_SIZE_SP);}
@@ -1740,6 +1757,47 @@ public final class MainActivity extends Activity {
     return best;
   }
 
+  private String mapScaleText(){
+    if(map==null)return "";
+    double metersPerPixel=org.osmdroid.util.TileSystem.GroundResolution(map.getMapCenter().getLatitude(),map.getZoomLevelDouble());
+    float dpi=getResources().getDisplayMetrics().xdpi;
+    if(!Float.isFinite(dpi)||dpi<=0)dpi=getResources().getDisplayMetrics().densityDpi;
+    double metersPerCm=metersPerPixel*dpi/2.54;
+    return metersPerCm>=1000
+        ?String.format(Locale.US,"1 cm : %.1f km",metersPerCm/1000)
+        :String.format(Locale.US,"1 cm : %.0f m",metersPerCm);
+  }
+  private String driveStatusText(){
+    return driveVisible&&!Double.isNaN(driveDisplayMeters)
+        ?String.format(Locale.US,UiConfig.text("current_drive_distance_2f_km"),driveDisplayMeters/1000):"";
+  }
+  private void publishLiveStatus(){
+    String scale=mapScaleText();
+    String body=GpsBubble.status(driveSpeedText,driveStatusText());
+    liveBubbleStatus=scale.isBlank()?body:scale+(body.isBlank()?"":" · "+body);
+    if(liveBubble!=null&&!history&&!downloads)liveBubble.status(liveBubbleStatus);
+  }
+  private void stopDriveTicker(){if(driveTickerPosted){handler.removeCallbacks(driveTicker);driveTickerPosted=false;}}
+  private void startDriveTicker(){
+    if(driveTickerPosted)return;
+    driveTickerPosted=true;
+    handler.post(driveTicker);
+  }
+  private final Runnable driveTicker=new Runnable(){
+    public void run(){
+      if(history||downloads||Double.isNaN(driveBaseMeters)){driveTickerPosted=false;return;}
+      long now=System.currentTimeMillis();
+      double target=driveBaseMeters+(driveMoving?driveAverageSpeed*Math.max(0,(now-driveLastFixTime)/1000.0):0);
+      if(Double.isNaN(driveDisplayMeters))driveDisplayMeters=driveBaseMeters;
+      if(target>driveDisplayMeters){
+        double step=Math.max(driveMoving?driveAverageSpeed*.1:0,(target-driveDisplayMeters)*.05);
+        driveDisplayMeters=Math.min(target,driveDisplayMeters+Math.max(.01,step));
+      }else if(target<driveDisplayMeters)driveDisplayMeters=target;
+      publishLiveStatus();
+      if(!driveMoving&&Math.abs(target-driveDisplayMeters)<.01){driveTickerPosted=false;return;}
+      handler.postDelayed(this,100);
+    }
+  };
   private void refreshLiveBubble(){if(liveBubble!=null&&liveBubblePoint!=null&&!history&&!downloads&&status!=null){
     String address=liveContext.address(),addressNote="";if(LivePopupText.addressPending(address)){addressNote=address;address="";}
     String road=roadControls.roadName();
@@ -1855,6 +1913,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onPause() {
     handler.removeCallbacks(ticker);
+    stopDriveTicker();
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if(wtfActive()&&map!=null)getPreferences(0).edit().putFloat("wtf_zoom",(float)map.getZoomLevelDouble()).apply();
     if (map != null) map.onPause();
@@ -1874,6 +1933,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onDestroy() {
     handler.removeCallbacks(ticker);
+    stopDriveTicker();
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if (map != null) map.onDetach();
     if(gapRoadRoutes!=null)gapRoadRoutes.close();

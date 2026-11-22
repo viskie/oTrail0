@@ -10,7 +10,7 @@ import android.widget.ImageButton;
 /** Regular octagonal base-app toggle; same visual scale and touch target as the other map icons. */
 final class WtfButton extends ImageButton {
   WtfButton(Context context,boolean enabled,Runnable toggle){
-    super(context);setScaleType(ScaleType.FIT_CENTER);int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2*getResources().getDisplayMetrics().density);setPadding(inset,inset,inset,inset);
+    super(context);setScaleType(ScaleType.FIT_CENTER);int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28)/2*getResources().getDisplayMetrics().density);setPadding(inset,inset,inset,inset);
     setTooltipText(UiConfig.WTF_LABEL);setOnClickListener(v->toggle.run());update(enabled);
   }
   void update(boolean enabled){

@@ -1,8 +1,8 @@
 {
-  "versionCode": 52,
-  "versionName": "0.4.29",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.29-debug.apk",
-  "sha256": "1abbe4f1cbdf2748dbcbe5ea449de811793f51d2b5004fe77651c6b608491533",
-  "sizeBytes": 41369712,
-  "notes": "Added Bluetooth permissions to the host app so the BT keyboard module can request and use Bluetooth HID permissions."
+  "versionCode": 53,
+  "versionName": "0.4.30",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.30-debug.apk",
+  "sha256": "16a8d0e8ee0fd8b2692c56eaac3917b1d16c34e59c1ff6252dc2a981ef6754f9",
+  "sizeBytes": 41372812,
+  "notes": "Live status now starts with map scale (1 cm : X km), drive distance crawls smoothly instead of jumping, and the top map icons share one visual size."
 }

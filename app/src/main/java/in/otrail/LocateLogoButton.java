@@ -14,7 +14,7 @@ final class LocateLogoButton extends ImageButton {
     setImageDrawable(context.getApplicationInfo().loadIcon(context.getPackageManager()));
     setColorFilter(UiConfig.LOCATE_LOGO_COLOR);
     setScaleType(ScaleType.FIT_CENTER);
-    int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2*getResources().getDisplayMetrics().density);
+    int inset=Math.round((UiConfig.LOCATE_SIZE_DP-28)/2*getResources().getDisplayMetrics().density);
     setPadding(inset,inset,inset,inset);
     setBackground(new RippleDrawable(ColorStateList.valueOf(UiConfig.LOCATE_RIPPLE_COLOR),
         new Hex(UiConfig.LOCATE_BACKGROUND,UiConfig.LOCATE_BORDER_COLOR),new Hex(Color.WHITE,Color.WHITE)));
