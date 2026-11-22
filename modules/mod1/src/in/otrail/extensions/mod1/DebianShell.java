@@ -42,7 +42,19 @@ public final class DebianShell implements ModuleV1 {
     FrameLayout frame=new FrameLayout(activity);GradientDrawable background=new GradientDrawable();background.setColor(UiConfig.TERMINAL_BACKGROUND);background.setCornerRadius(dp(10));frame.setBackground(background);frame.setPadding(dp(7),dp(5),dp(7),dp(5));
     terminal=label("",UiConfig.TERMINAL_TEXT_SIZE_SP,UiConfig.TERMINAL_TEXT);terminal.setTypeface(Typeface.MONOSPACE);terminal.setTextIsSelectable(true);terminal.setLineSpacing(0,UiConfig.TERMINAL_LINE_SPACING);terminal.setText("Connecting to the included Debian image…");
     terminalScroll=new ScrollView(activity);terminalScroll.setFillViewport(true);terminalScroll.setVerticalScrollBarEnabled(false);terminalScroll.addView(terminal,new FrameLayout.LayoutParams(-1,-2));
+    tapToFocus(terminal);tapToFocus(terminalScroll);
     frame.addView(terminalScroll,new FrameLayout.LayoutParams(-1,-1));return frame;
+  }
+
+  /** A tap (not a scroll or text-selection drag) reopens the system keyboard. */
+  private void tapToFocus(View view){
+    final float[] down={0,0};final boolean[] moved={false};
+    view.setOnTouchListener((v,e)->{
+      if(e.getAction()==MotionEvent.ACTION_DOWN){down[0]=e.getX();down[1]=e.getY();moved[0]=false;}
+      else if(e.getAction()==MotionEvent.ACTION_MOVE&&Math.hypot(e.getX()-down[0],e.getY()-down[1])>dp(8))moved[0]=true;
+      else if(e.getAction()==MotionEvent.ACTION_UP&&!moved[0])focusInput();
+      return false;
+    });
   }
 
   private View keyStrip(){

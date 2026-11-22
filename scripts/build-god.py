@@ -176,14 +176,14 @@ def package(debian_only=False):
    for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
    out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
    out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt');out.write(ROOT/'third_party/TALLOC_COPYING','LICENSES/TALLOC-GPL-3.0.txt');out.write(ROOT/'third_party/LIBANDROID_SHMEM_LICENSE.txt','LICENSES/LIBANDROID-SHMEM-BSD-3-Clause.txt')
- debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.6',api=1,minApp=51,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
- debian=RELEASES/'DEBIAN-1.1.6.oTrail0'
+ debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.7',api=1,minApp=51,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
+ debian=RELEASES/'DEBIAN-1.1.7.oTrail0'
  with zipfile.ZipFile(debian,'w',zipfile.ZIP_DEFLATED) as out:
   out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(debianManifest));out.writestr('studio.json',json.dumps(metadata));out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED);out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt');out.write(ROOT/'third_party/TALLOC_COPYING','LICENSES/TALLOC-GPL-3.0.txt');out.write(ROOT/'third_party/LIBANDROID_SHMEM_LICENSE.txt','LICENSES/LIBANDROID-SHMEM-BSD-3-Clause.txt')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)
  verifier=dict(installSalt=base64.b64encode(salt).decode(),installHash=base64.b64encode(hashlib.pbkdf2_hmac('sha256',password,salt,120000,32)).decode())
  release=dict(manifest,url=prefix+module.name,sha256=sha(module),sizeBytes=module.stat().st_size,**verifier,notes='Live shell input echo, 60 percent terminal, filled black-labelled button rows, and collapsed module cards.')
- debianRelease=dict(debianManifest,url=prefix+debian.name,sha256=sha(debian),sizeBytes=debian.stat().st_size,**verifier,notes='Standalone Debian Bookworm ARM64 PRoot shell with live input echo, 60 percent terminal, and filled button rows.')
+ debianRelease=dict(debianManifest,url=prefix+debian.name,sha256=sha(debian),sizeBytes=debian.stat().st_size,**verifier,notes='Standalone Debian Bookworm ARM64 PRoot shell with live input echo, tap-to-focus keyboard on the terminal, 60 percent terminal, and filled button rows.')
  versions=[debianRelease]+([] if debian_only else [release]);chains=[] if debian_only else [metadata]
  old=RELEASES/'catalog.json'
  if old.exists():
