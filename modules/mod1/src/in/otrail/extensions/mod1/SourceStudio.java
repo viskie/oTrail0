@@ -2,8 +2,11 @@ package in.otrail.extensions.mod1;
 
 import android.app.*;
 import android.content.*;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.*;
 import android.provider.Settings;
@@ -36,7 +39,7 @@ import java.util.zip.ZipFile;
 
 /** Downloaded implementation: all editor/build screens remain inside the oTraiL module Activity. */
 public final class SourceStudio implements ModuleV1 {
-  private Activity activity;private Host host;private LinearLayout root,content,fileTabs;private View headerBar,navigationBar;private TextView status,log,debug;
+  private Activity activity;private Host host;private LinearLayout root,content,fileTabs;private View headerBar,navigationBar;private TextView status,log,debug;private Button projectButton;
   private ProgressBar progress;private CodeEditor editor;private CheckBox offline,licenses;private LinearLayout findBar;private EditText findQuery,replaceQuery;private TextView findStatus;
   private final ExecutorService io=Executors.newSingleThreadExecutor();private final Handler handler=new Handler(Looper.getMainLooper());
   private final ExecutorService shellIo=Executors.newCachedThreadPool();private java.lang.Process shellProcess;private OutputStream shellInput;private TextView shellOutput;private final StringBuilder shellTranscript=new StringBuilder();
@@ -45,7 +48,7 @@ public final class SourceStudio implements ModuleV1 {
   private final Runnable draftSave=()->saveDrafts();
   private boolean running,closed,polling,suppress,treeExpanded,autoShellLaunch=true;private int pendingLine=-1;private File exportFile;private String exportMime;
   private static final int EXPORT=710,KEYSTORE=711;
-  private static final int BG=0xff10101b,TEXT=0xff40e0d0;
+  private static final int BG=UiConfig.MODULE_BACKGROUND,TEXT=UiConfig.MODULE_TEXT;
   private static boolean textMateReady;
   private final Runnable poll=new Runnable(){public void run(){if(!running||closed)return;poll();handler.postDelayed(this,2000);}};
   private static final class Buffer {String text="",saved="";Button button;boolean dirty(){return !text.equals(saved);}}
@@ -55,11 +58,67 @@ public final class SourceStudio implements ModuleV1 {
   @Override public View create(Activity a,Host h)throws Exception{
     activity=a;host=h;
     metadata=new JSONObject(asset("studio.json"));try{mergeMetadata(new JSONObject(host.selectedToolchain()));}catch(Exception ignored){}restoreDrafts();
-    root=new LinearLayout(a);root.setOrientation(1);root.setPadding(dp(8),dp(6),dp(8),dp(6));root.setBackgroundColor(BG);
-    LinearLayout top=row();top.addView(button("←",()->activity.finish()),new LinearLayout.LayoutParams(dp(54),dp(42)));TextView online=label("●",15);online.setTextColor(0xff01ff1f);top.addView(online);top.addView(label("GOD · Source Studio",18),new LinearLayout.LayoutParams(0,-2,1));top.addView(button("HALT SESSION",()->activity.finish()));headerBar=top;root.addView(top);
-    status=label("In-app engine ready · select source and download compiler tools",12);root.addView(status);progress=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(5)));
-    content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));debug=label("DEBUG · ready",10);debug.setTextColor(0xff01ff1f);debug.setBackgroundColor(0xff050509);debug.setMaxLines(2);debug.setTextIsSelectable(true);root.addView(debug,new LinearLayout.LayoutParams(-1,-2));
-    LinearLayout names=row();String[][] destinations={{"▣ FILES","Project"},{"</> CODE","Editor"},{">_ SHELL","Shell"},{"◆ BUILD","Build"},{"APK","APKs"},{"⚙ TOOLS","Tools"}};for(String[] destination:destinations){Button b=button(destination[0],()->show(destination[1]));b.setTextSize(9);names.addView(b,new LinearLayout.LayoutParams(0,dp(52),1));}navigationBar=names;root.addView(names);show("Project");return root;
+    try{activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);}catch(Exception ignored){}
+    root=new LinearLayout(a);root.setOrientation(1);root.setBackgroundColor(BG);
+    headerBar=chromeHeader();root.addView(headerBar,new LinearLayout.LayoutParams(-1,dp(UiConfig.MODULE_HEADER_HEIGHT_DP)));
+    status=label("In-app engine ready · select source and download compiler tools",UiConfig.MODULE_LABEL_SIZE_SP);status.setTextColor(UiConfig.MODULE_MUTED);status.setSingleLine(true);status.setEllipsize(TextUtils.TruncateAt.END);status.setPadding(dp(10),0,dp(10),dp(2));root.addView(status);
+    progress=new ProgressBar(a,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);root.addView(progress,new LinearLayout.LayoutParams(-1,dp(3)));
+    content=new LinearLayout(a);content.setOrientation(1);root.addView(content,new LinearLayout.LayoutParams(-1,0,1));
+    debug=label("ready",9);debug.setTextColor(UiConfig.MODULE_MUTED);debug.setSingleLine(true);debug.setEllipsize(TextUtils.TruncateAt.START);debug.setPadding(dp(10),0,dp(10),0);root.addView(debug,new LinearLayout.LayoutParams(-1,-2));
+    navigationBar=navBar();root.addView(navigationBar,new LinearLayout.LayoutParams(-1,dp(UiConfig.MODULE_NAV_HEIGHT_DP)));
+    show("Project");return root;
+  }
+
+  /** Compact session bar: project chip, home, status dot, settings and halt. */
+  private View chromeHeader(){
+    LinearLayout bar=row();bar.setBackgroundColor(UiConfig.MODULE_HEADER_BACKGROUND);bar.setPadding(dp(8),0,dp(6),0);
+    projectButton=chip(projectName(),()->show("Project"));projectButton.setTextSize(UiConfig.MODULE_HEADER_SIZE_SP-5);projectButton.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+    LinearLayout.LayoutParams wide=new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_HEADER_HEIGHT_DP-10),1);wide.setMargins(dp(2),0,dp(4),0);
+    bar.addView(projectButton,wide);
+    bar.addView(chromeKey("⌂",()->show("Project")));
+    TextView online=label("●",10);online.setTextColor(UiConfig.MODULE_DOT_ONLINE);online.setPadding(dp(1),0,dp(1),0);bar.addView(online);
+    bar.addView(chromeKey("⚙",()->show("Tools")));
+    Button halt=chromeKey("HALT",()->activity.finish());halt.setTextColor(UiConfig.ORANGE);bar.addView(halt);
+    return bar;
+  }
+
+  private Button chromeKey(String text,Runnable action){
+    Button b=chip(text,action);b.setTextSize(9);
+    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-2,dp(UiConfig.MODULE_HEADER_HEIGHT_DP-10));params.setMargins(dp(1),0,dp(1),0);b.setLayoutParams(params);return b;
+  }
+
+  /** Bottom mode bar: four icon destinations, as in the GOD workspace mock. */
+  private View navBar(){
+    LinearLayout nav=row();nav.setBackgroundColor(UiConfig.MODULE_SURFACE);nav.setPadding(dp(4),dp(1),dp(4),dp(1));
+    String[][] items={{"▣","FILES","Project"},{"</>","CODE","Editor"},{">_","SHELL","Shell"},{"▤","BUILD","Build"}};
+    for(String[] item:items)nav.addView(navCell(item[0],item[1],item[2]),new LinearLayout.LayoutParams(0,-1,1));
+    return nav;
+  }
+
+  private LinearLayout navCell(String icon,String name,String tab){
+    LinearLayout cell=new LinearLayout(activity);cell.setOrientation(1);cell.setGravity(Gravity.CENTER);cell.setPadding(0,dp(2),0,dp(2));
+    GradientDrawable background=new GradientDrawable();background.setColor(Color.TRANSPARENT);background.setCornerRadius(dp(9));cell.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22ffffff),background,null));
+    TextView glyph=label(icon,13);glyph.setTextColor(UiConfig.MODULE_ACCENT);glyph.setGravity(Gravity.CENTER);glyph.setPadding(0,0,0,0);glyph.setTypeface(Typeface.MONOSPACE);
+    TextView caption=label(name,8);caption.setTextColor(UiConfig.MODULE_MUTED);caption.setGravity(Gravity.CENTER);caption.setPadding(0,0,0,0);
+    cell.addView(glyph);cell.addView(caption);
+    cell.setOnClickListener(v->{debug("RUN · "+name);try{show(tab);}catch(Throwable error){debug("FAIL · "+name+" · "+error);}});
+    return cell;
+  }
+
+  private Button chip(String text,Runnable action){
+    Button b=new Button(activity);b.setText(text);b.setTextSize(10);b.setTextColor(UiConfig.MODULE_BUTTON_TEXT);b.setAllCaps(false);b.setSingleLine(true);b.setEllipsize(TextUtils.TruncateAt.END);
+    b.setMinHeight(0);b.setMinimumHeight(0);b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(8),0,dp(8),0);b.setStateListAnimator(null);
+    GradientDrawable frame=new GradientDrawable();frame.setColor(UiConfig.MODULE_BUTTON_BACKGROUND);frame.setCornerRadius(dp(8));frame.setStroke(dp(1),UiConfig.MODULE_DIVIDER);
+    b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33ffffff),frame,null));
+    b.setOnClickListener(v->{debug("RUN · "+text);try{action.run();}catch(Throwable error){debug("FAIL · "+text+" · "+error.getClass().getSimpleName()+": "+String.valueOf(error.getMessage()));}});
+    return b;
+  }
+
+  private String projectName(){
+    String path=state.optString("project","");
+    if(path.isEmpty())try{path=StudioFiles.project(host.privateDirectory()).getName();}catch(Exception ignored){path="workspace";}
+    int slash=path.lastIndexOf('/');String name=slash>=0?path.substring(slash+1):path;
+    return "▣ "+(name.isEmpty()?"workspace":name);
   }
   private SharedPreferences preferences(){return activity.getSharedPreferences("mod1_studio",0);}
   private int dp(int value){return Math.round(value*activity.getResources().getDisplayMetrics().density);}
@@ -153,9 +212,9 @@ public final class SourceStudio implements ModuleV1 {
     actions.addView(button("Grant shared-storage access",this::requestAllFiles));
     actions.addView(button(shellProcess==null?"Launch Debian shell":"Shell is running",this::confirmShellLaunch));
     actions.addView(button("Exit shell",this::exitShell));HorizontalScrollView actionScroll=new HorizontalScrollView(activity);actionScroll.setHorizontalScrollBarEnabled(false);actionScroll.addView(actions);panel.addView(actionScroll);
-    shellOutput=label(shellTranscript.length()==0?"Shell is not running. Install the included Debian image once, then launch it.":shellTranscript.toString(),12);shellOutput.setTypeface(Typeface.MONOSPACE);shellOutput.setTextIsSelectable(true);shellOutput.setBackgroundColor(0xff050509);
+    shellOutput=label(shellTranscript.length()==0?"Shell is not running. Install the included Debian image once, then launch it.":shellTranscript.toString(),12);shellOutput.setTypeface(Typeface.MONOSPACE);shellOutput.setTextIsSelectable(true);shellOutput.setBackgroundColor(UiConfig.TERMINAL_BACKGROUND);
     ScrollView scroll=new ScrollView(activity);scroll.addView(shellOutput);panel.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-    LinearLayout keys=row();EditText input=new EditText(activity);input.setSingleLine(true);input.setHint("command · type exit to return to GOD");input.setTextColor(TEXT);input.setHintTextColor(0xff808090);keys.addView(input,new LinearLayout.LayoutParams(0,dp(48),1));keys.addView(button("Send",()->sendShell(input.getText().toString()+"\n",input)),new LinearLayout.LayoutParams(-2,dp(48)));panel.addView(keys);
+    LinearLayout keys=row();EditText input=new EditText(activity);input.setSingleLine(true);input.setHint("command · type exit to return to GOD");input.setTextColor(TEXT);input.setHintTextColor(UiConfig.MODULE_MUTED);keys.addView(input,new LinearLayout.LayoutParams(0,dp(48),1));keys.addView(button("Send",()->sendShell(input.getText().toString()+"\n",input)),new LinearLayout.LayoutParams(-2,dp(48)));panel.addView(keys);
     input.setOnEditorActionListener((v,id,event)->{sendShell(input.getText().toString()+"\n",input);return true;});
     LinearLayout controls=row();controls.addView(button("Ctrl-C",()->sendShell("\u0003",null)));controls.addView(button("Tab",()->sendShell("\t",null)));controls.addView(button("↑",()->sendShell("\u001b[A",null)));controls.addView(button("↓",()->sendShell("\u001b[B",null)));panel.addView(controls);
     panel.addView(label(sharedStorageGranted()?"Shared storage: enabled at /shared-storage":"Shared storage: not bound; app-specific external files remain at /external-app",11));
@@ -198,7 +257,7 @@ public final class SourceStudio implements ModuleV1 {
   }
   private void publish(String file){EditText name=new EditText(activity);name.setText(file);new AlertDialog.Builder(activity).setTitle("Publish named APK").setMessage("Commit to the configured GitHub repository's releases/ folder using the phone SSH key.").setView(name).setPositiveButton("Publish",(d,w)->{final String release=name.getText().toString().trim();work(()->call(obj("action","githubPublish","file",file,"releaseName",release)));}).setNegativeButton("Cancel",null).show();}
   private void poll(){if(polling)return;polling=true;work(()->{try{
-    JSONObject result=call(obj("action","status"));ui(()->{state=result;status.setText(result.optString("phase")+" · "+(result.optBoolean("busy")?"Running":"Idle"));progress.setIndeterminate(result.optBoolean("busy")&&result.optInt("percent")==0);progress.setProgress(result.optInt("percent"));if(log!=null)log.setText(result.optString("log"));});if(autoShellLaunch&&!result.optBoolean("busy")&&new File(host.privateDirectory(),"debian/rootfs/usr/bin/bash").isFile()&&shellProcess==null){autoShellLaunch=false;launchShell();}
+    JSONObject result=call(obj("action","status"));ui(()->{state=result;status.setText(result.optString("phase")+" · "+(result.optBoolean("busy")?"Running":"Idle"));boolean busy=result.optBoolean("busy");progress.setVisibility(busy?View.VISIBLE:View.GONE);progress.setIndeterminate(busy&&result.optInt("percent")==0);progress.setProgress(result.optInt("percent"));if(projectButton!=null)projectButton.setText(projectName());if(log!=null)log.setText(result.optString("log"));});if(autoShellLaunch&&!result.optBoolean("busy")&&new File(host.privateDirectory(),"debian/rootfs/usr/bin/bash").isFile()&&shellProcess==null){autoShellLaunch=false;launchShell();}
   }catch(Exception ignored){}finally{polling=false;}});}
   private void browse(){work(()->{
     JSONArray files=call(obj("action","files")).getJSONArray("files");final ArrayList<String> paths=new ArrayList<>();for(int i=0;i<files.length();i++)paths.add(files.getString(i));
@@ -223,26 +282,96 @@ public final class SourceStudio implements ModuleV1 {
       final String text=call(obj("action","read","path",path)).getString("text");ui(()->{draftProject=project;Buffer b=new Buffer();b.text=b.saved=text;synchronized(buffers){buffers.put(path,b);}current=path;show("Editor");});});
   }
   private void editorScreen(){
-    boolean fullscreen=!current.isEmpty();moduleChrome(!fullscreen);
-    HorizontalScrollView tabs=new HorizontalScrollView(activity);fileTabs=row();tabs.addView(fileTabs);content.addView(tabs);
-    synchronized(buffers){for(Map.Entry<String,Buffer> entry:buffers.entrySet()){String path=entry.getKey();Buffer b=entry.getValue();b.button=button(shortName(path)+(b.dirty()?" *":""),()->{current=path;show("Editor");});fileTabs.addView(b.button);}}
-    TextView path=label(current.isEmpty()?"No file open":current,12);path.setSingleLine(true);path.setEllipsize(TextUtils.TruncateAt.MIDDLE);content.addView(path);
-    LinearLayout actions=row();
-    actions.addView(button("Files",()->toggleTree(null)));actions.addView(button("Search project",this::globalSearch));actions.addView(button("Reload",this::reloadCurrent));actions.addView(button("Save",()->work(()->saveOne(current))));actions.addView(button("Save all",()->work(()->saveAllNetwork())));
-    actions.addView(button("Undo",()->undo(false)));actions.addView(button("Redo",()->undo(true)));actions.addView(button("Find / replace",this::find));actions.addView(button("Close",this::closeFile));HorizontalScrollView actionScroll=new HorizontalScrollView(activity);actionScroll.setHorizontalScrollBarEnabled(false);actionScroll.addView(actions);
+    moduleChrome(true);
+    HorizontalScrollView tabs=new HorizontalScrollView(activity);tabs.setHorizontalScrollBarEnabled(false);tabs.setBackgroundColor(UiConfig.MODULE_SURFACE);fileTabs=row();tabs.addView(fileTabs);content.addView(tabs,new LinearLayout.LayoutParams(-1,dp(UiConfig.MODULE_TAB_HEIGHT_DP)));
+    buildTabs();
     boolean landscape=activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-    LinearLayout workspace=new LinearLayout(activity);workspace.setOrientation(landscape?LinearLayout.HORIZONTAL:LinearLayout.VERTICAL);LinearLayout treePane=new LinearLayout(activity);treePane.setTag("editor-tree");treePane.setOrientation(1);treePane.setBackgroundColor(0xff0a0a12);LinearLayout editorPane=new LinearLayout(activity);editorPane.setOrientation(1);workspace.addView(treePane,landscape?new LinearLayout.LayoutParams(dp(260),-1):new LinearLayout.LayoutParams(-1,treeExpanded?dp(260):dp(52)));workspace.addView(editorPane,landscape?new LinearLayout.LayoutParams(0,-1,1):new LinearLayout.LayoutParams(-1,0,1));FrameLayout stage=new FrameLayout(activity);stage.addView(workspace,new FrameLayout.LayoutParams(-1,-1));if(fullscreen){Button back=button("↙ GOD",()->{moduleChrome(true);show("Project");});FrameLayout.LayoutParams floating=new FrameLayout.LayoutParams(dp(92),dp(46),Gravity.TOP|Gravity.END);floating.setMargins(dp(4),dp(4),dp(4),dp(4));stage.addView(back,floating);}content.addView(stage,new LinearLayout.LayoutParams(-1,0,1));content.addView(actionScroll,new LinearLayout.LayoutParams(-1,dp(48)));inlineFileTree(treePane);
+    LinearLayout workspace=new LinearLayout(activity);workspace.setOrientation(landscape?LinearLayout.HORIZONTAL:LinearLayout.VERTICAL);LinearLayout treePane=new LinearLayout(activity);treePane.setTag("editor-tree");treePane.setOrientation(1);treePane.setBackgroundColor(UiConfig.EDITOR_TREE_BACKGROUND);LinearLayout editorPane=new LinearLayout(activity);editorPane.setOrientation(1);workspace.addView(treePane,landscape?new LinearLayout.LayoutParams(dp(260),-1):new LinearLayout.LayoutParams(-1,treeExpanded?dp(240):dp(46)));workspace.addView(editorPane,landscape?new LinearLayout.LayoutParams(0,-1,1):new LinearLayout.LayoutParams(-1,0,1));
+    FrameLayout stage=new FrameLayout(activity);stage.addView(workspace,new FrameLayout.LayoutParams(-1,-1));content.addView(stage,new LinearLayout.LayoutParams(-1,0,1));
+    if(!current.isEmpty()){Button git=chip("GIT",this::githubConfig);git.setTextColor(UiConfig.MODULE_ACCENT);FrameLayout.LayoutParams floating=new FrameLayout.LayoutParams(dp(56),dp(30),Gravity.BOTTOM|Gravity.END);floating.setMargins(dp(4),dp(4),dp(10),dp(10));stage.addView(git,floating);}
+    content.addView(editorStrip(),new LinearLayout.LayoutParams(-1,dp(UiConfig.MODULE_ACTION_HEIGHT_DP+2)));
+    inlineFileTree(treePane);
     if(current.isEmpty()){
-      LinearLayout empty=new LinearLayout(activity);empty.setOrientation(1);empty.setGravity(Gravity.CENTER);empty.addView(label("Open a project file to start editing",16));empty.addView(label("Choose a file in the project tree · Search project finds text across the workspace",12));LinearLayout choices=row();choices.setGravity(Gravity.CENTER);choices.addView(button("Open files",this::browse));choices.addView(button("Search project",this::globalSearch));empty.addView(choices);editorPane.addView(empty,new LinearLayout.LayoutParams(-1,0,1));return;
+      LinearLayout empty=new LinearLayout(activity);empty.setOrientation(1);empty.setGravity(Gravity.CENTER);empty.addView(label("Open a project file to start editing",15));empty.addView(label("Pick a file in PROJECT FILES · ⌕ finds text across the workspace",11));LinearLayout choices=row();choices.setGravity(Gravity.CENTER);Button open=chip("OPEN FILES",this::browse);Button search=chip("SEARCH",this::globalSearch);choices.addView(open);choices.addView(search);empty.addView(choices);editorPane.addView(empty,new LinearLayout.LayoutParams(-1,0,1));return;
     }
     createFindBar();editorPane.addView(findBar);
-    editor=new CodeEditor(activity);editorPath=current;editor.setTextSize(14);editor.setTypefaceText(Typeface.MONOSPACE);editor.setTypefaceLineNumber(Typeface.MONOSPACE);editor.setWordwrap(false);editor.setPinLineNumber(true);editor.setHighlightCurrentLine(true);editor.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);configureTextMate(editor);
+    editor=new CodeEditor(activity);editorPath=current;editor.setTextSize(UiConfig.EDITOR_TEXT_SIZE_SP);editor.setTypefaceText(Typeface.MONOSPACE);editor.setTypefaceLineNumber(Typeface.MONOSPACE);editor.setWordwrap(false);editor.setPinLineNumber(true);editor.setHighlightCurrentLine(true);editor.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);configureTextMate(editor);
     Buffer b=buffers.get(current);editor.setText(b==null?"":b.text);editor.setEditable(b!=null);editorPane.addView(editor,new LinearLayout.LayoutParams(-1,0,1));
     editor.subscribeEvent(ContentChangeEvent.class,(event,unsubscribe)->{if(suppress)return;Buffer buffer=buffers.get(editorPath);if(buffer==null)return;buffer.text=editor.getText().toString();if(buffer.button!=null)buffer.button.setText(shortName(editorPath)+(buffer.dirty()?" *":""));handler.removeCallbacks(draftSave);handler.postDelayed(draftSave,300);});
-    editor.setOnKeyListener((v,key,event)->{if(event.getAction()!=KeyEvent.ACTION_DOWN)return false;if(key==KeyEvent.KEYCODE_ESCAPE){moduleChrome(true);show("Project");return true;}if(!event.isCtrlPressed())return false;if(key==KeyEvent.KEYCODE_F){if(event.isShiftPressed())globalSearch();else find();return true;}if(key==KeyEvent.KEYCODE_S){if(event.isShiftPressed())work(()->saveAllNetwork());else work(()->saveOne(editorPath));return true;}if(key==KeyEvent.KEYCODE_Z){undo(false);return true;}if(key==KeyEvent.KEYCODE_Y){undo(true);return true;}if(key==KeyEvent.KEYCODE_W){closeFile();return true;}return false;});
+    editor.setOnKeyListener((v,key,event)->{if(event.getAction()!=KeyEvent.ACTION_DOWN)return false;if(key==KeyEvent.KEYCODE_ESCAPE){show("Project");return true;}if(!event.isCtrlPressed())return false;if(key==KeyEvent.KEYCODE_F){if(event.isShiftPressed())globalSearch();else find();return true;}if(key==KeyEvent.KEYCODE_S){if(event.isShiftPressed())work(()->saveAllNetwork());else work(()->saveOne(editorPath));return true;}if(key==KeyEvent.KEYCODE_Z){undo(false);return true;}if(key==KeyEvent.KEYCODE_Y){undo(true);return true;}if(key==KeyEvent.KEYCODE_W){closeFile();return true;}return false;});
     if(pendingLine>0&&b!=null){int line=Math.min(pendingLine-1,Math.max(0,editor.getLineCount()-1));editor.setSelection(line,0);editor.ensurePositionVisible(line,0);pendingLine=-1;}
   }
-  private void moduleChrome(boolean visible){int state=visible?View.VISIBLE:View.GONE;if(headerBar!=null)headerBar.setVisibility(state);if(status!=null)status.setVisibility(state);if(progress!=null)progress.setVisibility(state);if(navigationBar!=null)navigationBar.setVisibility(View.VISIBLE);}
+
+  /** Open-file tabs: the active buffer carries the accent outline. */
+  private void buildTabs(){
+    if(fileTabs==null)return;fileTabs.removeAllViews();
+    synchronized(buffers){
+      if(buffers.isEmpty()){TextView none=label("no open files",10);none.setTextColor(UiConfig.MODULE_MUTED);fileTabs.addView(none);return;}
+      for(Map.Entry<String,Buffer> entry:buffers.entrySet()){
+        final String path=entry.getKey();Buffer buffer=entry.getValue();boolean active=path.equals(current);
+        Button tab=chip(shortName(path)+(buffer.dirty()?" *":""),()->{current=path;show("Editor");});
+        tab.setTextSize(11);tab.setTextColor(active?UiConfig.MODULE_ACCENT:UiConfig.MODULE_MUTED);
+        GradientDrawable frame=new GradientDrawable();frame.setColor(active?UiConfig.MODULE_TAB_ACTIVE:UiConfig.MODULE_TAB_INACTIVE);frame.setCornerRadius(dp(6));frame.setStroke(dp(active?2:1),active?UiConfig.MODULE_TAB_UNDERLINE:UiConfig.MODULE_DIVIDER);
+        tab.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33ffffff),frame,null));
+        buffer.button=tab;
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-2,dp(UiConfig.MODULE_TAB_HEIGHT_DP-8));params.setMargins(dp(2),dp(1),dp(2),dp(1));fileTabs.addView(tab,params);
+      }
+    }
+  }
+
+  /** Persistent editing strip: save/undo/redo/tab on the left, cursor pad and enter on the right. */
+  private View editorStrip(){
+    HorizontalScrollView scroll=new HorizontalScrollView(activity);scroll.setHorizontalScrollBarEnabled(false);scroll.setBackgroundColor(UiConfig.MODULE_SURFACE);
+    LinearLayout strip=row();strip.setPadding(dp(4),dp(1),dp(4),dp(1));
+    strip.addView(stripKey("SAVE",()->work(()->saveOne(current))));
+    strip.addView(stripKey("UNDO",()->undo(false)));
+    strip.addView(stripKey("REDO",()->undo(true)));
+    strip.addView(stripKey("TAB",()->editorInput("\t")));
+    strip.addView(stripKey("⋯",this::moreMenu));
+    strip.addView(stripKey("↑",()->editorKey(KeyEvent.KEYCODE_DPAD_UP)));
+    strip.addView(stripKey("←",()->editorKey(KeyEvent.KEYCODE_DPAD_LEFT)));
+    strip.addView(stripKey("↓",()->editorKey(KeyEvent.KEYCODE_DPAD_DOWN)));
+    strip.addView(stripKey("→",()->editorKey(KeyEvent.KEYCODE_DPAD_RIGHT)));
+    strip.addView(stripKey("↵",()->editorInput("\n")));
+    scroll.addView(strip);return scroll;
+  }
+
+  private Button stripKey(String text,Runnable action){
+    Button b=chip(text,action);b.setTextSize(10);b.setFocusable(false);b.setFocusableInTouchMode(false);
+    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-2,dp(UiConfig.MODULE_ACTION_HEIGHT_DP-8));params.setMargins(dp(2),0,dp(2),0);b.setLayoutParams(params);return b;
+  }
+
+  /** Cursor keys are forwarded to the editor so the soft keyboard stays hidden. */
+  private void editorKey(int keyCode){
+    if(editor==null)return;
+    editor.requestFocus();
+    editor.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,keyCode));
+    editor.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,keyCode));
+  }
+
+  private void editorInput(String text){
+    if(editor==null)return;
+    editor.requestFocus();
+    editor.commitText(text);
+  }
+
+  private void moreMenu(){
+    AlertDialog.Builder builder=new AlertDialog.Builder(activity).setTitle("Editor actions");
+    builder.setItems(new String[]{"Project files","Search project","Find / replace","Reload file","Save all","Close file","Generated APKs","Toolchain settings"},(d,index)->{
+      if(index==0)toggleTree(null);
+      else if(index==1)globalSearch();
+      else if(index==2)find();
+      else if(index==3)reloadCurrent();
+      else if(index==4)work(()->saveAllNetwork());
+      else if(index==5)closeFile();
+      else if(index==6)show("APKs");
+      else show("Tools");
+    });
+    builder.setNegativeButton("Close",null).show();
+  }
+
+  /** The session chrome stays visible on every screen; only the progress bar collapses when idle. */
+  private void moduleChrome(boolean ignored){if(headerBar!=null)headerBar.setVisibility(View.VISIBLE);if(status!=null)status.setVisibility(View.VISIBLE);if(navigationBar!=null)navigationBar.setVisibility(View.VISIBLE);}
   private void inlineFileTree(LinearLayout panel){panel.removeAllViews();LinearLayout title=row();title.addView(button(treeExpanded?"▾ PROJECT FILES":"▸ PROJECT FILES",()->toggleTree(panel)),new LinearLayout.LayoutParams(0,dp(46),1));title.addView(button("↻",()->inlineFileTree(panel)),new LinearLayout.LayoutParams(dp(52),dp(42)));panel.addView(title);TextView loading=label("Loading project tree…",12);panel.addView(loading);work(()->{JSONArray files=call(obj("action","files")).getJSONArray("files");ArrayList<String> paths=new ArrayList<>();for(int i=0;i<files.length();i++)paths.add(files.getString(i));ui(()->renderInlineFileTree(panel,paths));});}
   private void toggleTree(LinearLayout known){LinearLayout panel=known;if(panel==null)panel=content.findViewWithTag("editor-tree");if(panel==null){browse();return;}if(activity.getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE)return;treeExpanded=!treeExpanded;ViewGroup.LayoutParams params=panel.getLayoutParams();params.height=treeExpanded?dp(260):dp(52);panel.setLayoutParams(params);inlineFileTree(panel);}
   private void renderInlineFileTree(LinearLayout panel,List<String> paths){panel.removeAllViews();LinearLayout title=row();title.addView(button(treeExpanded?"▾ PROJECT FILES":"▸ PROJECT FILES",()->toggleTree(panel)),new LinearLayout.LayoutParams(0,dp(46),1));title.addView(button("↻",()->inlineFileTree(panel)),new LinearLayout.LayoutParams(dp(52),dp(42)));panel.addView(title);TreeNode tree=new TreeNode("project","",true);for(String path:paths){TreeNode parent=tree;StringBuilder full=new StringBuilder();String[] parts=path.split("/");for(int i=0;i<parts.length;i++){if(full.length()>0)full.append('/');full.append(parts[i]);boolean directory=i<parts.length-1;TreeNode found=null;for(TreeNode n:parent.children)if(n.name.equals(parts[i])&&n.directory==directory){found=n;break;}if(found==null){found=new TreeNode(parts[i],full.toString(),directory);parent.children.add(found);}if(directory&&(!current.isEmpty()&&(current.equals(full.toString())||current.startsWith(full+"/"))))found.expanded=true;parent=found;}}sortTree(tree);tree.expanded=true;EditText filter=new EditText(activity);filter.setHint("Type to find any file");filter.setSingleLine(true);panel.addView(filter,new LinearLayout.LayoutParams(-1,dp(44)));ListView list=new ListView(activity);list.setDividerHeight(0);panel.addView(list,new LinearLayout.LayoutParams(-1,0,1));ArrayList<TreeNode> visible=new ArrayList<>();ArrayAdapter<String> adapter=new ArrayAdapter<>(activity,android.R.layout.simple_list_item_1,new ArrayList<>());list.setAdapter(adapter);Runnable refresh=()->{String query=filter.getText().toString().toLowerCase(Locale.ROOT);visible.clear();flattenTree(tree,0,query,visible,adapter);};refresh.run();filter.addTextChangedListener(new SimpleWatcher(){public void afterTextChanged(Editable text){refresh.run();}});list.setOnItemClickListener((p,v,index,id)->{TreeNode node=visible.get(index);if(node.directory){node.expanded=!node.expanded;refresh.run();}else{treeExpanded=false;openFile(node.path);}});}

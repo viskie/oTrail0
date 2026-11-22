@@ -537,4 +537,49 @@ public class UiConfig {
   public static final int LIVE_BUBBLE_SIZE_SP=12, GPS_SMILE_COLOR=0xffffffff;
   public static final float GPS_SMILE_MAX_ACCURACY_M=15;
   public static final int LIVE_BUBBLE_BORDER_DP=1;
+
+  // ---- GOD source editor and Debian shell module chrome. ----
+  // Downloaded modules inline these constants when they are compiled, so change
+  // them here, rebuild the APK, then repackage modules/releases/DEBIAN-*.oTrail0.
+  public static final int MODULE_BACKGROUND=0xff0b0e13,
+      MODULE_SURFACE=0xff12161d,
+      MODULE_SURFACE_ALT=0xff171c24,
+      MODULE_HEADER_BACKGROUND=0xff0e1218,
+      MODULE_TEXT=0xffd8e4ec,
+      MODULE_MUTED=0xff8494a3,
+      MODULE_ACCENT=LIME,
+      MODULE_ACCENT_ALT=CYAN,
+      MODULE_DIVIDER=0xff232a34,
+      MODULE_DOT_ONLINE=0xff01ff1f,
+      MODULE_BUTTON_BACKGROUND=0xff161b23,
+      MODULE_BUTTON_TEXT=0xffd8e4ec,
+      MODULE_TAB_INACTIVE=0xff10141a,
+      MODULE_TAB_ACTIVE=0xff1a2129,
+      MODULE_TAB_UNDERLINE=LIME;
+  public static final int TERMINAL_BACKGROUND=0xff06080c,
+      TERMINAL_TEXT=0xffc6f6ff,
+      TERMINAL_PROMPT=LIME,
+      TERMINAL_MUTED=MUTED,
+      TERMINAL_INPUT_BACKGROUND=0xff10151c,
+      TERMINAL_INPUT_TEXT=0xffffe082,
+      TERMINAL_KEY_BACKGROUND=0xff1b212b,
+      TERMINAL_WARNING=0xffffd166,
+      TERMINAL_ERROR=0xffff6b6b;
+  public static final int EDITOR_TEXT=0xffc9d6e2,
+      EDITOR_GUTTER_BACKGROUND=0xff0a0d11,
+      EDITOR_CURRENT_LINE=0xff15202b,
+      EDITOR_TREE_BACKGROUND=0xff0a0d11,
+      EDITOR_SELECTION=0x5530f0ff;
+  public static final int MODULE_HEADER_HEIGHT_DP=40,
+      MODULE_ACTION_HEIGHT_DP=40,
+      MODULE_NAV_HEIGHT_DP=44,
+      MODULE_TAB_HEIGHT_DP=34,
+      MODULE_KEY_HEIGHT_DP=32,
+      MODULE_INPUT_HEIGHT_DP=40;
+  public static final int TERMINAL_TEXT_SIZE_SP=13,
+      EDITOR_TEXT_SIZE_SP=14,
+      MODULE_LABEL_SIZE_SP=11,
+      MODULE_HEADER_SIZE_SP=15;
+  public static final float TERMINAL_LINE_SPACING=1.12f;
+  public static final int TERMINAL_SCROLLBACK_CHARS=120000;
 }

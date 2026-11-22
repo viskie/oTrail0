@@ -1,5 +1,20 @@
 # Installable builds
 
+## 0.4.26 — 2026-11-22
+
+`oTraiL-0.4.26-debug.apk` — versionCode 49. Debian Shell now starts bash through
+`script(1)` on a real pty, so the `cannot set terminal process group …
+Inappropriate ioctl for device` warning and lost job control are gone: typed
+characters echo in the transcript, output scrolls itself, and the terminal no
+longer collapses when the soft keyboard opens. The shell and GOD workspace got
+a compact, dark redesign whose colors and sizes live in `UiConfig`
+(`MODULE_*`, `TERMINAL_*`, `EDITOR_*`). The GOD editor has an open-file tab strip
+and a persistent SAVE / UNDO / REDO / TAB · cursor · enter strip. Debian Shell
+1.1.4 requires this host. Same signing certificate, install in place.
+
+Verified by compiling the app and the module, and by reproducing the bash
+warning/fix locally on the same util-linux `script`; not exercised on a phone.
+
 ## 0.4.25 — 2026-11-22
 
 `oTraiL-0.4.25-debug.apk` — versionCode 48. Fixes Debian Shell failing with exit
