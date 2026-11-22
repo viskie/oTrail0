@@ -4,5 +4,5 @@
   "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.31-debug.apk",
   "sha256": "edecb258b40465402f3d6fe19c507253294a0bf01cfd06ca01eb670f7de8e5c7",
   "sizeBytes": 41378640,
-  "notes": "Adds Clean controls for deleting obsolete downloaded module versions, package visibility for the self-contained Bluetooth keyboard module, and tap-to-reopen the system keyboard in the Debian shell. Includes Debian Shell 1.1.7."
+  "notes": "Adds Clean controls for deleting obsolete downloaded module versions, package visibility for the self-contained Bluetooth keyboard module, and tap-to-reopen the system keyboard in Debian Shell 1.1.7."
 }
