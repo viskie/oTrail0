@@ -1,8 +1,8 @@
 {
-  "versionCode": 54,
-  "versionName": "0.4.31",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.31-debug.apk",
-  "sha256": "edecb258b40465402f3d6fe19c507253294a0bf01cfd06ca01eb670f7de8e5c7",
-  "sizeBytes": 41378640,
-  "notes": "Adds Clean controls for deleting obsolete downloaded module versions, package visibility for the self-contained Bluetooth keyboard module, and tap-to-reopen the system keyboard in Debian Shell 1.1.7."
+  "versionCode": 55,
+  "versionName": "0.4.32",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.32-debug.apk",
+  "sha256": "f88fa1cd34c8ed104ae324127d10bfa184a23466cfbde7b64007dfe0ab4f63e9",
+  "sizeBytes": 42127635,
+  "notes": "Shows NEW module versions in collapsed cards, keeps old-version deletion manual and one per version, and gives Debian Shell 1.1.8 a 60/40 terminal with a built-in QWERTY keypad including numbers, CAPS, symbols and shell controls."
 }

@@ -1,29 +1,27 @@
 package in.otrail.extensions.mod1;
 
-import android.app.*;import android.content.*;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.text.Editable;import android.text.TextUtils;import android.text.TextWatcher;import android.view.*;import android.view.inputmethod.EditorInfo;import android.view.inputmethod.InputMethodManager;import android.widget.*;
-import in.otrail.AppStyle;import in.otrail.UiConfig;import in.otrail.modules.ModuleV1;import org.json.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.util.*;import java.util.concurrent.*;
+import android.app.*;import android.content.*;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.text.TextUtils;import android.view.*;import android.widget.*;
+import in.otrail.AppStyle;import in.otrail.UiConfig;import in.otrail.modules.ModuleV1;
+import org.json.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.util.*;import java.util.concurrent.*;
 
 /** Separate downloadable Debian shell module. */
 public final class DebianShell implements ModuleV1 {
-  private Activity activity;private Host host;private LinearLayout root;private TextView status,terminal,debug,title;private EditText command;private ScrollView terminalScroll;
-  private String inputPrevious="";private boolean suppressInputWatch;
-  private final Handler handler=new Handler(Looper.getMainLooper());private final ExecutorService io=Executors.newCachedThreadPool();
-  private java.lang.Process process;private OutputStream input;private boolean closed,launchAttempted;private final StringBuilder transcript=new StringBuilder();
-  private static final String[] KEYS={"ESC","TAB","CTRL-C","CTRL-D","CTRL-L","↑","↓","←","→"};
-  private static final String[] CODES={"\u001b","\t","\u0003","\u0004","\u000c","\u001b[A","\u001b[B","\u001b[D","\u001b[C"};
+  private Activity activity;private Host host;private LinearLayout root,keyboardRows;private TextView status,terminal,debug,title;private ScrollView terminalScroll;
+  private boolean caps,symbols,ctrl;
+  private final Handler handler=new Handler(Looper.getMainLooper());private final ExecutorService io=Executors.newCachedThreadPool(),inputQueue=Executors.newSingleThreadExecutor();
+  private volatile java.lang.Process process;private volatile OutputStream input;private boolean closed,launchAttempted;private final StringBuilder transcript=new StringBuilder();
+  private static final int KEY_NORMAL=0,KEY_MOD=1,KEY_ACTION=2,KEY_ACTIVE=3;
 
   public String id(){return "mod3";}
 
   public View create(Activity a,Host h){
     activity=a;host=h;
-    try{activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE|WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED);}catch(Exception ignored){}
+    try{activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING|WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);}catch(Exception ignored){}
     root=new LinearLayout(a);root.setOrientation(1);root.setBackgroundColor(UiConfig.MODULE_BACKGROUND);root.setPadding(dp(8),dp(6),dp(8),dp(6));
     root.addView(header());
     status=label("Preparing included Debian…",UiConfig.MODULE_LABEL_SIZE_SP,UiConfig.MODULE_MUTED);status.setMaxLines(2);status.setEllipsize(TextUtils.TruncateAt.END);root.addView(status);
     root.addView(terminalPanel(),new LinearLayout.LayoutParams(-1,0,3));
-    View spacer=new View(a);spacer.setBackgroundColor(UiConfig.MODULE_BACKGROUND);root.addView(spacer,new LinearLayout.LayoutParams(-1,0,2));
-    root.addView(keyStrip());
-    root.addView(hiddenInput());
+    LinearLayout.LayoutParams keys=new LinearLayout.LayoutParams(-1,0,2);keys.setMargins(0,dp(4),0,dp(2));root.addView(keyboardPanel(),keys);
     debug=label("ready",9,UiConfig.MODULE_MUTED);debug.setSingleLine(true);debug.setEllipsize(TextUtils.TruncateAt.START);root.addView(debug);
     root.addView(navRow());
     setup(false);handler.post(poll);return root;
@@ -42,61 +40,113 @@ public final class DebianShell implements ModuleV1 {
     FrameLayout frame=new FrameLayout(activity);GradientDrawable background=new GradientDrawable();background.setColor(UiConfig.TERMINAL_BACKGROUND);background.setCornerRadius(dp(10));frame.setBackground(background);frame.setPadding(dp(7),dp(5),dp(7),dp(5));
     terminal=label("",UiConfig.TERMINAL_TEXT_SIZE_SP,UiConfig.TERMINAL_TEXT);terminal.setTypeface(Typeface.MONOSPACE);terminal.setTextIsSelectable(true);terminal.setLineSpacing(0,UiConfig.TERMINAL_LINE_SPACING);terminal.setText("Connecting to the included Debian image…");
     terminalScroll=new ScrollView(activity);terminalScroll.setFillViewport(true);terminalScroll.setVerticalScrollBarEnabled(false);terminalScroll.addView(terminal,new FrameLayout.LayoutParams(-1,-2));
-    tapToFocus(terminal);tapToFocus(terminalScroll);
     frame.addView(terminalScroll,new FrameLayout.LayoutParams(-1,-1));return frame;
   }
 
-  /** A tap (not a scroll or text-selection drag) reopens the system keyboard. */
-  private void tapToFocus(View view){
-    final float[] down={0,0};final boolean[] moved={false};
-    view.setOnTouchListener((v,e)->{
-      if(e.getAction()==MotionEvent.ACTION_DOWN){down[0]=e.getX();down[1]=e.getY();moved[0]=false;}
-      else if(e.getAction()==MotionEvent.ACTION_MOVE&&Math.hypot(e.getX()-down[0],e.getY()-down[1])>dp(8))moved[0]=true;
-      else if(e.getAction()==MotionEvent.ACTION_UP&&!moved[0])focusInput();
-      return false;
-    });
+  /** Terminal 60%, built-in keyboard 40%; keys are weighted so the full pad always fits. */
+  private View keyboardPanel(){
+    LinearLayout panel=new LinearLayout(activity);panel.setOrientation(1);panel.setPadding(dp(3),dp(4),dp(3),dp(3));
+    GradientDrawable background=new GradientDrawable();background.setColor(UiConfig.MODULE_SURFACE);background.setCornerRadius(dp(10));background.setStroke(dp(1),UiConfig.MODULE_DIVIDER);panel.setBackground(background);
+    keyboardRows=new LinearLayout(activity);keyboardRows.setOrientation(1);panel.addView(keyboardRows,new LinearLayout.LayoutParams(-1,0,1));
+    buildKeyboard();return panel;
   }
 
-  private View keyStrip(){
-    LinearLayout keys=row();for(int i=0;i<KEYS.length;i++){final String code=CODES[i];Button key=chip(KEYS[i],()->send(code));key.setTextSize(9);key.setTypeface(Typeface.MONOSPACE);    keys.addView(key,new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_KEY_HEIGHT_DP),1));}
-    keys.setPadding(0,dp(2),0,dp(2));return keys;
+  private void buildKeyboard(){
+    if(keyboardRows==null)return;keyboardRows.removeAllViews();
+    addUtilityRow();
+    if(symbols){
+      addTextRow("~!@#$%^&*()");
+      addTextRow("-_=+[]{}\\|");
+      addTextRow(";:\"'<>/?,.");
+      addTextRow("`€£§°±×÷©®");
+      addBottomRow(true);
+    }else{
+      addTextRow("1234567890");
+      addLetterRow("qwertyuiop");
+      addLetterRow("asdfghjkl");
+      addShiftRow();
+      addBottomRow(false);
+    }
   }
 
-  private View hiddenInput(){
-    command=new EditText(activity);command.setSingleLine(true);command.setTextColor(UiConfig.TERMINAL_INPUT_TEXT);command.setTypeface(Typeface.MONOSPACE);command.setTextSize(UiConfig.TERMINAL_TEXT_SIZE_SP);command.setBackgroundColor(0x00000000);command.setPadding(0,0,0,0);command.setAlpha(0f);command.setImeOptions(EditorInfo.IME_ACTION_SEND|EditorInfo.IME_FLAG_NO_EXTRACT_UI);command.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-    command.addTextChangedListener(new TextWatcher(){
-      public void beforeTextChanged(CharSequence s,int start,int count,int after){}
-      public void onTextChanged(CharSequence s,int start,int before,int count){}
-      public void afterTextChanged(Editable s){
-        if(suppressInputWatch)return;
-        String now=s.toString();
-        if(now.equals(inputPrevious))return;
-        if(now.startsWith(inputPrevious)){
-          String added=now.substring(inputPrevious.length());
-          if(!added.isEmpty())send(added);
-        }else if(inputPrevious.startsWith(now)){
-          int removed=inputPrevious.length()-now.length();
-          StringBuilder bs=new StringBuilder();
-          for(int i=0;i<removed;i++)bs.append('\u007f');
-          if(bs.length()>0)send(bs.toString());
-        }else{
-          StringBuilder bs=new StringBuilder();
-          for(int i=0;i<inputPrevious.length();i++)bs.append('\u007f');
-          send(bs.toString()+now);
-        }
-        inputPrevious=now;
-      }
-    });
-    command.setOnEditorActionListener((v,id,event)->{submit();return true;});
-    command.setFocusable(true);command.setFocusableInTouchMode(true);
-    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,dp(1));command.setLayoutParams(params);return command;
+  private void addUtilityRow(){
+    LinearLayout row=newRow();
+    addKey(row,"ESC",1,KEY_MOD,()->sendKey("\u001b"));
+    addKey(row,"TAB",1,KEY_MOD,()->sendKey("\t"));
+    addKey(row,"^C",1,KEY_MOD,()->sendKey("\u0003"));
+    addKey(row,"^D",1,KEY_MOD,()->sendKey("\u0004"));
+    addKey(row,"^L",1,KEY_MOD,()->sendKey("\u000c"));
+    addKey(row,"←",1,KEY_MOD,()->sendKey("\u001b[D"));
+    addKey(row,"↑",1,KEY_MOD,()->sendKey("\u001b[A"));
+    addKey(row,"↓",1,KEY_MOD,()->sendKey("\u001b[B"));
+    addKey(row,"→",1,KEY_MOD,()->sendKey("\u001b[C"));
+    addKeyboardRow(row);
   }
 
-  private View navRow(){
-    LinearLayout nav=row();String[][] items={{"▣ FILES","scp"},{"</> GOD","god"},{">_ START","start"},{"⚙ STORAGE","storage"},{"↻ REINSTALL","repair"}};
-    for(String[] item:items){Button b=chip(item[0],()->{if(item[1].equals("scp"))scpSync();else if(item[1].equals("god"))activity.finish();else if(item[1].equals("start"))startShell();else if(item[1].equals("storage"))storage();else repair();});b.setTextSize(9);nav.addView(b,new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_NAV_HEIGHT_DP),1));}
-    return nav;
+  private void addTextRow(String text){
+    LinearLayout row=newRow();for(char c:text.toCharArray())addKey(row,String.valueOf(c),1,KEY_NORMAL,()->typeText(String.valueOf(c)));addKeyboardRow(row);
   }
+
+  private void addLetterRow(String letters){
+    LinearLayout row=newRow();for(char c:letters.toCharArray())addKey(row,caps?String.valueOf(Character.toUpperCase(c)):String.valueOf(c),1,KEY_NORMAL,()->typeLetter(c));addKeyboardRow(row);
+  }
+
+  private void addShiftRow(){
+    LinearLayout row=newRow();
+    addKey(row,"CAPS",1.5f,caps?KEY_ACTIVE:KEY_MOD,()->{caps=!caps;rebuildKeyboard();});
+    for(char c:"zxcvbnm".toCharArray())addKey(row,caps?String.valueOf(Character.toUpperCase(c)):String.valueOf(c),1,KEY_NORMAL,()->typeLetter(c));
+    addKey(row,",",1,KEY_NORMAL,()->typeText(","));
+    addKey(row,".",1,KEY_NORMAL,()->typeText("."));
+    addKey(row,"?",1,KEY_NORMAL,()->typeText("?"));
+    addKeyboardRow(row);
+  }
+
+  private void addBottomRow(boolean symbolsLayer){
+    LinearLayout row=newRow();
+    addKey(row,symbolsLayer?"ABC":"?123",1,KEY_MOD,()->{symbols=!symbols;ctrl=false;rebuildKeyboard();});
+    addKey(row,"CTRL",1,ctrl?KEY_ACTIVE:KEY_MOD,()->{ctrl=!ctrl;rebuildKeyboard();});
+    if(!symbolsLayer)addKey(row,"'",1,KEY_NORMAL,()->typeText("'"));
+    addKey(row,"SPACE",3,KEY_MOD,()->typeText(" "));
+    addKey(row,"⌫",1,KEY_MOD,this::backspace);
+    addKey(row,"ENTER",2,KEY_ACTION,this::enter);
+    addKeyboardRow(row);
+  }
+
+  private LinearLayout newRow(){LinearLayout row=new LinearLayout(activity);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);return row;}
+  private void addKeyboardRow(LinearLayout row){keyboardRows.addView(row,new LinearLayout.LayoutParams(-1,0,1));}
+
+  private void addKey(LinearLayout row,String text,float weight,int kind,Runnable action){
+    Button key=new Button(activity);key.setText(text);key.setAllCaps(false);key.setSingleLine(true);key.setGravity(Gravity.CENTER);key.setTextSize(11);
+    key.setTextColor(kind==KEY_MOD?UiConfig.MODULE_TEXT:0xff000000);
+    key.setTypeface(Typeface.create(UiConfig.BODY_FONT,Typeface.BOLD));key.setIncludeFontPadding(false);key.setStateListAnimator(null);
+    key.setMinHeight(0);key.setMinimumHeight(0);key.setMinWidth(0);key.setMinimumWidth(0);key.setPadding(0,0,0,0);key.setBackgroundTintList(null);
+    int fill=kind==KEY_MOD?UiConfig.MODULE_SURFACE_ALT:kind==KEY_ACTION?UiConfig.MODULE_ACCENT:kind==KEY_ACTIVE?UiConfig.MODULE_ACCENT_ALT:UiConfig.TERMINAL_KEY_BACKGROUND;
+    GradientDrawable frame=new GradientDrawable();frame.setColor(fill);frame.setCornerRadius(dp(6));frame.setStroke(dp(1),kind==KEY_NORMAL?UiConfig.MODULE_DIVIDER:fill);
+    key.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(kind==KEY_NORMAL?0x33000000:0x55ffffff),frame,null));
+    key.setOnClickListener(v->{try{action.run();}catch(Throwable error){debug("FAIL · key · "+error);}});
+    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,-1,weight);params.setMargins(dp(1),dp(1),dp(1),dp(1));row.addView(key,params);
+  }
+
+  private void typeLetter(char c){typeText(String.valueOf(c));}
+  private void typeText(String text){
+    if(ctrl&&text.length()==1){
+      char c=control(text.charAt(0));ctrl=false;rebuildKeyboard();if(c!=0)send(String.valueOf(c));return;
+    }
+    if(caps&&text.length()==1&&Character.isLetter(text.charAt(0)))text=text.toUpperCase(Locale.US);
+    send(text);
+  }
+  private char control(char c){
+    if(c>='a'&&c<='z')return(char)(c-'a'+1);
+    if(c>='A'&&c<='Z')return(char)(c-'A'+1);
+    if(c==' ')return 0;
+    if(c=='[')return 0x1b;if(c=='\\')return 0x1c;if(c==']')return 0x1d;if(c=='^')return 0x1e;if(c=='_')return 0x1f;
+    return c;
+  }
+  private void rebuildKeyboard(){if(keyboardRows!=null)keyboardRows.post(this::buildKeyboard);}
+  private void clearCtrl(){if(ctrl){ctrl=false;rebuildKeyboard();}}
+  private void backspace(){clearCtrl();send("\u007f");}
+  private void enter(){clearCtrl();send("\n");}
+  private void sendKey(String code){clearCtrl();send(code);}
 
   private int dp(int n){return Math.round(n*activity.getResources().getDisplayMetrics().density);}
   private LinearLayout row(){LinearLayout l=new LinearLayout(activity);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
@@ -107,6 +157,12 @@ public final class DebianShell implements ModuleV1 {
     b.setOnClickListener(v->{debug("RUN · "+s);try{r.run();}catch(Throwable error){debug("FAIL · "+s+" · "+error.getClass().getSimpleName()+": "+String.valueOf(error.getMessage()));}});return b;
   }
   private void debug(String message){post(()->{if(debug!=null)debug.setText(new java.text.SimpleDateFormat("HH:mm:ss",Locale.US).format(new Date())+" · "+message);});}
+
+  private View navRow(){
+    LinearLayout nav=row();String[][] items={{"▣ FILES","scp"},{"</> GOD","god"},{">_ START","start"},{"⚙ STORAGE","storage"},{"↻ REINSTALL","repair"}};
+    for(String[] item:items){Button b=chip(item[0],()->{if(item[1].equals("scp"))scpSync();else if(item[1].equals("god"))activity.finish();else if(item[1].equals("start"))startShell();else if(item[1].equals("storage"))storage();else repair();});b.setTextSize(9);nav.addView(b,new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_NAV_HEIGHT_DP),1));}
+    return nav;
+  }
 
   private void setup(boolean force){io.execute(()->{try{File bash=new File(host.privateDirectory(),"debian/rootfs/usr/bin/bash");if(!force&&bash.isFile()){if(!launchAttempted)launch();return;}JSONObject state=new JSONObject(host.taskStatus());if(!state.optBoolean("busy"))host.startTask(new JSONObject().put("action","shellSetup").put("force",force).toString());}catch(Exception e){show("Setup failed: "+e.getMessage());debug("FAIL · setup · "+e);}});}
   private void repair(){launchAttempted=false;setup(true);}
@@ -119,8 +175,7 @@ public final class DebianShell implements ModuleV1 {
     handler.postDelayed(poll,1500);
   }
 
-  /** Runs bash under a pty: script(1) allocates the terminal, so job control works and the
-   *  "cannot set terminal process group" warning no longer appears. */
+  /** Runs bash under a pty: script(1) allocates the terminal, so job control works. */
   private synchronized void launch()throws Exception{
     if(process!=null)return;launchAttempted=true;
     File proot=new File(activity.getApplicationInfo().nativeLibraryDir,"libproot.so"),fs=new File(host.privateDirectory(),"debian/rootfs");
@@ -140,9 +195,8 @@ public final class DebianShell implements ModuleV1 {
     if(!loader.canExecute())throw new IOException("Executable PRoot loader is missing from oTraiL");
     b.environment().put("PROOT_LOADER",loader.getPath());
     process=b.start();input=process.getOutputStream();
-    append("[Debian ready · typing echoes here · exit leaves the shell]\n");
+    append("[Debian ready · tap the keys below · exit leaves the shell]\n");
     java.lang.Process p=process;io.execute(()->read(p));io.execute(()->waitFor(p));
-    post(this::focusInput);
   }
 
   private void bind(List<String> c,File f,String guest)throws IOException{if(f==null||!f.exists())return;c.add("-b");c.add(f.getCanonicalPath()+":"+guest);}
@@ -157,15 +211,11 @@ public final class DebianShell implements ModuleV1 {
     catch(InterruptedException e){Thread.currentThread().interrupt();debug("FAIL · shell wait interrupted");}
   }
 
-  private void submit(){send("\n");suppressInputWatch=true;if(command!=null){command.setText("");inputPrevious="";}suppressInputWatch=false;focusInput();}
-
   private void send(String text){
     OutputStream out=input;
-    if(out==null){show("Shell is not running · tap ▶ START");focusInput();return;}
-    io.execute(()->{try{out.write(text.getBytes(StandardCharsets.UTF_8));out.flush();}catch(Exception e){show(e.getMessage());debug("FAIL · send · "+e);}});
+    if(out==null){show("Shell is not running · tap ▶ START");return;}
+    inputQueue.execute(()->{try{out.write(text.getBytes(StandardCharsets.UTF_8));out.flush();}catch(Exception e){show(e.getMessage());debug("FAIL · send · "+e);}});
   }
-
-  private void focusInput(){if(command==null||closed)return;try{command.requestFocus();command.setSelection(command.getText().length());InputMethodManager imm=(InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);if(imm!=null)imm.showSoftInput(command,InputMethodManager.SHOW_FORCED);}catch(Exception ignored){}}
 
   private void append(String chunk){
     String clean=clean(chunk);
@@ -207,5 +257,5 @@ public final class DebianShell implements ModuleV1 {
   private String quote(String s){return "'"+s.replace("'","'\\''")+"'";}
 
   public void task(File pkg,File data,String request,Progress progress)throws Exception{StudioTasks.run(pkg,data,request,progress);}
-  public void close(){closed=true;handler.removeCallbacks(poll);java.lang.Process p=process;if(p!=null)p.destroy();io.shutdownNow();activity=null;host=null;}
+  public void close(){closed=true;handler.removeCallbacks(poll);java.lang.Process p=process;if(p!=null)p.destroy();io.shutdownNow();inputQueue.shutdownNow();activity=null;host=null;}
 }

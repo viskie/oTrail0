@@ -38,15 +38,20 @@ public final class ModuleManagerActivity extends Activity {
         List<SignedModuleCatalog.Release> list=entry.getValue();
         String id=entry.getKey();
         String activeId=store.active(id);
-        SignedModuleCatalog.Release activeVersion=null;boolean installed=false;int oldCount=0;long oldBytes=0;
-        for(SignedModuleCatalog.Release r:list){if(activeId.equals(r.version()))activeVersion=r;if(store.installed(r)){installed=true;if(!activeId.equals(r.version())){oldCount++;oldBytes+=r.size();}}}
-        final int obsoleteCount=oldCount;final long obsoleteBytes=oldBytes;
+        SignedModuleCatalog.Release activeVersion=null,newestNew=null;boolean installed=false;
+        for(SignedModuleCatalog.Release r:list){
+          if(activeId.equals(r.version()))activeVersion=r;
+          if(store.installed(r))installed=true;
+          boolean newer=activeId.isEmpty()||compareVersions(r.version(),activeId)>0;
+          if(!activeId.equals(r.version())&&newer&&(newestNew==null||compareVersions(r.version(),newestNew.version())>0))newestNew=r;
+        }
+        final SignedModuleCatalog.Release newVersion=newestNew;
         LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);AppStyle.decoratePanel(card,activeVersion!=null?UiConfig.LIME:UiConfig.CYAN);
         LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);header.setGravity(Gravity.CENTER_VERTICAL);
         String title=list.get(0).name()+" · "+(activeVersion!=null?activeVersion.version():"not active");
         TextView name=label(title,16);name.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));header.addView(name);
-        TextView meta=label(list.size()+" version"+(list.size()==1?"":"s")+(installed?" · installed":" · available"),11);meta.setTextColor(UiConfig.MUTED);header.addView(meta);
-        if(obsoleteCount>0){Button clean=button("Clean "+obsoleteCount,()->confirmDeleteOld(id,list));clean.setTextSize(10);clean.setPadding(dp(6),0,dp(6),0);header.addView(clean,new LinearLayout.LayoutParams(-2,-2));}
+        String metaText=list.size()+" version"+(list.size()==1?"":"s")+" · "+(newVersion!=null?"NEW "+newVersion.version():installed?"installed":"available");
+        TextView meta=label(metaText,11);meta.setTextColor(newVersion!=null?UiConfig.LIME:UiConfig.MUTED);if(newVersion!=null)meta.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);header.addView(meta);
         Button toggle=button(expanded.contains(id)?"▾":"▸",()->{if(expanded.contains(id))expanded.remove(id);else expanded.add(id);refresh(false);});
         toggle.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));header.addView(toggle);
         card.addView(header);
@@ -54,8 +59,10 @@ public final class ModuleManagerActivity extends Activity {
         LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setVisibility(expanded.contains(id)?View.VISIBLE:View.GONE);
         for(SignedModuleCatalog.Release r:list){
           boolean active=store.active(r.id()).equals(r.version());
+          boolean fresh=newestNew!=null&&r.version().equals(newestNew.version());
+          String rowState=active?"ACTIVE":fresh?(store.installed(r)?"NEW · Downloaded":"NEW · Available"):store.installed(r)?"Installed":"Available";
           LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.VERTICAL);row.setPadding(dp(6),dp(6),dp(6),dp(6));
-          row.addView(label(r.version()+(active?" · ACTIVE":store.installed(r)?" · Installed":" · Available"),14));
+          row.addView(label(r.version()+" · "+rowState,14));
           row.addView(label(String.format(Locale.US,"%.2f MB · host >= %d · Android API >= %d · module API %d\n%s",r.size()/1048576.0,r.minApp(),r.minSdk(),r.api(),r.notes()),11));
           if(!store.installed(r))row.addView(button("Download & install module",()->password(r)));
           else{
@@ -74,17 +81,16 @@ public final class ModuleManagerActivity extends Activity {
   private void confirmDelete(SignedModuleCatalog.Release r){
     new AppDialogs(this).setTitle("Delete "+r.name()+" "+r.version()+"?")
       .setMessage("Removes this downloaded module package from the phone. The active version and module data are kept.")
-      .setPositiveButton("Delete",(d,w)->deleteVersions(List.of(r))).setNegativeButton("Cancel",null).show();
+      .setPositiveButton("Delete",(d,w)->deleteOne(r)).setNegativeButton("Cancel",null).show();
   }
-  private void confirmDeleteOld(String id,List<SignedModuleCatalog.Release> versions){
-    String active=store.active(id);List<SignedModuleCatalog.Release> old=new ArrayList<>();long bytes=0;
-    for(SignedModuleCatalog.Release r:versions)if(store.installed(r)&&!active.equals(r.version())){old.add(r);bytes+=r.size();}
-    if(old.isEmpty()){refresh(false);return;}
-    new AppDialogs(this).setTitle("Delete obsolete downloaded versions?")
-      .setMessage("Delete "+old.size()+" old "+old.get(0).name()+" package"+(old.size()==1?"":"s")+" ("+String.format(Locale.US,"%.0f MB",bytes/1048576.0)+")? The active version and module data are kept.")
-      .setPositiveButton("Delete",(d,w)->deleteVersions(old)).setNegativeButton("Cancel",null).show();
+  private void deleteOne(SignedModuleCatalog.Release r){status.setText("Deleting "+r.name()+" "+r.version()+"…");worker.execute(()->{try{store.deleteVersion(r);ui(()->refresh(false));}catch(Exception e){error(e);}});}
+  /** Numeric component comparison so 1.1.10 ranks above 1.1.9. */
+  private static int compareVersions(String left,String right){
+    String[] a=left.split("[^0-9]+"),b=right.split("[^0-9]+");int count=Math.max(a.length,b.length);
+    for(int i=0;i<count;i++){int x=versionPart(a,i),y=versionPart(b,i);if(x!=y)return Integer.compare(x,y);}
+    return left.compareTo(right);
   }
-  private void deleteVersions(List<SignedModuleCatalog.Release> versions){status.setText("Deleting "+versions.size()+" downloaded module package"+(versions.size()==1?"":"s")+"…");worker.execute(()->{try{for(SignedModuleCatalog.Release r:versions)store.deleteVersion(r);ui(()->refresh(false));}catch(Exception e){error(e);}});}
+  private static int versionPart(String[] parts,int index){if(index>=parts.length||parts[index].isEmpty())return 0;try{return Integer.parseInt(parts[index]);}catch(NumberFormatException ignored){return 0;}}
 
   private void password(SignedModuleCatalog.Release r){
     if(r.installHash().isEmpty()){download(r,new char[0]);return;}
