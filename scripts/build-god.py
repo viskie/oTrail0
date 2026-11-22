@@ -131,7 +131,7 @@ def prepare():
  state={'toolFiles':toolFiles,'sdk':{'file':'google-platform-37.zip','url':url,'sha256':sha(platform),'sizeBytes':platform.stat().st_size,'extractFiles':{entry:'android.jar'}}}
  (BUILD/'prepared.json').write_text(json.dumps(state,indent=2));print('Tool packs prepared',flush=True)
 
-def source(version="0.4.24"):
+def source(version="0.4.25"):
  paths=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
  include=[]
  for name in paths:
@@ -154,7 +154,7 @@ def package(debian_only=False):
  prefix='https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'
  def artifact(path,**kwargs):return dict(file=path.name,url=prefix+path.name,sha256=sha(path),sizeBytes=path.stat().st_size,**kwargs)
  tools=[artifact(RELEASES/'god-compiler-1.0.0.zip',archive=True),artifact(RELEASES/'god-publisher-1.0.0.zip',archive=True),artifact(RELEASES/'god-dependencies-0.4.0.zip',archive=True),state['sdk']]
- apk=ROOT/'releases/oTraiL-0.4.24-debug.apk'
+ apk=ROOT/'releases/oTraiL-0.4.25-debug.apk'
  tools.append(dict(file='template-0.4.0.apk',url='https://raw.githubusercontent.com/viskie/oTrail0/main/releases/'+apk.name,sha256=sha(apk),sizeBytes=apk.stat().st_size,target='template.apk'))
  checks=state['toolFiles'];checks['template.apk']=sha(apk)
  request=urllib.request.Request('https://api.github.com/meta',headers={'User-Agent':'oTraiL-GOD-build'})
@@ -164,8 +164,8 @@ def package(debian_only=False):
   oldCatalog=json.loads(base64.b64decode(oldEnvelope['payload']))
   hosts=oldCatalog['toolchains'][0]['githubHostKeys']
  rootfs=dict(file='debian-bookworm-arm64-20261117-rootfs.tar.xz',entry='debian/rootfs.tar.xz',url='https://images.linuxcontainers.org/images/debian/bookworm/arm64/default/20261117_05%3A24/rootfs.tar.xz',sha256='125416b51b1272db7abd932bc7cc5f286fd29a190cb5a1b18460500f5448d5fc',sizeBytes=95026816)
- latestFunctions=dict(commit='0.4.24',title='GOD 4.1 workspace UI',functions=['Session header and persistent bottom mode navigation','Full-height editor with bottom action strip','Integrated project tree, file tabs and TextMate editor','Internal-storage source folder import','SCP workspace configuration and Debian sync','Native on-phone build toolchain'])
- metadata=dict(id='god-java-0.4.24-v4.1.1',name='GOD 4 editor and native build toolchain',version='4.1.1',api=1,minApp=47,minSdk=35,sourceVersion='0.4.24',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.24',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
+ latestFunctions=dict(commit='0.4.25',title='GOD 4.1 workspace UI',functions=['Session header and persistent bottom mode navigation','Full-height editor with bottom action strip','Integrated project tree, file tabs and TextMate editor','Internal-storage source folder import','SCP workspace configuration and Debian sync','Native on-phone build toolchain'])
+ metadata=dict(id='god-java-0.4.25-v4.1.1',name='GOD 4 editor and native build toolchain',version='4.1.1',api=1,minApp=48,minSdk=35,sourceVersion='0.4.25',baselineSha256=baseline,signingCertificate='78cfa67d3bfede47427e03334726faf7bea8908538f162f3554cdbf89b927827',sources=[dict(version='0.4.25',url=prefix+sourcezip.name,sha256=sha(sourcezip),sizeBytes=sourcezip.stat().st_size)],tools=tools,toolFiles=checks,githubHostKeys=hosts,debianRootfs=rootfs,latestFunctions=latestFunctions)
  modulelibs=[LIBS/(name+'.jar') for name in MODULE_MAVEN]
  moduleclasses=BUILD/'module-classes';javac(list((ROOT/'modules/mod1/src').rglob('*.java')),moduleclasses,[SDK/'platforms/android-37.0/android.jar',CLASSES,*modulelibs,*[LIBS/(name+'.jar') for name in SORA]]);jar(BUILD/'god-module.jar',moduleclasses);code=dex('module-code',[BUILD/'god-module.jar',*modulelibs],[CLASSES,*[LIBS/(name+'.jar') for name in SORA]])
  manifest=dict(id='mod1',name='GOD',version='4.1.1',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.SourceStudio')
@@ -175,11 +175,11 @@ def package(debian_only=False):
    out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(manifest));out.writestr('studio.json',json.dumps(metadata));out.write(ROOT/'modules/mod1/README.md','README.md')
    for license in (ROOT/'modules/mod1/licenses').iterdir():out.write(license,'LICENSES/'+license.name)
    out.write(ROOT/'app/src/main/assets/licenses/sora/LICENSE','LICENSES/SORA-LGPL-2.1-or-later.txt')
-   out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
- debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.2',api=1,minApp=47,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
- debian=RELEASES/'DEBIAN-1.1.2.oTrail0'
+   out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt');out.write(ROOT/'third_party/TALLOC_COPYING','LICENSES/TALLOC-GPL-3.0.txt');out.write(ROOT/'third_party/LIBANDROID_SHMEM_LICENSE.txt','LICENSES/LIBANDROID-SHMEM-BSD-3-Clause.txt')
+ debianManifest=dict(id='mod3',name='Debian Shell',version='1.1.3',api=1,minApp=48,minSdk=35,entry='in.otrail.extensions.mod1.DebianShell')
+ debian=RELEASES/'DEBIAN-1.1.3.oTrail0'
  with zipfile.ZipFile(debian,'w',zipfile.ZIP_DEFLATED) as out:
-  out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(debianManifest));out.writestr('studio.json',json.dumps(metadata));out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED);out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt')
+  out.write(code/'classes.dex','classes.dex');out.writestr('module.json',json.dumps(debianManifest));out.writestr('studio.json',json.dumps(metadata));out.write(rootfsArchive,rootfs['entry'],compress_type=zipfile.ZIP_STORED);out.write(ROOT/'third_party/PROOT_COPYING','LICENSES/PROOT-GPL-2.0.txt');out.write(ROOT/'third_party/TALLOC_COPYING','LICENSES/TALLOC-GPL-3.0.txt');out.write(ROOT/'third_party/LIBANDROID_SHMEM_LICENSE.txt','LICENSES/LIBANDROID-SHMEM-BSD-3-Clause.txt')
  passwordFile=pathlib.Path.home()/'.local/share/otrail/god-install-password';password=passwordFile.read_bytes();salt=os.urandom(16)
  verifier=dict(installSalt=base64.b64encode(salt).decode(),installHash=base64.b64encode(hashlib.pbkdf2_hmac('sha256',password,salt,120000,32)).decode())
  release=dict(manifest,url=prefix+module.name,sha256=sha(module),sizeBytes=module.stat().st_size,**verifier,notes='Native Sora editor, project tree, source/build tools and workspace support. Debian is now a separate module.')

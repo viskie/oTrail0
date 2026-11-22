@@ -1,5 +1,21 @@
 # Installable builds
 
+## 0.4.25 — 2026-11-22
+
+`oTraiL-0.4.25-debug.apk` — versionCode 48. Fixes Debian Shell failing with exit
+code 159 right after rootfs extraction. The bundled PRoot is replaced with
+Termux's Android/bionic PRoot 5.1.107.102 plus its talloc, shared-memory and
+loader files, all shipped inside the APK and pointing at the app's own native
+library directory. Termux is not required. The old static glibc PRoot is killed
+by Android's app seccomp filter (SIGSYS, 128+31); it is kept only in local
+test builds as a control. Debian Shell 1.1.3 requires this host.
+
+Validation on an x86_64 API 34 emulator with the same PRoot build: the old
+binary exited 159, the new one exited 0 and ran `echo PROOT_SHELL_OK` inside a
+Debian bash. The ARM64 binaries are byte-identical to the Termux aarch64
+packages. No on-phone validation yet; same signing certificate, so install in
+place.
+
 ## 0.4.22 — 2026-11-21
 
 Raises the authenticated extension-module size ceiling from 20 MB to 240 MB,
