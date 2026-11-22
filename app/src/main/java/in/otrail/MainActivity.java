@@ -691,13 +691,15 @@ public final class MainActivity extends Activity {
         :stale?UiConfig.text("gps_signal_stale")
         :uncertain?UiConfig.text("gps_uncertain")
         :last.speed()>1.5?UiConfig.text("on_the_move"):UiConfig.text("recording");
-    String drive=driveMetrics==null?"":String.format(Locale.US,UiConfig.text("drive_2f_km"),driveMetrics.current().meters()/1000);
     float averageSpeed=0;int speedCount=0;for(int i=Math.max(0,fixes.size()-5);i<fixes.size();i++){float sample=fixes.get(i).speed();if(Float.isFinite(sample)&&sample>=0){averageSpeed+=sample;speedCount++;}}if(speedCount>0)averageSpeed/=speedCount;
-    String speed=stopped?String.format(Locale.US," · %.4f m/hr",0.0)
+    double crawledDriveMeters=driveMetrics==null?0:driveMetrics.current().meters();
+    if(driveMetrics!=null&&!stopped&&!stale&&!uncertain) crawledDriveMeters+=averageSpeed*Math.max(0,(System.currentTimeMillis()-last.time())/1000.0);
+    String drive=driveMetrics==null?"":String.format(Locale.US,UiConfig.text("drive_2f_km"),crawledDriveMeters/1000);
+    String speed=stopped?String.format(Locale.US," · %.3f m/hr",0.0)
         :stale||uncertain?UiConfig.text("speed_unknown_m_hr")
-        :String.format(Locale.US," · %.4f m/hr",averageSpeed*3600.0);
+        :String.format(Locale.US," · %.3f m/hr",averageSpeed*3600.0);
     String bubbleDrive=!recorded&&!stopped&&driveMetrics!=null
-        ?String.format(Locale.US,UiConfig.text("current_drive_distance_2f_km"),driveMetrics.current().meters()/1000):"";
+        ?String.format(Locale.US,UiConfig.text("current_drive_distance_2f_km"),crawledDriveMeters/1000):"";
     liveBubbleStatus=GpsBubble.status(speed,bubbleDrive);
     String quality=stopped&&(uncertain||stale)?"\n"+UiConfig.text("stop_signal_uncertain"):"";
     android.text.SpannableString statusText=new android.text.SpannableString(state+speed+(!recorded&&!stopped?drive:"")+quality);

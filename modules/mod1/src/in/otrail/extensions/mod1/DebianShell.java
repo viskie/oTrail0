@@ -1,11 +1,12 @@
 package in.otrail.extensions.mod1;
 
-import android.app.*;import android.content.*;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.text.TextUtils;import android.view.*;import android.view.inputmethod.EditorInfo;import android.view.inputmethod.InputMethodManager;import android.widget.*;
+import android.app.*;import android.content.*;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.text.Editable;import android.text.TextUtils;import android.text.TextWatcher;import android.view.*;import android.view.inputmethod.EditorInfo;import android.view.inputmethod.InputMethodManager;import android.widget.*;
 import in.otrail.AppStyle;import in.otrail.UiConfig;import in.otrail.modules.ModuleV1;import org.json.*;import java.io.*;import java.nio.charset.StandardCharsets;import java.util.*;import java.util.concurrent.*;
 
 /** Separate downloadable Debian shell module. */
 public final class DebianShell implements ModuleV1 {
   private Activity activity;private Host host;private LinearLayout root;private TextView status,terminal,debug,title;private EditText command;private ScrollView terminalScroll;
+  private String inputPrevious="";private boolean suppressInputWatch;
   private final Handler handler=new Handler(Looper.getMainLooper());private final ExecutorService io=Executors.newCachedThreadPool();
   private java.lang.Process process;private OutputStream input;private boolean closed,launchAttempted;private final StringBuilder transcript=new StringBuilder();
   private static final String[] KEYS={"ESC","TAB","CTRL-C","CTRL-D","CTRL-L","↑","↓","←","→"};
@@ -19,9 +20,10 @@ public final class DebianShell implements ModuleV1 {
     root=new LinearLayout(a);root.setOrientation(1);root.setBackgroundColor(UiConfig.MODULE_BACKGROUND);root.setPadding(dp(8),dp(6),dp(8),dp(6));
     root.addView(header());
     status=label("Preparing included Debian…",UiConfig.MODULE_LABEL_SIZE_SP,UiConfig.MODULE_MUTED);status.setMaxLines(2);status.setEllipsize(TextUtils.TruncateAt.END);root.addView(status);
-    root.addView(terminalPanel(),new LinearLayout.LayoutParams(-1,0,1));
+    root.addView(terminalPanel(),new LinearLayout.LayoutParams(-1,0,3));
+    View spacer=new View(a);spacer.setBackgroundColor(UiConfig.MODULE_BACKGROUND);root.addView(spacer,new LinearLayout.LayoutParams(-1,0,2));
     root.addView(keyStrip());
-    root.addView(inputRow());
+    root.addView(hiddenInput());
     debug=label("ready",9,UiConfig.MODULE_MUTED);debug.setSingleLine(true);debug.setEllipsize(TextUtils.TruncateAt.START);root.addView(debug);
     root.addView(navRow());
     setup(false);handler.post(poll);return root;
@@ -44,16 +46,38 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private View keyStrip(){
-    LinearLayout keys=row();for(int i=0;i<KEYS.length;i++){final String code=CODES[i];Button key=chip(KEYS[i],()->send(code));key.setTextSize(9);key.setTypeface(Typeface.MONOSPACE);keys.addView(key,new LinearLayout.LayoutParams(-2,dp(UiConfig.MODULE_KEY_HEIGHT_DP)));}
-    HorizontalScrollView scroll=new HorizontalScrollView(activity);scroll.setHorizontalScrollBarEnabled(false);scroll.addView(keys);scroll.setPadding(0,dp(2),0,dp(2));return scroll;
+    LinearLayout keys=row();for(int i=0;i<KEYS.length;i++){final String code=CODES[i];Button key=chip(KEYS[i],()->send(code));key.setTextSize(9);key.setTypeface(Typeface.MONOSPACE);    keys.addView(key,new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_KEY_HEIGHT_DP),1));}
+    keys.setPadding(0,dp(2),0,dp(2));return keys;
   }
 
-  private View inputRow(){
-    LinearLayout entry=row();command=new EditText(activity);command.setSingleLine(true);command.setHint("command · exit to leave");command.setHintTextColor(UiConfig.MODULE_MUTED);command.setTextColor(UiConfig.TERMINAL_INPUT_TEXT);command.setTypeface(Typeface.MONOSPACE);command.setTextSize(UiConfig.TERMINAL_TEXT_SIZE_SP);command.setBackgroundColor(UiConfig.TERMINAL_INPUT_BACKGROUND);command.setPadding(dp(8),0,dp(8),0);command.setImeOptions(EditorInfo.IME_ACTION_SEND|EditorInfo.IME_FLAG_NO_EXTRACT_UI);command.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-    entry.addView(command,new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_INPUT_HEIGHT_DP),1));
-    Button send=chip("↵",this::submit);send.setTextSize(16);entry.addView(send,new LinearLayout.LayoutParams(dp(48),dp(UiConfig.MODULE_INPUT_HEIGHT_DP)));
+  private View hiddenInput(){
+    command=new EditText(activity);command.setSingleLine(true);command.setTextColor(UiConfig.TERMINAL_INPUT_TEXT);command.setTypeface(Typeface.MONOSPACE);command.setTextSize(UiConfig.TERMINAL_TEXT_SIZE_SP);command.setBackgroundColor(0x00000000);command.setPadding(0,0,0,0);command.setAlpha(0f);command.setImeOptions(EditorInfo.IME_ACTION_SEND|EditorInfo.IME_FLAG_NO_EXTRACT_UI);command.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+    command.addTextChangedListener(new TextWatcher(){
+      public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+      public void onTextChanged(CharSequence s,int start,int before,int count){}
+      public void afterTextChanged(Editable s){
+        if(suppressInputWatch)return;
+        String now=s.toString();
+        if(now.equals(inputPrevious))return;
+        if(now.startsWith(inputPrevious)){
+          String added=now.substring(inputPrevious.length());
+          if(!added.isEmpty())send(added);
+        }else if(inputPrevious.startsWith(now)){
+          int removed=inputPrevious.length()-now.length();
+          StringBuilder bs=new StringBuilder();
+          for(int i=0;i<removed;i++)bs.append('\u007f');
+          if(bs.length()>0)send(bs.toString());
+        }else{
+          StringBuilder bs=new StringBuilder();
+          for(int i=0;i<inputPrevious.length();i++)bs.append('\u007f');
+          send(bs.toString()+now);
+        }
+        inputPrevious=now;
+      }
+    });
     command.setOnEditorActionListener((v,id,event)->{submit();return true;});
-    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(3),0,dp(2));entry.setLayoutParams(params);return entry;
+    command.setFocusable(true);command.setFocusableInTouchMode(true);
+    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,dp(1));command.setLayoutParams(params);return command;
   }
 
   private View navRow(){
@@ -121,7 +145,7 @@ public final class DebianShell implements ModuleV1 {
     catch(InterruptedException e){Thread.currentThread().interrupt();debug("FAIL · shell wait interrupted");}
   }
 
-  private void submit(){String text=command==null?"":command.getText().toString();send(text+"\n");if(command!=null){command.setText("");focusInput();}}
+  private void submit(){send("\n");suppressInputWatch=true;if(command!=null){command.setText("");inputPrevious="";}suppressInputWatch=false;focusInput();}
 
   private void send(String text){
     OutputStream out=input;
@@ -129,7 +153,7 @@ public final class DebianShell implements ModuleV1 {
     io.execute(()->{try{out.write(text.getBytes(StandardCharsets.UTF_8));out.flush();}catch(Exception e){show(e.getMessage());debug("FAIL · send · "+e);}});
   }
 
-  private void focusInput(){if(command==null||closed)return;try{command.requestFocus();InputMethodManager imm=(InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);if(imm!=null)imm.showSoftInput(command,InputMethodManager.SHOW_IMPLICIT);}catch(Exception ignored){}}
+  private void focusInput(){if(command==null||closed)return;try{command.requestFocus();command.setSelection(command.getText().length());InputMethodManager imm=(InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);if(imm!=null)imm.showSoftInput(command,InputMethodManager.SHOW_FORCED);}catch(Exception ignored){}}
 
   private void append(String chunk){
     String clean=clean(chunk);

@@ -321,8 +321,7 @@ public final class SourceStudio implements ModuleV1 {
 
   /** Persistent editing strip: save/undo/redo/tab on the left, cursor pad and enter on the right. */
   private View editorStrip(){
-    HorizontalScrollView scroll=new HorizontalScrollView(activity);scroll.setHorizontalScrollBarEnabled(false);scroll.setBackgroundColor(UiConfig.MODULE_SURFACE);
-    LinearLayout strip=row();strip.setPadding(dp(4),dp(1),dp(4),dp(1));
+    LinearLayout strip=row();strip.setBackgroundColor(UiConfig.MODULE_SURFACE);strip.setPadding(dp(4),dp(1),dp(4),dp(1));
     strip.addView(stripKey("SAVE",()->work(()->saveOne(current))));
     strip.addView(stripKey("UNDO",()->undo(false)));
     strip.addView(stripKey("REDO",()->undo(true)));
@@ -333,12 +332,12 @@ public final class SourceStudio implements ModuleV1 {
     strip.addView(stripKey("↓",()->editorKey(KeyEvent.KEYCODE_DPAD_DOWN)));
     strip.addView(stripKey("→",()->editorKey(KeyEvent.KEYCODE_DPAD_RIGHT)));
     strip.addView(stripKey("↵",()->editorInput("\n")));
-    scroll.addView(strip);return scroll;
+    return strip;
   }
 
   private Button stripKey(String text,Runnable action){
     Button b=chip(text,action);b.setTextSize(10);b.setFocusable(false);b.setFocusableInTouchMode(false);
-    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-2,dp(UiConfig.MODULE_ACTION_HEIGHT_DP-8));params.setMargins(dp(2),0,dp(2),0);b.setLayoutParams(params);return b;
+    LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,dp(UiConfig.MODULE_ACTION_HEIGHT_DP-8),1);params.setMargins(dp(2),0,dp(2),0);b.setLayoutParams(params);return b;
   }
 
   /** Cursor keys are forwarded to the editor so the soft keyboard stays hidden. */

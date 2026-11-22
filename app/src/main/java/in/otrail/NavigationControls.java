@@ -546,7 +546,7 @@ void search() {
                 : g != null && g.offRoute()
                     ? s.note()
                     : g != null && active && !g.arrived()
-                    ? distance4(shownUntil) + UiConfig.text("left_on_this_road") + g.instruction()
+                    ? distance3(shownUntil)
                         : s.note();
     instruction.setText(guidanceText==null||guidanceText.isBlank()?"--":guidanceText);
     double remaining = g != null ? g.remaining() : has ? s.route().distance : 0,
@@ -788,7 +788,7 @@ void search() {
         ? Math.round(m) + UiConfig.text("m_2")
         : String.format(Locale.getDefault(), UiConfig.text("1f_km"), m / 1000);
   }
-  static String distance4(double m){return m<1000?String.format(Locale.US,"%.4f m",Math.max(0,m)):String.format(Locale.US,"%.4f km",Math.max(0,m)/1000.0);}
+  static String distance3(double m){return m<1000?String.format(Locale.US,"%.3f m",Math.max(0,m)):String.format(Locale.US,"%.3f km",Math.max(0,m)/1000.0);}
 
   private void toast(String message) {
     if (!activity.isDestroyed()) Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
