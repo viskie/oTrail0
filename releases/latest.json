@@ -1,8 +1,8 @@
 {
-  "versionCode": 49,
-  "versionName": "0.4.26",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.26-debug.apk",
-  "sha256": "40771fff89931bd3fbe32c5691a3b1020814dfc97aac7ff7565e5bab75928cd0",
-  "sizeBytes": 41366980,
-  "notes": "Debian Shell: bash now runs on a real pty, so the 'cannot set terminal process group' warning is gone, typing echoes inline and the terminal no longer collapses under the keyboard. Shell and GOD workspace got a compact dark redesign driven by UiConfig, with a GOD editor tab strip and a persistent save/undo/tab/cursor key row. GOD module 4.1.2 and Debian Shell 1.1.4 both require this host. Same signing certificate for in-place update."
+  "versionCode": 50,
+  "versionName": "0.4.27",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.27-debug.apk",
+  "sha256": "d569500098d501e56ca6fa8055e16d205b6731d2ff84dc5f437817f9b66828bb",
+  "sizeBytes": 41369608,
+  "notes": "Modules screen now groups versions under one card per module; tap to expand and install or switch versions. Same signing certificate, install in place."
 }

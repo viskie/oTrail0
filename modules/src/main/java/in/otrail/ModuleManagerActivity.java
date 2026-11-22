@@ -12,6 +12,7 @@ import java.util.concurrent.*;
 public final class ModuleManagerActivity extends Activity {
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
   private ModuleStore store;private LinearLayout cards;private TextView status;private ProgressBar progress;
+  private final Set<String> expanded=new LinkedHashSet<>();
   @Override public void onCreate(Bundle state){super.onCreate(state);store=new ModuleStore(this);
     LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(12,12,12,12);root.setBackground(AppStyle.canvas());
     root.addView(button("← Back to settings",this::finish));root.addView(label("Extension modules",20));
@@ -23,24 +24,50 @@ public final class ModuleManagerActivity extends Activity {
   }
   private TextView label(String text,int size){TextView v=new TextView(this);AppStyle.text(v);v.setTextSize(size);v.setTextColor(UiConfig.INK);v.setText(text);v.setPadding(8,8,8,8);return v;}
   private Button button(String text,Runnable action){Button b=new Button(this);b.setText(text);AppStyle.button(b);b.setOnClickListener(v->action.run());return b;}
+  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
   private void ui(Runnable r){runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())r.run();});}
   private void refresh(boolean online){worker.execute(()->{try{
     List<SignedModuleCatalog.Release> versions=store.catalog(online);
-    ui(()->{cards.removeAllViews();status.setText(versions.isEmpty()?"No cached catalog. Refresh from GitHub.":"Catalog verified · "+versions.size()+" version(s) · downloads use Wi-Fi or cellular");
-      for(SignedModuleCatalog.Release r:versions){
-        LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);AppStyle.decoratePanel(card,UiConfig.CYAN);
-        boolean active=store.active(r.id()).equals(r.version());
-        card.addView(label(r.name()+" · "+r.version()+(active?" · ACTIVE":store.installed(r)?" · Installed":" · Available"),18));
-        card.addView(label(String.format(Locale.US,"%.2f MB · host ≥ %d · Android API ≥ %d · module API %d\n%s",r.size()/1048576.0,r.minApp(),r.minSdk(),r.api(),r.notes()),12));
-        if(!store.installed(r))card.addView(button("Download & install module",()->password(r)));
-        else{
-          card.addView(button(active?"Open module":"Activate this version",()->{if(active)open(r);else activate(r);}));
-          if(active){card.addView(button("Deactivate",()->{store.deactivate(r.id());refresh(false);}));card.addView(button("Roll back version",()->worker.execute(()->{try{store.rollback(r.id());ui(()->refresh(false));}catch(Exception e){error(e);}})));}
+    ui(()->{
+      cards.removeAllViews();
+      status.setText(versions.isEmpty()?"No cached catalog. Refresh from GitHub.":"Catalog verified · "+versions.size()+" version(s) · downloads use Wi-Fi or cellular");
+      // Group all versions by module id so each module is a single collapsed card.
+      Map<String,List<SignedModuleCatalog.Release>> grouped=new LinkedHashMap<>();
+      for(SignedModuleCatalog.Release r:versions)grouped.computeIfAbsent(r.id(),k->new ArrayList<>()).add(r);
+      for(Map.Entry<String,List<SignedModuleCatalog.Release>> entry:grouped.entrySet()){
+        List<SignedModuleCatalog.Release> list=entry.getValue();
+        String id=entry.getKey();
+        SignedModuleCatalog.Release activeVersion=null;
+        for(SignedModuleCatalog.Release r:list)if(store.active(id).equals(r.version()))activeVersion=r;
+        boolean installed=store.installed(list.get(0));
+        LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);AppStyle.decoratePanel(card,activeVersion!=null?UiConfig.LIME:UiConfig.CYAN);
+        LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);header.setGravity(Gravity.CENTER_VERTICAL);
+        String title=list.get(0).name()+" · "+(activeVersion!=null?activeVersion.version():"not active");
+        TextView name=label(title,16);name.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));header.addView(name);
+        TextView meta=label(list.size()+" version"+(list.size()==1?"":"s")+(installed?" · installed":" · available"),11);meta.setTextColor(UiConfig.MUTED);header.addView(meta);
+        Button toggle=button(expanded.contains(id)?"▾":"▸",()->{if(expanded.contains(id))expanded.remove(id);else expanded.add(id);refresh(false);});
+        toggle.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));header.addView(toggle);
+        card.addView(header);
+        // Body: one row per version, shown only when expanded.
+        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setVisibility(expanded.contains(id)?View.VISIBLE:View.GONE);
+        for(SignedModuleCatalog.Release r:list){
+          boolean active=store.active(r.id()).equals(r.version());
+          LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.VERTICAL);row.setPadding(dp(6),dp(6),dp(6),dp(6));
+          row.addView(label(r.version()+(active?" · ACTIVE":store.installed(r)?" · Installed":" · Available"),14));
+          row.addView(label(String.format(Locale.US,"%.2f MB · host >= %d · Android API >= %d · module API %d\n%s",r.size()/1048576.0,r.minApp(),r.minSdk(),r.api(),r.notes()),11));
+          if(!store.installed(r))row.addView(button("Download & install module",()->password(r)));
+          else{
+            row.addView(button(active?"Open module":"Activate this version",()->{if(active)open(r);else activate(r);}));
+            if(active){row.addView(button("Deactivate",()->{store.deactivate(r.id());refresh(false);}));row.addView(button("Roll back version",()->worker.execute(()->{try{store.rollback(r.id());ui(()->refresh(false));}catch(Exception e){error(e);}})));}
+          }
+          body.addView(row);
         }
+        card.addView(body);
         LinearLayout.LayoutParams margins=new LinearLayout.LayoutParams(-1,-2);margins.setMargins(0,10,0,10);cards.addView(card,margins);
       }
     });
   }catch(Exception e){error(e);}});}
+
   private void password(SignedModuleCatalog.Release r){
     if(r.installHash().isEmpty()){download(r,new char[0]);return;}
     EditText input=new EditText(this);input.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
