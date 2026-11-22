@@ -1,8 +1,8 @@
 {
-  "versionCode": 51,
-  "versionName": "0.4.28",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.28-debug.apk",
-  "sha256": "c9490aabffa7e870d1f04168bf5f8202695dd5a6a7f3ae77081af729cd6078b1",
-  "sizeBytes": 41369636,
-  "notes": "GPS bubble speed and drive distance now use 3 decimals with live drive crawl; navigation status shows only the 3-decimal remaining distance; Debian shell types directly into the terminal without a separate input box."
+  "versionCode": 52,
+  "versionName": "0.4.29",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.29-debug.apk",
+  "sha256": "1abbe4f1cbdf2748dbcbe5ea449de811793f51d2b5004fe77651c6b608491533",
+  "sizeBytes": 41369712,
+  "notes": "Added Bluetooth permissions to the host app so the BT keyboard module can request and use Bluetooth HID permissions."
 }

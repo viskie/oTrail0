@@ -113,7 +113,6 @@ public final class BtKeyboardModule implements ModuleV1 {
       }
     });
     root.addView(install, new LinearLayout.LayoutParams(-1, -2));
-    requestPermissionsIfNeeded();
     return root;
   }
 
@@ -128,7 +127,10 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   @Override
-  public void resume() {}
+  public void resume() {
+    if (activity == null) return;
+    if (!missingPermissions().isEmpty()) requestPermissionsIfNeeded();
+  }
 
   @Override
   public void pause() {}
