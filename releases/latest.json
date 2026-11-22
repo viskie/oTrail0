@@ -1,8 +1,8 @@
 {
-  "versionCode": 50,
-  "versionName": "0.4.27",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.27-debug.apk",
-  "sha256": "d569500098d501e56ca6fa8055e16d205b6731d2ff84dc5f437817f9b66828bb",
-  "sizeBytes": 41369608,
-  "notes": "Modules screen now groups versions under one card per module; tap to expand and install or switch versions. Same signing certificate, install in place."
+  "versionCode": 51,
+  "versionName": "0.4.28",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.28-debug.apk",
+  "sha256": "c9490aabffa7e870d1f04168bf5f8202695dd5a6a7f3ae77081af729cd6078b1",
+  "sizeBytes": 41369636,
+  "notes": "GPS bubble speed and drive distance now use 3 decimals with live drive crawl; navigation status shows only the 3-decimal remaining distance; Debian shell types directly into the terminal without a separate input box."
 }
