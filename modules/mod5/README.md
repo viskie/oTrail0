@@ -1,0 +1,3 @@
+# Reports — daily, weekly, monthly and custom trail reports
+
+Interactive reports computed from recorded GPS fixes, stops and drive legs. Pick a period or a custom date range, see distance and moving-time cards, tap a chart bar to drill into that interval, and read derived findings such as the busiest interval, longest drive leg, most active hour, farthest point, longest stop and most visited place. Requires host 0.4.30 (53) and Android 10+.
