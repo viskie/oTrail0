@@ -87,7 +87,7 @@ public class UiConfig {
       DIALOG_PANEL_TINT_MIX=PANEL_TINT_MIX;
   public static final int DIALOG_CORNER_RADIUS_DP=9,
       DIALOG_EDGE_WIDTH_DP=3, DIALOG_BORDER_WIDTH_DP=1;
-  public static final int MENU_TEXT_COLOR=0xfff3f6ff, MENU_TEXT_SIZE_SP=14,
+  public static final int MENU_TEXT_COLOR=0xff555555, MENU_TEXT_SIZE_SP=14,
       MENU_TEXT_FONT_STYLE=android.graphics.Typeface.BOLD;
   public static final String MENU_TEXT_FONT="sans-serif-condensed";
   public static final int MENU_ICON_COLLAPSE_COLOR=0xffff4162,

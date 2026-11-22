@@ -71,6 +71,8 @@ public final class MainActivity extends Activity {
   private TextView lookupNotes;
   private CharSequence liveBubbleStatus;
   private ResonationsWidget resonations;
+  private FrameLayout resonationsSlot;
+  private InlineShellWidget inlineShell;
   private GeoPoint liveBubblePoint;
   private GeoPoint animatedGpsPoint;private android.animation.ValueAnimator gpsMotion;
   private TextView roadInfo;
@@ -158,6 +160,11 @@ public final class MainActivity extends Activity {
     return (int) (n * getResources().getDisplayMetrics().density + .5f);
   }
 
+  private String appVersionName() {
+    try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+    catch (Exception ignored) { return ""; }
+  }
+
   private GradientDrawable bg(int color, int radius) {
     GradientDrawable d = new GradientDrawable();
     d.setColor(color);
@@ -217,6 +224,7 @@ public final class MainActivity extends Activity {
   }
 
   private void showMap() {
+    releaseInlineShell();
     if(liveBubble!=null){liveBubble.close();liveBubble=null;}liveBubblePoint=null;
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}wtfTarget=null;
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
@@ -331,7 +339,7 @@ public final class MainActivity extends Activity {
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
-    ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell");debian.setTooltipText("Debian shell");debian.setOnClickListener(v->{String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
+    ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell · long press for in-app shell");debian.setTooltipText("Debian shell · long press for in-app shell");debian.setOnClickListener(v->{releaseInlineShell();openDebianModule();});debian.setOnLongClickListener(v->{toggleInlineShell();return true;});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
     ScreenShareButton screenShare=new ScreenShareButton(this,
         ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
     LinearLayout.LayoutParams screenSharePosition=new LinearLayout.LayoutParams(
@@ -403,7 +411,7 @@ public final class MainActivity extends Activity {
     body.addView(status);
     lookupNotes=text("",UiConfig.BODY_SIZE_SP,UiConfig.STATUS_TEXT_COLOR);GradientDrawable notesBackground=bg(UiConfig.STATUS_BACKGROUND,9);notesBackground.setStroke(dp(1),UiConfig.STATUS_TEXT_COLOR);lookupNotes.setBackground(notesBackground);lookupNotes.setVisibility(View.GONE);body.addView(lookupNotes);
     moduleHost=new ModuleHost(this);body.addView(moduleHost.view());
-    resonations=new ResonationsWidget(this);body.addView(resonations);
+    resonations=new ResonationsWidget(this);resonationsSlot=new FrameLayout(this);resonationsSlot.addView(resonations,new FrameLayout.LayoutParams(-1,-2));body.addView(resonationsSlot);
     stats = text(UiConfig.text("always_on_gps_every_5_seconds"), 12, UiConfig.TOTAL_STATS_TEXT_COLOR);
     stats.setTypeface(android.graphics.Typeface.create(UiConfig.BODY_FONT,UiConfig.TOTAL_STATS_FONT_STYLE));
     stats.setSingleLine(true);
@@ -440,7 +448,7 @@ public final class MainActivity extends Activity {
       stack.setOrientation(LinearLayout.VERTICAL);
       stack.setPadding(0,dp(UiConfig.PANEL_GAP_DP),0,dp(UiConfig.PANEL_GAP_DP));
       for(View child:controls) {
-        if(child==stats||child==resonations)continue;
+        if(child==stats||child==resonationsSlot)continue;
         LinearLayout.LayoutParams space=new LinearLayout.LayoutParams(-1,-2);
         space.setMargins(0,dp(UiConfig.PANEL_GAP_DP)/2,0,dp(UiConfig.PANEL_GAP_DP)/2);
         if(child==navigationPanel||child==lookupNotes||child==status||child==moduleHost.view())stack.addView(child,space);else topStack.addView(child,space);
@@ -449,12 +457,37 @@ public final class MainActivity extends Activity {
       sidebar.addView(topStack,new LinearLayout.LayoutParams(-1,-2));
       sidebar.addView(panel,new LinearLayout.LayoutParams(-1,0,1));
       LinearLayout.LayoutParams audioFooter=new LinearLayout.LayoutParams(-1,-2);audioFooter.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
-      sidebar.addView(resonations,audioFooter);
+      sidebar.addView(resonationsSlot,audioFooter);
       body.addView(sidebar,new LinearLayout.LayoutParams(dp(UiConfig.SIDEBAR_WIDTH_DP),-1));
     }
     lastFixId = -1;
     lastStopSignature = 0;
     refresh();
+  }
+
+  private void openDebianModule(){
+    String version=getSharedPreferences("downloaded_modules",MODE_PRIVATE).getString("active.mod3","");
+    if(version.isBlank())ModuleHost.settings(this);else startActivity(new Intent(this,ModuleActivity.class).putExtra("id","mod3"));
+  }
+
+  private void toggleInlineShell(){
+    if(inlineShell!=null){releaseInlineShell();toast("Resonations restored");return;}
+    if(resonationsSlot==null||isFinishing()||isDestroyed())return;
+    if(new ModuleStore(this).active("mod3").isBlank()){
+      toast("Activate Debian Shell in Extension modules first");ModuleHost.settings(this);return;
+    }
+    inlineShell=new InlineShellWidget(this);
+    if(resonations!=null)resonations.setVisibility(View.GONE);
+    boolean landscape=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+    int height=Math.max(dp(landscape?180:240),Math.min(dp(460),Math.round(getResources().getDisplayMetrics().heightPixels*.48f)));
+    resonationsSlot.addView(inlineShell,new FrameLayout.LayoutParams(-1,height));
+    toast("In-app Debian shell · long-press the icon to release");
+  }
+
+  private void releaseInlineShell(){
+    InlineShellWidget shell=inlineShell;inlineShell=null;
+    if(shell!=null){shell.release();if(shell.getParent() instanceof ViewGroup)((ViewGroup)shell.getParent()).removeView(shell);}
+    if(resonations!=null)resonations.setVisibility(View.VISIBLE);
   }
 
   private void showReligiousDirectory(){ReligiousDirectoryDialog.show(this,this::confirmNavigation);}
@@ -1336,6 +1369,7 @@ public final class MainActivity extends Activity {
   }
 
   private void showDownloads() {
+    releaseInlineShell();
     if(liveBubble!=null){liveBubble.close();liveBubble=null;}liveBubblePoint=null;mapMenu=null;
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
@@ -1363,6 +1397,9 @@ public final class MainActivity extends Activity {
     downloadCards.setPadding(dp(12), 0, dp(12), dp(12));
     scroll.addView(downloadCards);
     body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    TextView version = text(UiConfig.text("otrail") + " · v" + appVersionName(), 12, MUTED);
+    version.setPadding(dp(4), 0, dp(4), dp(6));
+    downloadCards.addView(version);
     TextView title = text(UiConfig.text("take_india_with_you"), 25, INK);
     title.setTypeface(Typeface.create(UiConfig.HEADING_FONT, UiConfig.HEADING_FONT_STYLE));
     downloadCards.addView(title);
@@ -1922,6 +1959,7 @@ public final class MainActivity extends Activity {
 
   @Override
   public void onBackPressed() {
+    if(inlineShell!=null){releaseInlineShell();return;}
     if(mapMenu!=null&&mapMenu.closeIfOpen())return;
     if (downloads) {
       showMap();
@@ -1932,6 +1970,7 @@ public final class MainActivity extends Activity {
 
   @Override
   protected void onDestroy() {
+    releaseInlineShell();
     handler.removeCallbacks(ticker);
     stopDriveTicker();
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
