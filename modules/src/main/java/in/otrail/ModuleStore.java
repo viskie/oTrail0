@@ -64,6 +64,18 @@ final class ModuleStore {
     for(SignedModuleCatalog.Release r:catalog(false))if(r.id().equals(id)&&r.version().equals(previous)){activate(r);return;}
     throw new IOException("No previously active version is available");
   }
+  void deleteVersion(SignedModuleCatalog.Release r) throws Exception {
+    if(active(r.id()).equals(r.version()))throw new IOException("Deactivate this version before deleting it");
+    File file=file(r);
+    if(file.exists()){
+      file.setWritable(true);
+      if(!file.delete())throw new IOException("Could not delete "+r.name()+" "+r.version());
+    }
+    File folder=file.getParentFile();
+    if(folder!=null){String[] left=folder.list();if(left!=null&&left.length==0)folder.delete();}
+    android.content.SharedPreferences preferences=context.getSharedPreferences("downloaded_modules",0);
+    if(r.version().equals(preferences.getString("previous."+r.id(),"")))preferences.edit().remove("previous."+r.id()).apply();
+  }
   void install(SignedModuleCatalog.Release r,char[] password,Progress progress) throws Exception {
     try {
       if(!r.installHash().isEmpty()){

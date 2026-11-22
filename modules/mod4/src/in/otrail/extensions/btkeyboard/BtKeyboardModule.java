@@ -1,6 +1,7 @@
 package in.otrail.extensions.btkeyboard;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -64,7 +65,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   private void refreshStatus() {
     String version = installedVersion();
     if (version == null) {
-      status.setText("Keyboard not installed. The APK is bundled inside this module; no GitHub download is needed.");
+      status.setText("Keyboard not detected. The APK is bundled inside this module; install it below. No GitHub download is needed.");
       install.setText("Install bundled keyboard");
     } else {
       status.setText("Bluetooth keyboard " + version + " is installed.");
@@ -147,19 +148,22 @@ public final class BtKeyboardModule implements ModuleV1 {
     }
   }
 
-  private void openKeyboard() {
-    if (installedVersion() == null) {
-      installKeyboard();
-      return;
-    }
+  private Intent keyboardIntent() {
     Intent launch = activity.getPackageManager().getLaunchIntentForPackage(KEYBOARD_PACKAGE);
-    if (launch == null) {
-      status.setText("The keyboard is installed but has no launch screen. Enable it in Android keyboard settings.");
-      return;
+    if (launch != null) return launch;
+    return new Intent(Intent.ACTION_MAIN)
+        .addCategory(Intent.CATEGORY_LAUNCHER)
+        .setComponent(new ComponentName(KEYBOARD_PACKAGE, KEYBOARD_PACKAGE + ".MainActivity"));
+  }
+
+  private void openKeyboard() {
+    Intent launch = keyboardIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    try {
+      activity.startActivity(launch);
+      status.setText("Opened Bluetooth keyboard.");
+    } catch (Exception e) {
+      installKeyboard();
     }
-    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    activity.startActivity(launch);
-    status.setText("Opened Bluetooth keyboard.");
   }
 
   @Override

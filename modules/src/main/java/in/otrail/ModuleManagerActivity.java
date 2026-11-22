@@ -37,14 +37,16 @@ public final class ModuleManagerActivity extends Activity {
       for(Map.Entry<String,List<SignedModuleCatalog.Release>> entry:grouped.entrySet()){
         List<SignedModuleCatalog.Release> list=entry.getValue();
         String id=entry.getKey();
-        SignedModuleCatalog.Release activeVersion=null;
-        for(SignedModuleCatalog.Release r:list)if(store.active(id).equals(r.version()))activeVersion=r;
-        boolean installed=store.installed(list.get(0));
+        String activeId=store.active(id);
+        SignedModuleCatalog.Release activeVersion=null;boolean installed=false;int oldCount=0;long oldBytes=0;
+        for(SignedModuleCatalog.Release r:list){if(activeId.equals(r.version()))activeVersion=r;if(store.installed(r)){installed=true;if(!activeId.equals(r.version())){oldCount++;oldBytes+=r.size();}}}
+        final int obsoleteCount=oldCount;final long obsoleteBytes=oldBytes;
         LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);AppStyle.decoratePanel(card,activeVersion!=null?UiConfig.LIME:UiConfig.CYAN);
         LinearLayout header=new LinearLayout(this);header.setOrientation(LinearLayout.HORIZONTAL);header.setGravity(Gravity.CENTER_VERTICAL);
         String title=list.get(0).name()+" · "+(activeVersion!=null?activeVersion.version():"not active");
         TextView name=label(title,16);name.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));header.addView(name);
         TextView meta=label(list.size()+" version"+(list.size()==1?"":"s")+(installed?" · installed":" · available"),11);meta.setTextColor(UiConfig.MUTED);header.addView(meta);
+        if(obsoleteCount>0){Button clean=button("Clean "+obsoleteCount,()->confirmDeleteOld(id,list));clean.setTextSize(10);clean.setPadding(dp(6),0,dp(6),0);header.addView(clean,new LinearLayout.LayoutParams(-2,-2));}
         Button toggle=button(expanded.contains(id)?"▾":"▸",()->{if(expanded.contains(id))expanded.remove(id);else expanded.add(id);refresh(false);});
         toggle.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));header.addView(toggle);
         card.addView(header);
@@ -59,6 +61,7 @@ public final class ModuleManagerActivity extends Activity {
           else{
             row.addView(button(active?"Open module":"Activate this version",()->{if(active)open(r);else activate(r);}));
             if(active){row.addView(button("Deactivate",()->{store.deactivate(r.id());refresh(false);}));row.addView(button("Roll back version",()->worker.execute(()->{try{store.rollback(r.id());ui(()->refresh(false));}catch(Exception e){error(e);}})));}
+            else row.addView(button("Delete downloaded version",()->confirmDelete(r)));
           }
           body.addView(row);
         }
@@ -67,6 +70,21 @@ public final class ModuleManagerActivity extends Activity {
       }
     });
   }catch(Exception e){error(e);}});}
+
+  private void confirmDelete(SignedModuleCatalog.Release r){
+    new AppDialogs(this).setTitle("Delete "+r.name()+" "+r.version()+"?")
+      .setMessage("Removes this downloaded module package from the phone. The active version and module data are kept.")
+      .setPositiveButton("Delete",(d,w)->deleteVersions(List.of(r))).setNegativeButton("Cancel",null).show();
+  }
+  private void confirmDeleteOld(String id,List<SignedModuleCatalog.Release> versions){
+    String active=store.active(id);List<SignedModuleCatalog.Release> old=new ArrayList<>();long bytes=0;
+    for(SignedModuleCatalog.Release r:versions)if(store.installed(r)&&!active.equals(r.version())){old.add(r);bytes+=r.size();}
+    if(old.isEmpty()){refresh(false);return;}
+    new AppDialogs(this).setTitle("Delete obsolete downloaded versions?")
+      .setMessage("Delete "+old.size()+" old "+old.get(0).name()+" package"+(old.size()==1?"":"s")+" ("+String.format(Locale.US,"%.0f MB",bytes/1048576.0)+")? The active version and module data are kept.")
+      .setPositiveButton("Delete",(d,w)->deleteVersions(old)).setNegativeButton("Cancel",null).show();
+  }
+  private void deleteVersions(List<SignedModuleCatalog.Release> versions){status.setText("Deleting "+versions.size()+" downloaded module package"+(versions.size()==1?"":"s")+"…");worker.execute(()->{try{for(SignedModuleCatalog.Release r:versions)store.deleteVersion(r);ui(()->refresh(false));}catch(Exception e){error(e);}});}
 
   private void password(SignedModuleCatalog.Release r){
     if(r.installHash().isEmpty()){download(r,new char[0]);return;}

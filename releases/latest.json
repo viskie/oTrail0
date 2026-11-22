@@ -1,8 +1,8 @@
 {
-  "versionCode": 53,
-  "versionName": "0.4.30",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.30-debug.apk",
-  "sha256": "16a8d0e8ee0fd8b2692c56eaac3917b1d16c34e59c1ff6252dc2a981ef6754f9",
-  "sizeBytes": 41372812,
-  "notes": "Live status now starts with map scale (1 cm : X km), drive distance crawls smoothly instead of jumping, and the top map icons share one visual size."
+  "versionCode": 54,
+  "versionName": "0.4.31",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.31-debug.apk",
+  "sha256": "edecb258b40465402f3d6fe19c507253294a0bf01cfd06ca01eb670f7de8e5c7",
+  "sizeBytes": 41378640,
+  "notes": "Adds Clean controls for deleting obsolete downloaded module versions, package visibility for the self-contained Bluetooth keyboard module, and tap-to-reopen the system keyboard in the Debian shell. Includes Debian Shell 1.1.7."
 }
