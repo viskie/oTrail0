@@ -408,6 +408,9 @@ public final class BtKeyboardModule implements ModuleV1 {
 
   private Button cyberKey(String text, int usage, boolean keyboard) {
     Button button = new Button(activity);
+    // The host button style supplies a tint that otherwise recolors our keycap drawable.
+    button.setBackgroundTintList(null);
+    button.setStateListAnimator(null);
     button.setText(text);
     button.setTextSize(9);
     button.setTextColor(UiConfig.MODULE_TEXT);
