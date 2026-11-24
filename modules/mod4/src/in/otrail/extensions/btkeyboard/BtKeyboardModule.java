@@ -61,6 +61,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   private boolean ctrlOn;
   private boolean altOn;
   private boolean shiftOn;
+  private boolean capsOn;
 
   @Override
   public String id() {
@@ -124,7 +125,7 @@ public final class BtKeyboardModule implements ModuleV1 {
     keyboardTitle.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, android.graphics.Typeface.BOLD));
     backRow.addView(keyboardTitle, new LinearLayout.LayoutParams(0, -2, 1));
     keyboardRoot.addView(backRow);
-    addFullKeyboard(keyboardRoot);
+    addCyberKeyboard(keyboardRoot);
     keyboardRoot.addView(mediaSection());
     container.addView(keyboardScreen, new android.widget.FrameLayout.LayoutParams(-1, -1));
 
@@ -269,82 +270,212 @@ public final class BtKeyboardModule implements ModuleV1 {
     return panel;
   }
 
-  private void addFullKeyboard(LinearLayout parent) {
-    LinearLayout top = new LinearLayout(activity);
-    top.setOrientation(LinearLayout.HORIZONTAL);
-    top.setGravity(Gravity.CENTER_VERTICAL);
-    top.setPadding(0, dp(4), 0, dp(4));
+  private void addCyberKeyboard(LinearLayout parent) {
+    parent.setPadding(dp(6), dp(4), dp(6), dp(4));
 
-    LinearLayout side = new LinearLayout(activity);
-    side.setOrientation(LinearLayout.VERTICAL);
-    side.setPadding(0, 0, dp(4), 0);
-    int sideWidth = dp(74);
-    Button left = chip("LEFT", () -> controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0));
-    Button right = chip("RIGHT", () -> controller.sendMouse(HidReportDescriptor.MOUSE_RIGHT, 0, 0, 0));
-    Button scrollUp = chip("SCROLL ↑", () -> controller.sendMouse(0, 0, 0, 20));
-    Button scrollDown = chip("SCROLL ↓", () -> controller.sendMouse(0, 0, 0, -20));
-    side.addView(left, new LinearLayout.LayoutParams(-1, 0, 1));
-    side.addView(right, new LinearLayout.LayoutParams(-1, 0, 1));
-    side.addView(scrollUp, new LinearLayout.LayoutParams(-1, 0, 1));
-    side.addView(scrollDown, new LinearLayout.LayoutParams(-1, 0, 1));
-    top.addView(side, new LinearLayout.LayoutParams(sideWidth, dp(360)));
+    LinearLayout topBar = new LinearLayout(activity);
+    topBar.setGravity(Gravity.CENTER_VERTICAL);
+    topBar.setPadding(0, 0, 0, dp(6));
+    TextView title = label("CYBER COMBO REMOTE", 16, UiConfig.MODULE_TEXT);
+    title.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, android.graphics.Typeface.BOLD));
+    topBar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+    TextView disconnected = label("• CONNECTED", 10, 0xff55ff55);
+    topBar.addView(disconnected, new LinearLayout.LayoutParams(-2, -2));
+    Button devices = cyberKey("Devices", 0, false);
+    devices.setTextColor(UiConfig.MODULE_ACCENT);
+    devices.setOnClickListener(v -> showScanScreen());
+    topBar.addView(devices, new LinearLayout.LayoutParams(dp(86), dp(30)));
+    parent.addView(topBar, new LinearLayout.LayoutParams(-1, -2));
 
+    LinearLayout trackpadRow = new LinearLayout(activity);
+    trackpadRow.setOrientation(LinearLayout.HORIZONTAL);
+    trackpadRow.setGravity(Gravity.CENTER_VERTICAL);
+    trackpadRow.setPadding(0, dp(4), 0, dp(4));
+
+    LinearLayout trackpadWrap = new LinearLayout(activity);
+    trackpadWrap.setOrientation(LinearLayout.VERTICAL);
+    trackpadWrap.setGravity(Gravity.CENTER);
+    trackpadWrap.setPadding(dp(8), dp(8), dp(8), dp(8));
+    android.graphics.drawable.GradientDrawable trackpadFrame = new android.graphics.drawable.GradientDrawable();
+    trackpadFrame.setColor(UiConfig.MODULE_SURFACE);
+    trackpadFrame.setCornerRadius(dp(12));
+    trackpadFrame.setStroke(dp(1), UiConfig.MODULE_ACCENT);
+    trackpadWrap.setBackground(trackpadFrame);
     TrackpadView trackpad = new TrackpadView();
-    trackpad.setMinimumHeight(dp(360));
-    top.addView(trackpad, new LinearLayout.LayoutParams(0, dp(360), 1));
-    parent.addView(top, new LinearLayout.LayoutParams(-1, dp(360)));
+    trackpad.setMinimumHeight(dp(250));
+    trackpadWrap.addView(trackpad, new LinearLayout.LayoutParams(-1, dp(250)));
+    trackpadRow.addView(trackpadWrap, new LinearLayout.LayoutParams(0, -2, 1));
 
-    LinearLayout modifiers = new LinearLayout(activity);
-    modifiers.setGravity(Gravity.CENTER_VERTICAL);
-    ctrl = chip("CTRL", () -> toggleModifier(0));
-    alt = chip("ALT", () -> toggleModifier(1));
-    shift = chip("SHIFT", () -> toggleModifier(2));
-    modifiers.addView(ctrl, new LinearLayout.LayoutParams(0, dp(30), 1));
-    modifiers.addView(alt, new LinearLayout.LayoutParams(0, dp(30), 1));
-    modifiers.addView(shift, new LinearLayout.LayoutParams(0, dp(30), 1));
-    parent.addView(modifiers);
-    refreshModifiers();
+    LinearLayout sideCapsule = new LinearLayout(activity);
+    sideCapsule.setOrientation(LinearLayout.VERTICAL);
+    sideCapsule.setPadding(dp(4), dp(8), dp(4), dp(8));
+    android.graphics.drawable.GradientDrawable capsuleFrame = new android.graphics.drawable.GradientDrawable();
+    capsuleFrame.setColor(0xfff2e8cf);
+    capsuleFrame.setCornerRadius(dp(18));
+    sideCapsule.setBackground(capsuleFrame);
+    sideCapsule.addView(cyberSideButton("🔊", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_VOLUME_UP)), new LinearLayout.LayoutParams(dp(42), dp(42)));
+    sideCapsule.addView(cyberSideButton("−", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_VOLUME_DOWN)), new LinearLayout.LayoutParams(dp(42), dp(42)));
+    sideCapsule.addView(cyberSideButton("🔇", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_MUTE)), new LinearLayout.LayoutParams(dp(42), dp(42)));
+    sideCapsule.addView(cyberSideButton("⋯", () -> {}), new LinearLayout.LayoutParams(dp(42), dp(42)));
+    trackpadRow.addView(sideCapsule, new LinearLayout.LayoutParams(dp(58), dp(250)));
+    parent.addView(trackpadRow, new LinearLayout.LayoutParams(-1, -2));
 
-    LinearLayout textRow = new LinearLayout(activity);
-    textRow.setGravity(Gravity.CENTER_VERTICAL);
-    EditText fullText = new EditText(activity);
-    fullText.setHint("Type text for the connected host");
-    fullText.setHintTextColor(UiConfig.MODULE_MUTED);
-    fullText.setTextColor(UiConfig.MODULE_TEXT);
-    fullText.setTextSize(11);
-    fullText.setSingleLine(true);
-    fullText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-    fullText.setImeOptions(EditorInfo.IME_ACTION_SEND);
-    textRow.addView(fullText, new LinearLayout.LayoutParams(0, dp(36), 1));
-    Button send = chip("SEND", () -> {
-      String value = fullText.getText().toString();
-      if (value.isEmpty()) {
-        showStatus("Type some text first.", true);
-        return;
+    LinearLayout mouseRow = new LinearLayout(activity);
+    mouseRow.setGravity(Gravity.CENTER_HORIZONTAL);
+    mouseRow.setPadding(0, 0, 0, dp(8));
+    Button left = cyberKey("L", 0, false);
+    left.setOnClickListener(v -> controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0));
+    Button right = cyberKey("R", 0, false);
+    right.setOnClickListener(v -> controller.sendMouse(HidReportDescriptor.MOUSE_RIGHT, 0, 0, 0));
+    mouseRow.addView(left, new LinearLayout.LayoutParams(dp(150), dp(34)));
+    mouseRow.addView(right, new LinearLayout.LayoutParams(dp(150), dp(34)));
+    parent.addView(mouseRow, new LinearLayout.LayoutParams(-1, -2));
+
+    addKeyboardRows(parent);
+
+    LinearLayout mediaRow = new LinearLayout(activity);
+    mediaRow.setGravity(Gravity.CENTER_HORIZONTAL);
+    mediaRow.setPadding(0, dp(4), 0, dp(2));
+    mediaRow.addView(cyberMedia("⏮", HidReportDescriptor.MEDIA_PREVIOUS), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    mediaRow.addView(cyberMedia("⏯", HidReportDescriptor.MEDIA_PLAY_PAUSE), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    mediaRow.addView(cyberMedia("⏭", HidReportDescriptor.MEDIA_NEXT), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    mediaRow.addView(cyberMedia("🔉", HidReportDescriptor.MEDIA_VOLUME_DOWN), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    mediaRow.addView(cyberMedia("🔊", HidReportDescriptor.MEDIA_VOLUME_UP), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    mediaRow.addView(cyberMedia("🔇", HidReportDescriptor.MEDIA_MUTE), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    parent.addView(mediaRow, new LinearLayout.LayoutParams(-1, -2));
+  }
+
+  private void addKeyboardRows(LinearLayout parent) {
+    String[][] rows = new String[][] {
+        {"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="},
+        {"Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"},
+        {"Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"},
+        {"Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "Enter"},
+        {"Ctrl", "Alt", "Space", "←", "↑", "↓", "→", "Alt", "Ctrl"}
+    };
+    int[][] usages = new int[][] {
+        {53,30,31,32,33,34,35,36,37,38,39,45,46},
+        {43,20,26,8,21,23,28,24,12,18,19,47,48},
+        {57,4,22,7,9,10,11,13,14,15,51,52},
+        {0,29,27,6,25,5,17,16,54,55,56,40},
+        {0,0,44,79,82,81,80,0,0}
+    };
+    for (int row = 0; row < rows.length; row++) {
+      LinearLayout line = new LinearLayout(activity);
+      line.setGravity(Gravity.CENTER_VERTICAL);
+      line.setPadding(0, dp(2), 0, dp(2));
+      for (int col = 0; col < rows[row].length; col++) {
+        String label = rows[row][col];
+        int usage = usages[row][col];
+        float weight = label.equals("Space") ? 3.2f : 1f;
+        if (label.equals("Tab") || label.equals("Caps") || label.equals("Shift")
+            || label.equals("Enter") || label.equals("Ctrl") || label.equals("Alt")) {
+          weight = 1.35f;
+        }
+        Button key = cyberKey(label, usage, true);
+        if (label.equals("Caps")) {
+          key.setOnClickListener(v -> {
+            capsOn = !capsOn;
+            styleCyberKey(key, capsOn);
+            controller.sendKeystroke(0, 57);
+          });
+        } else if (label.equals("Shift")) {
+          key.setOnClickListener(v -> {
+            shiftOn = !shiftOn;
+            refreshModifiers();
+            styleCyberKey(key, shiftOn);
+          });
+        } else if (label.equals("Ctrl")) {
+          key.setOnClickListener(v -> {
+            ctrlOn = !ctrlOn;
+            refreshModifiers();
+            styleCyberKey(key, ctrlOn);
+          });
+        } else if (label.equals("Alt")) {
+          key.setOnClickListener(v -> {
+            altOn = !altOn;
+            refreshModifiers();
+            styleCyberKey(key, altOn);
+          });
+        } else if (label.equals("Space")) {
+          key.setOnClickListener(v -> controller.sendKeystroke(modifiersForUsage(usage), 44));
+        } else if (usage == 0) {
+          // Modifier-only key already handled above.
+        } else {
+          final int finalUsage = usage;
+          key.setOnClickListener(v -> {
+            int mods = modifiersForUsage(finalUsage);
+            controller.sendKeystroke(mods, finalUsage);
+          });
+        }
+        styleCyberKey(key, false);
+        line.addView(key, new LinearLayout.LayoutParams(0, dp(34), weight));
       }
-      controller.sendText(value);
-      fullText.setText("");
-      showStatus("Sending " + value.length() + " character(s)…", false);
-    });
-    textRow.addView(send, new LinearLayout.LayoutParams(dp(68), dp(36)));
-    parent.addView(textRow, new LinearLayout.LayoutParams(-1, -2));
-    fullText.setOnEditorActionListener((view, action, event) -> {
-      if (action == EditorInfo.IME_ACTION_SEND) {
-        send.performClick();
-        return true;
-      }
-      return false;
-    });
+      parent.addView(line, new LinearLayout.LayoutParams(-1, -2));
+    }
+  }
 
-    addKeyRow(parent,
-        new String[] {"ESC", "TAB", "BKSP", "ENTER", "SPACE", "DEL"},
-        new int[] {41, 43, 42, 40, 44, 76});
-    addKeyRow(parent,
-        new String[] {"←", "↑", "↓", "→", "HOME", "END"},
-        new int[] {80, 82, 81, 79, 74, 77});
-    addKeyRow(parent,
-        new String[] {"PGUP", "PGDN", "INS", "F1", "F2", "F3"},
-        new int[] {75, 78, 73, 58, 59, 60});
+  private int modifiersForUsage(int usage) {
+    int mods = modifiers();
+    if (capsOn && usage >= 4 && usage <= 29) mods ^= HidReportDescriptor.MOD_SHIFT;
+    return mods;
+  }
+
+  private Button cyberKey(String text, int usage, boolean keyboard) {
+    Button button = new Button(activity);
+    button.setText(text);
+    button.setTextSize(9);
+    button.setTextColor(UiConfig.MODULE_TEXT);
+    button.setAllCaps(false);
+    button.setSingleLine(true);
+    button.setMinHeight(0);
+    button.setMinimumHeight(0);
+    button.setMinWidth(0);
+    button.setMinimumWidth(0);
+    button.setPadding(dp(2), 0, dp(2), 0);
+    android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
+    frame.setColor(UiConfig.MODULE_SURFACE_ALT);
+    frame.setCornerRadius(dp(6));
+    frame.setStroke(dp(1), UiConfig.MODULE_DIVIDER);
+    button.setBackground(frame);
+    return button;
+  }
+
+  private Button cyberMedia(String text, int usage) {
+    Button button = cyberKey(text, usage, false);
+    button.setOnClickListener(v -> controller.sendConsumer(usage));
+    return button;
+  }
+
+  private Button cyberSideButton(String text, Runnable action) {
+    Button button = new Button(activity);
+    button.setText(text);
+    button.setTextSize(12);
+    button.setTextColor(0xff333333);
+    button.setAllCaps(false);
+    button.setMinHeight(0);
+    button.setMinimumHeight(0);
+    button.setMinWidth(0);
+    button.setMinimumWidth(0);
+    button.setPadding(0, 0, 0, 0);
+    android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
+    frame.setColor(0xfff2e8cf);
+    frame.setCornerRadius(dp(21));
+    button.setBackground(frame);
+    button.setOnClickListener(v -> {
+      try { action.run(); } catch (Throwable error) { showStatus("Action failed: " + error.getMessage(), true); }
+    });
+    return button;
+  }
+
+  private void styleCyberKey(Button button, boolean active) {
+    if (button == null) return;
+    android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
+    frame.setColor(active ? UiConfig.MODULE_ACCENT : UiConfig.MODULE_SURFACE_ALT);
+    frame.setCornerRadius(dp(6));
+    frame.setStroke(dp(1), active ? UiConfig.MODULE_ACCENT : UiConfig.MODULE_DIVIDER);
+    button.setTextColor(active ? 0xff000000 : UiConfig.MODULE_TEXT);
+    button.setBackground(frame);
   }
 
   private View mediaSection() {
