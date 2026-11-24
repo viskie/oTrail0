@@ -40,7 +40,11 @@ public final class BtKeyboardModule implements ModuleV1 {
   private Activity activity;
   private Host host;
   private BluetoothHidController controller;
-  private LinearLayout root;
+  private LinearLayout scanRoot;
+  private ScrollView keyboardScreen;
+  private boolean keyboardVisible;
+  private boolean keyboardDismissed;
+  private boolean wasConnected;
   private TextView status;
   private TextView connection;
   private TextView hidState;
@@ -85,25 +89,44 @@ public final class BtKeyboardModule implements ModuleV1 {
       }
     });
 
-    ScrollView screen = new ScrollView(activity);
-    screen.setFillViewport(true);
-    screen.setBackgroundColor(UiConfig.MODULE_BACKGROUND);
-    root = new LinearLayout(activity);
-    root.setOrientation(LinearLayout.VERTICAL);
-    root.setPadding(dp(10), dp(8), dp(10), dp(10));
-    screen.addView(root, new ScrollView.LayoutParams(-1, -2));
+    android.widget.FrameLayout container = new android.widget.FrameLayout(activity);
+    container.setBackgroundColor(UiConfig.MODULE_BACKGROUND);
+    scanRoot = new LinearLayout(activity);
+    scanRoot.setOrientation(LinearLayout.VERTICAL);
+    scanRoot.setPadding(dp(10), dp(8), dp(10), dp(10));
+    container.addView(scanRoot, new android.widget.FrameLayout.LayoutParams(-1, -1));
 
-    root.addView(header());
+    scanRoot.addView(header());
     status = label("Starting Bluetooth remote…", 11, UiConfig.MODULE_MUTED);
     status.setMaxLines(4);
     status.setEllipsize(TextUtils.TruncateAt.END);
     status.setTextIsSelectable(true);
-    root.addView(status);
+    scanRoot.addView(status);
 
-    root.addView(accessRow());
-    root.addView(deviceSection());
-    root.addView(remoteSection());
-    root.addView(mediaSection());
+    scanRoot.addView(accessRow());
+    scanRoot.addView(deviceSection());
+    scanRoot.addView(remoteSection());
+    scanRoot.addView(mediaSection());
+
+    keyboardScreen = new ScrollView(activity);
+    keyboardScreen.setFillViewport(true);
+    keyboardScreen.setVisibility(View.GONE);
+    keyboardScreen.setBackgroundColor(UiConfig.MODULE_BACKGROUND);
+    LinearLayout keyboardRoot = new LinearLayout(activity);
+    keyboardRoot.setOrientation(LinearLayout.VERTICAL);
+    keyboardRoot.setPadding(dp(10), dp(8), dp(10), dp(10));
+    keyboardScreen.addView(keyboardRoot, new ScrollView.LayoutParams(-1, -2));
+    LinearLayout backRow = new LinearLayout(activity);
+    backRow.setGravity(Gravity.CENTER_VERTICAL);
+    Button back = chip("← BACK TO DEVICES", this::showScanScreen);
+    backRow.addView(back, new LinearLayout.LayoutParams(dp(150), dp(32)));
+    TextView keyboardTitle = label("FULL KEYBOARD / TRACKPAD", 13, UiConfig.MODULE_TEXT);
+    keyboardTitle.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, android.graphics.Typeface.BOLD));
+    backRow.addView(keyboardTitle, new LinearLayout.LayoutParams(0, -2, 1));
+    keyboardRoot.addView(backRow);
+    addFullKeyboard(keyboardRoot);
+    keyboardRoot.addView(mediaSection());
+    container.addView(keyboardScreen, new android.widget.FrameLayout.LayoutParams(-1, -1));
 
     if (!permissionsGranted()) {
       showStatus("Bluetooth access is not granted. Tap GRANT ACCESS to scan and connect.", true);
@@ -111,7 +134,7 @@ public final class BtKeyboardModule implements ModuleV1 {
       controller.start();
     }
     refreshState();
-    return screen;
+    return container;
   }
 
   private View header() {
@@ -133,9 +156,11 @@ public final class BtKeyboardModule implements ModuleV1 {
     grant = chip("GRANT ACCESS", this::requestAccess);
     enable = chip("ENABLE BT", this::requestEnable);
     register = chip("REGISTER HID", this::registerHid);
+    Button openKeyboard = chip("OPEN KEYBOARD", this::showKeyboardScreen);
     row.addView(grant, new LinearLayout.LayoutParams(0, dp(30), 1));
     row.addView(enable, new LinearLayout.LayoutParams(0, dp(30), 1));
     row.addView(register, new LinearLayout.LayoutParams(0, dp(30), 1));
+    row.addView(openKeyboard, new LinearLayout.LayoutParams(0, dp(30), 1));
     row.setPadding(0, dp(3), 0, dp(3));
     return row;
   }
@@ -242,6 +267,84 @@ public final class BtKeyboardModule implements ModuleV1 {
     mouse.addView(down, new LinearLayout.LayoutParams(0, dp(29), 1));
     panel.addView(mouse);
     return panel;
+  }
+
+  private void addFullKeyboard(LinearLayout parent) {
+    LinearLayout top = new LinearLayout(activity);
+    top.setOrientation(LinearLayout.HORIZONTAL);
+    top.setGravity(Gravity.CENTER_VERTICAL);
+    top.setPadding(0, dp(4), 0, dp(4));
+
+    LinearLayout side = new LinearLayout(activity);
+    side.setOrientation(LinearLayout.VERTICAL);
+    side.setPadding(0, 0, dp(4), 0);
+    int sideWidth = dp(74);
+    Button left = chip("LEFT", () -> controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0));
+    Button right = chip("RIGHT", () -> controller.sendMouse(HidReportDescriptor.MOUSE_RIGHT, 0, 0, 0));
+    Button scrollUp = chip("SCROLL ↑", () -> controller.sendMouse(0, 0, 0, 20));
+    Button scrollDown = chip("SCROLL ↓", () -> controller.sendMouse(0, 0, 0, -20));
+    side.addView(left, new LinearLayout.LayoutParams(-1, 0, 1));
+    side.addView(right, new LinearLayout.LayoutParams(-1, 0, 1));
+    side.addView(scrollUp, new LinearLayout.LayoutParams(-1, 0, 1));
+    side.addView(scrollDown, new LinearLayout.LayoutParams(-1, 0, 1));
+    top.addView(side, new LinearLayout.LayoutParams(sideWidth, dp(286)));
+
+    TrackpadView trackpad = new TrackpadView();
+    trackpad.setMinimumHeight(dp(286));
+    top.addView(trackpad, new LinearLayout.LayoutParams(0, dp(286), 1));
+    parent.addView(top, new LinearLayout.LayoutParams(-1, dp(286)));
+
+    LinearLayout modifiers = new LinearLayout(activity);
+    modifiers.setGravity(Gravity.CENTER_VERTICAL);
+    ctrl = chip("CTRL", () -> toggleModifier(0));
+    alt = chip("ALT", () -> toggleModifier(1));
+    shift = chip("SHIFT", () -> toggleModifier(2));
+    modifiers.addView(ctrl, new LinearLayout.LayoutParams(0, dp(30), 1));
+    modifiers.addView(alt, new LinearLayout.LayoutParams(0, dp(30), 1));
+    modifiers.addView(shift, new LinearLayout.LayoutParams(0, dp(30), 1));
+    parent.addView(modifiers);
+    refreshModifiers();
+
+    LinearLayout textRow = new LinearLayout(activity);
+    textRow.setGravity(Gravity.CENTER_VERTICAL);
+    EditText fullText = new EditText(activity);
+    fullText.setHint("Type text for the connected host");
+    fullText.setHintTextColor(UiConfig.MODULE_MUTED);
+    fullText.setTextColor(UiConfig.MODULE_TEXT);
+    fullText.setTextSize(11);
+    fullText.setSingleLine(true);
+    fullText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+    fullText.setImeOptions(EditorInfo.IME_ACTION_SEND);
+    textRow.addView(fullText, new LinearLayout.LayoutParams(0, dp(36), 1));
+    Button send = chip("SEND", () -> {
+      String value = fullText.getText().toString();
+      if (value.isEmpty()) {
+        showStatus("Type some text first.", true);
+        return;
+      }
+      controller.sendText(value);
+      fullText.setText("");
+      showStatus("Sending " + value.length() + " character(s)…", false);
+    });
+    textRow.addView(send, new LinearLayout.LayoutParams(dp(68), dp(36)));
+    parent.addView(textRow, new LinearLayout.LayoutParams(-1, -2));
+    fullText.setOnEditorActionListener((view, action, event) -> {
+      if (action == EditorInfo.IME_ACTION_SEND) {
+        send.performClick();
+        return true;
+      }
+      return false;
+    });
+
+    addKeyRow(parent,
+        new String[] {"ESC", "TAB", "BKSP", "ENTER", "SPACE", "DEL"},
+        new int[] {41, 43, 42, 40, 44, 76});
+    addKeyRow(parent,
+        new String[] {"←", "↑", "↓", "→", "HOME", "END"},
+        new int[] {80, 82, 81, 79, 74, 77});
+    addKeyRow(parent,
+        new String[] {"PGUP", "PGDN", "INS", "F1", "F2", "F3"},
+        new int[] {75, 78, 73, 58, 59, 60});
   }
 
   private View mediaSection() {
@@ -456,6 +559,8 @@ public final class BtKeyboardModule implements ModuleV1 {
   public void close() {
     if (controller != null) controller.close();
     controller = null;
+    keyboardScreen = null;
+    scanRoot = null;
     activity = null;
     host = null;
   }
@@ -525,6 +630,26 @@ public final class BtKeyboardModule implements ModuleV1 {
     refreshDevices();
   }
 
+  private void showKeyboardScreen() {
+    if (keyboardScreen == null || scanRoot == null) return;
+    activity.runOnUiThread(() -> {
+      keyboardDismissed = false;
+      scanRoot.setVisibility(View.GONE);
+      keyboardScreen.setVisibility(View.VISIBLE);
+      keyboardVisible = true;
+    });
+  }
+
+  private void showScanScreen() {
+    if (keyboardScreen == null || scanRoot == null) return;
+    activity.runOnUiThread(() -> {
+      keyboardDismissed = true;
+      keyboardScreen.setVisibility(View.GONE);
+      scanRoot.setVisibility(View.VISIBLE);
+      keyboardVisible = false;
+    });
+  }
+
   private void refreshState() {
     activity.runOnUiThread(() -> {
       if (controller == null) return;
@@ -542,6 +667,12 @@ public final class BtKeyboardModule implements ModuleV1 {
       }
       if (scan != null) scan.setText(controller.isScanning() ? "STOP SCAN" : "SCAN");
       if (grant != null) grant.setVisibility(permissionsGranted() ? View.GONE : View.VISIBLE);
+      if (connected && !wasConnected && !keyboardDismissed) showKeyboardScreen();
+      if (!connected) {
+        keyboardDismissed = false;
+        showScanScreen();
+      }
+      wasConnected = connected;
       refreshDevices();
     });
   }
