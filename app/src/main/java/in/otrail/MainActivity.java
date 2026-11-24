@@ -73,6 +73,8 @@ public final class MainActivity extends Activity {
   private ResonationsWidget resonations;
   private FrameLayout resonationsSlot;
   private InlineShellWidget inlineShell;
+  private FrameLayout sidebarSlot;
+  private View sidebarBoxes;
   private GeoPoint liveBubblePoint;
   private GeoPoint animatedGpsPoint;private android.animation.ValueAnimator gpsMotion;
   private TextView roadInfo;
@@ -340,7 +342,11 @@ public final class MainActivity extends Activity {
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
     if(new ModuleStore(this).enabled("mod3")){
-      ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell · long press for in-app shell");debian.setTooltipText("Debian shell · long press for in-app shell");debian.setOnClickListener(v->{releaseInlineShell();openDebianModule();});debian.setOnLongClickListener(v->{toggleInlineShell();return true;});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
+      ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);
+      debian.setContentDescription("Toggle Debian shell panel");debian.setTooltipText("Toggle shell · hold for standalone module");
+      debian.setOnClickListener(v -> toggleInlineShell());
+      debian.setOnLongClickListener(v -> { openDebianModule(); return true; });
+      LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
     }
     ScreenShareButton screenShare=new ScreenShareButton(this,
         ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
@@ -460,7 +466,10 @@ public final class MainActivity extends Activity {
       sidebar.addView(panel,new LinearLayout.LayoutParams(-1,0,1));
       LinearLayout.LayoutParams audioFooter=new LinearLayout.LayoutParams(-1,-2);audioFooter.setMargins(0,dp(UiConfig.PANEL_GAP_DP),0,0);
       sidebar.addView(resonationsSlot,audioFooter);
-      body.addView(sidebar,new LinearLayout.LayoutParams(dp(UiConfig.SIDEBAR_WIDTH_DP),-1));
+      sidebarSlot = new FrameLayout(this);
+      sidebarBoxes = sidebar;
+      sidebarSlot.addView(sidebar, new FrameLayout.LayoutParams(-1, -1));
+      body.addView(sidebarSlot,new LinearLayout.LayoutParams(dp(UiConfig.SIDEBAR_WIDTH_DP),-1));
     }
     lastFixId = -1;
     lastStopSignature = 0;
@@ -473,7 +482,13 @@ public final class MainActivity extends Activity {
   }
 
   private void toggleInlineShell(){
-    if(inlineShell!=null){releaseInlineShell();toast("Resonations restored");return;}
+    if(inlineShell!=null){
+      boolean show = inlineShell.getVisibility() != View.VISIBLE;
+      inlineShell.setVisibility(show ? View.VISIBLE : View.GONE);
+      View boxes = sidebarSlot == null ? resonations : sidebarBoxes;
+      if(boxes != null) boxes.setVisibility(show ? View.GONE : View.VISIBLE);
+      return;
+    }
     if(resonationsSlot==null||isFinishing()||isDestroyed())return;
     ModuleStore store=new ModuleStore(this);
     if(store.active("mod3").isBlank()){
@@ -483,14 +498,21 @@ public final class MainActivity extends Activity {
       toast("Activate GOD — it now carries the Debian image");ModuleHost.settings(this);return;
     }
     inlineShell=new InlineShellWidget(this);
+    if(sidebarSlot != null){
+      sidebarBoxes.setVisibility(View.GONE);
+      sidebarSlot.addView(inlineShell, new FrameLayout.LayoutParams(-1, -1));
+      return;
+    }
     if(resonations!=null)resonations.setVisibility(View.GONE);
     boolean landscape=getResources().getConfiguration().orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE;
     int height=Math.max(dp(landscape?180:240),Math.min(dp(460),Math.round(getResources().getDisplayMetrics().heightPixels*.48f)));
     resonationsSlot.addView(inlineShell,new FrameLayout.LayoutParams(-1,height));
-    toast("In-app Debian shell · long-press the icon to release");
   }
 
   private void releaseInlineShell(){
+    if(sidebarBoxes != null) sidebarBoxes.setVisibility(View.VISIBLE);
+    sidebarBoxes = null;
+    sidebarSlot = null;
     InlineShellWidget shell=inlineShell;inlineShell=null;
     if(shell!=null){shell.release();if(shell.getParent() instanceof ViewGroup)((ViewGroup)shell.getParent()).removeView(shell);}
     if(resonations!=null)resonations.setVisibility(View.VISIBLE);
@@ -1965,7 +1987,7 @@ public final class MainActivity extends Activity {
 
   @Override
   public void onBackPressed() {
-    if(inlineShell!=null){releaseInlineShell();return;}
+    if(inlineShell!=null && inlineShell.getVisibility()==View.VISIBLE){toggleInlineShell();return;}
     if(mapMenu!=null&&mapMenu.closeIfOpen())return;
     if (downloads) {
       showMap();

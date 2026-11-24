@@ -60,7 +60,7 @@ final class InlineShellWidget extends LinearLayout {
     addView(terminal(), new LayoutParams(-1, 0, 1));
     addView(inputRow());
     addView(controlRow());
-    append("[In-app Debian shell]\nLong-press the green Debian icon to release this panel.\n");
+    append("[In-app Debian shell]\nTap the shell icon to switch panels.\n");
     ensureShell();
   }
 

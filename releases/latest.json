@@ -1,8 +1,8 @@
 {
-  "versionCode": 59,
-  "versionName": "0.4.36",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.36-debug.apk",
-  "sha256": "a1a0d23ad98e52fa33ac42f0af81344a259aba1d4a03359ce0aa259d9035d49c",
-  "sizeBytes": 41411276,
-  "notes": "Adds a persistent floating back button to module and module-manager screens, plus BT full-screen back handling."
+  "versionCode": 60,
+  "versionName": "0.4.37",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.37-debug.apk",
+  "sha256": "2ca0bb6b22af57980d20e795926b51087a6cc309fe025af13fa8e4b607730bd8",
+  "sizeBytes": 41411512,
+  "notes": "Tap the Debian shell icon to switch the full landscape right panel between the terminal and the existing boxes. The terminal session stays alive while hidden."
 }
