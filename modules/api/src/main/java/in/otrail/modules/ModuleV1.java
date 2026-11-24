@@ -17,6 +17,12 @@ public interface ModuleV1 {
     void startTask(String request) throws Exception;
     void cancelTask();
     String taskStatus();
+
+    /** Cross-module access is limited to signed, active modules sharing the app UID. */
+    default File moduleDirectory(String id) throws Exception { throw new UnsupportedOperationException(); }
+    default String moduleVersion(String id) throws Exception { throw new UnsupportedOperationException(); }
+    default void startModuleTask(String id, String request) throws Exception { throw new UnsupportedOperationException(); }
+    default String moduleTaskStatus(String id) throws Exception { throw new UnsupportedOperationException(); }
     String toolchains(boolean refresh) throws Exception;
     String selectedToolchain() throws Exception;
     void selectToolchain(String id) throws Exception;

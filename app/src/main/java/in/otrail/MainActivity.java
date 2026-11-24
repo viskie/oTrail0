@@ -339,7 +339,9 @@ public final class MainActivity extends Activity {
       CameraLogoButton camera=new CameraLogoButton(this,()->openCam("camera",-1));
       LinearLayout.LayoutParams cameraPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));cameraPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(camera,cameraPosition);
     }
-    ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell · long press for in-app shell");debian.setTooltipText("Debian shell · long press for in-app shell");debian.setOnClickListener(v->{releaseInlineShell();openDebianModule();});debian.setOnLongClickListener(v->{toggleInlineShell();return true;});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
+    if(new ModuleStore(this).enabled("mod3")){
+      ImageButton debian=new ImageButton(this);debian.setScaleType(ImageView.ScaleType.FIT_CENTER);debian.setPadding(0,0,0,0);debian.setImageDrawable(new NonagonIcon());debian.setBackgroundColor(Color.TRANSPARENT);debian.setContentDescription("Debian shell · long press for in-app shell");debian.setTooltipText("Debian shell · long press for in-app shell");debian.setOnClickListener(v->{releaseInlineShell();openDebianModule();});debian.setOnLongClickListener(v->{toggleInlineShell();return true;});LinearLayout.LayoutParams debianPosition=new LinearLayout.LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP));debianPosition.setMargins(0,0,dp(UiConfig.MAP_ICON_GAP_DP),0);mapControls.addView(debian,debianPosition);
+    }
     ScreenShareButton screenShare=new ScreenShareButton(this,
         ()->startActivity(new Intent(MainActivity.this,RemoteDesktopActivity.class)));
     LinearLayout.LayoutParams screenSharePosition=new LinearLayout.LayoutParams(
@@ -473,8 +475,12 @@ public final class MainActivity extends Activity {
   private void toggleInlineShell(){
     if(inlineShell!=null){releaseInlineShell();toast("Resonations restored");return;}
     if(resonationsSlot==null||isFinishing()||isDestroyed())return;
-    if(new ModuleStore(this).active("mod3").isBlank()){
+    ModuleStore store=new ModuleStore(this);
+    if(store.active("mod3").isBlank()){
       toast("Activate Debian Shell in Extension modules first");ModuleHost.settings(this);return;
+    }
+    if(!store.enabled("mod1")){
+      toast("Activate GOD — it now carries the Debian image");ModuleHost.settings(this);return;
     }
     inlineShell=new InlineShellWidget(this);
     if(resonations!=null)resonations.setVisibility(View.GONE);

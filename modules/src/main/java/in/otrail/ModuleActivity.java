@@ -40,8 +40,36 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
   }
   @Override public void cancelTask(){startService(new Intent(this,ModuleTaskService.class).setAction("cancel"));}
   @Override public void startTask(String request) throws Exception {
+    startTask(release.id(),release.version(),request);
+  }
+  @Override public File moduleDirectory(String id) throws Exception {
+    String safe=moduleId(id);
+    File directory=new File(getFilesDir(),"modules/data/"+safe);
+    directory.mkdirs();
+    return directory;
+  }
+  @Override public String moduleVersion(String id) throws Exception {
+    return store.active(moduleId(id));
+  }
+  @Override public void startModuleTask(String id,String request) throws Exception {
+    String safe=moduleId(id);
+    String version=store.active(safe);
+    if(version.isBlank())throw new IOException("Activate "+safe+" before starting its task");
+    startTask(safe,version,request);
+  }
+  private void startTask(String id,String version,String request) throws Exception {
     if(request.length()>500000)throw new IOException("Module task too large");
-    startForegroundService(new Intent(this,ModuleTaskService.class).putExtra("id",release.id()).putExtra("version",release.version()).putExtra("request",request));
+    startForegroundService(new Intent(this,ModuleTaskService.class)
+        .putExtra("id",id)
+        .putExtra("version",version)
+        .putExtra("request",request));
+  }
+  @Override public String moduleTaskStatus(String id) throws Exception {
+    return ModuleTaskService.readStatus(this,moduleId(id));
+  }
+  private static String moduleId(String id) throws IOException {
+    if(id==null||!id.matches("[a-z][a-z0-9-]{0,63}"))throw new IOException("Invalid module ID");
+    return id;
   }
   @Override public void installBuiltApk(File file) throws Exception {AppUpdater.prepareBuiltApk(this,file);AppUpdater.install(this,new File(getFilesDir(),"updates/verified.apk"));}
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(module!=null)try{module.activityResult(request,result,data);}catch(RuntimeException e){failed(e);}}

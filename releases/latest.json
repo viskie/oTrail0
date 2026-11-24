@@ -1,8 +1,8 @@
 {
-  "versionCode": 56,
-  "versionName": "0.4.33",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.33-debug.apk",
-  "sha256": "7b7a78bb2c2954d5e7b92efdb3df257d9892b8b95545537fa1c11932ffd4eb3b",
-  "sizeBytes": 41398068,
-  "notes": "Long-press the Debian icon to swap the Resonations panel for a compact in-app Debian shell and long-press again to release it. The main menu labels are dark grey and Settings now shows the app version at the top."
+  "versionCode": 57,
+  "versionName": "0.4.34",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.34-debug.apk",
+  "sha256": "1140064c63e89bfddf125517824e3b61c7208b41ffa9438ecee02d3bc81bf05b",
+  "sizeBytes": 42177643,
+  "notes": "Moves the shared Debian image into GOD. Debian Shell now appears from its module and provides multi-tab shells with preserved output/history, compact keys, stable scrolling, hardware key mapping and copy/paste controls."
 }

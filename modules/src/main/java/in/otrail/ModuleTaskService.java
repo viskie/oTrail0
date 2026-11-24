@@ -28,7 +28,9 @@ public final class ModuleTaskService extends Service {
       ModuleStore store=new ModuleStore(this);SignedModuleCatalog.Release release=null;
       for(SignedModuleCatalog.Release r:store.catalog(false))if(r.id().equals(moduleId)&&r.version().equals(version))release=r;
       if(release==null)throw new IOException("Module version unavailable");module=store.load(release);
-      JSONObject task=new JSONObject(request);task.put("_verifiedToolchain",store.selectedToolchain(moduleId));
+      JSONObject task=new JSONObject(request);
+      // Shell provisioning only needs the module package and its verified rootfs spec.
+      if(!"shellSetup".equals(task.optString("action")))task.put("_verifiedToolchain",store.selectedToolchain(moduleId));
       module.task(store.file(release),directory(this,moduleId),task.toString(),new ModuleV1.Progress(){
         public void update(String phase,int percent,String log){save(phase,percent,log,true);}
         public boolean cancelled(){return cancelled||Thread.currentThread().isInterrupted();}

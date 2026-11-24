@@ -12,6 +12,8 @@ A `.oTrail0` file is a ZIP with `module.json`, `classes.dex` and module-specific
 
 Settings → Extension modules lets the user refresh, download with progress, enter the install password, activate/open, deactivate or roll back. GOD's first version requires the owner's install password. It generates its own SSH key on the phone; private keys are not embedded in public packages.
 
+GOD 4.2.0 owns the shared Debian image. Debian Shell 2.0.0 is the map launcher and multi-tab shell manager and deliberately does not ship a second rootfs; it asks the host to provision GOD's image. The Debian icon appears only while that module is active.
+
 Build host first with `. /src/android-build-env/environment.sh` and `./gradlew assembleDebug testDebugUnitTest lintDebug exportGodRuntime`. `scripts/build-god.py prepare` creates tool packs from pinned public dependencies; `package` compiles the separate module, packages source and signs the catalog. Publisher private material is read from `~/.local/share/otrail/` and must stay outside Git. Preserve old version files and catalog entries; bump versions for changes to published packages.
 
 Read mod1/README.md for first-toolchain limits and setup. The first engine supports app Java rebuilds, and explicitly rejects unsupported resource/build-system changes. No external app or remote compiler is used.

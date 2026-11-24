@@ -1,6 +1,6 @@
-# GOD — downloadable source studio (module ID `mod1`, version 4.0.0)
+# GOD — downloadable source studio and Debian image (module ID `mod1`, version 4.2.0)
 
-All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. GOD contains the editor and native build workflow. Debian Shell is now the independent `mod3` module with its own nine-sided map launcher.
+All screens and work execute inside oTraiL. No Termux, external application, build server or remote compiler is required. GOD contains the editor, native build workflow, its simple Shell tab and the verified shared Debian Bookworm ARM64 image. Debian Shell (`mod3`) is the separate map launcher and multi-tab shell-manager UI.
 
 ## Use
 
@@ -18,6 +18,10 @@ All screens and work execute inside oTraiL. No Termux, external application, bui
 The initial toolchain rebuilds the app's Java source roots. It preserves compiled resources, manifest, native routing/map libraries and dependency DEX from a verified template. Changes to protected resource/XML/build-system/BRouter source files fail explicitly; they are not silently ignored. New resource files are rejected. Tests and documentation are editable but are not part of the APK compile action. GOD's own source is visible for review; building a new module package is a separate publisher operation.
 
 Toolchains are signed catalog entries with their own versions, download files, hashes, API/host compatibility and source baseline. The Tools selector permits updating a compiler without replacing the APK or editor, within API compatibility. Additional resource-capable engines can be published through that path.
+
+## Shared Debian image
+
+GOD 4.2.0 owns the downloaded Debian image and extracts it under `files/modules/data/mod1/debian/rootfs`. The simple Shell tab and Debian Shell 2.0.0 both launch that image through the host APK's PRoot binaries. Debian Shell only supplies the map icon and shell-management UI; installing it without GOD produces an explicit “install GOD” message rather than a second copy of the image.
 
 ## Storage and integrity
 

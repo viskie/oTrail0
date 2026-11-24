@@ -1,6 +1,9 @@
 package in.otrail;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -41,7 +44,7 @@ final class InlineShellWidget extends LinearLayout {
   private EditText input;
   private volatile Process process;
   private volatile OutputStream stdin;
-  private boolean closed, setupRequested, launchRequested;
+  private boolean closed, setupRequested, launchRequested, stickToBottom = true;
 
   InlineShellWidget(Activity activity) {
     super(activity);
@@ -80,6 +83,10 @@ final class InlineShellWidget extends LinearLayout {
     scroll = new ScrollView(activity);
     scroll.setFillViewport(true);
     scroll.setVerticalScrollBarEnabled(false);
+    scroll.setOnScrollChangeListener((view, x, y, oldX, oldY) -> {
+      View child = scroll.getChildAt(0);
+      if (child != null) stickToBottom = child.getHeight() - scroll.getHeight() - y <= dp(24);
+    });
     GradientDrawable background = new GradientDrawable();
     background.setColor(UiConfig.TERMINAL_BACKGROUND);
     background.setCornerRadius(dp(7));
@@ -121,7 +128,37 @@ final class InlineShellWidget extends LinearLayout {
     row.addView(chip("TAB", () -> send("\t")), new LayoutParams(0, dp(30), 1));
     row.addView(chip("↑", () -> send("\u001b[A")), new LayoutParams(0, dp(30), 1));
     row.addView(chip("↓", () -> send("\u001b[B")), new LayoutParams(0, dp(30), 1));
+    row.addView(chip("COPY", this::copyOutput), new LayoutParams(0, dp(30), 1));
+    row.addView(chip("PASTE", this::pasteInput), new LayoutParams(0, dp(30), 1));
     return row;
+  }
+
+  private void copyOutput() {
+    String text = output == null ? "" : output.getText().toString();
+    if (text.isEmpty()) {
+      status.setText("nothing to copy");
+      return;
+    }
+    ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+    clipboard.setPrimaryClip(ClipData.newPlainText("oTraiL shell", text));
+    status.setText("copied " + text.length() + " chars");
+  }
+
+  private void pasteInput() {
+    ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+    if (!clipboard.hasPrimaryClip() || clipboard.getPrimaryClip() == null) {
+      status.setText("clipboard empty");
+      return;
+    }
+    ClipData clip = clipboard.getPrimaryClip();
+    StringBuilder text = new StringBuilder();
+    for (int index = 0; index < clip.getItemCount(); index++) {
+      CharSequence part = clip.getItemAt(index).coerceToText(activity);
+      if (part != null) text.append(part);
+    }
+    input.setText(text);
+    input.setSelection(input.length());
+    input.requestFocus();
   }
 
   private TextView label(String text, int size, int color) {
@@ -161,8 +198,16 @@ final class InlineShellWidget extends LinearLayout {
     return new File(activity.getFilesDir(), "modules/data/mod3");
   }
 
+  private File godData() {
+    return new File(activity.getFilesDir(), "modules/data/mod1");
+  }
+
+  private File rootfs() {
+    return new File(godData(), "debian/rootfs");
+  }
+
   private File bash() {
-    return new File(moduleData(), "debian/rootfs/usr/bin/bash");
+    return new File(rootfs(), "usr/bin/bash");
   }
 
   private void ensureShell() {
@@ -172,20 +217,21 @@ final class InlineShellWidget extends LinearLayout {
       launch();
       return;
     }
-    String version = new ModuleStore(activity).active("mod3");
-    if (version.isBlank()) {
-      status.setText("Debian module inactive");
-      append("\n[Activate Debian Shell in Extension modules, then long-press the icon again]\n");
+    ModuleStore store = new ModuleStore(activity);
+    String version = store.active("mod1");
+    if (!store.enabled("mod1")) {
+      status.setText("GOD image module inactive");
+      append("\n[Activate GOD in Extension modules; it now carries the Debian image]\n");
       return;
     }
     if (setupRequested) return;
     setupRequested = true;
     try {
-      JSONObject state = new JSONObject(ModuleTaskService.readStatus(activity, "mod3"));
+      JSONObject state = new JSONObject(ModuleTaskService.readStatus(activity, "mod1"));
       if (!state.optBoolean("busy")) {
         status.setText("installing image…");
         activity.startForegroundService(new Intent(activity, ModuleTaskService.class)
-            .putExtra("id", "mod3")
+            .putExtra("id", "mod1")
             .putExtra("version", version)
             .putExtra("request", new JSONObject().put("action", "shellSetup").toString()));
       } else status.setText("installing image… " + state.optInt("percent") + "%");
@@ -206,7 +252,7 @@ final class InlineShellWidget extends LinearLayout {
         return;
       }
       try {
-        JSONObject state = new JSONObject(ModuleTaskService.readStatus(activity, "mod3"));
+        JSONObject state = new JSONObject(ModuleTaskService.readStatus(activity, "mod1"));
         status.setText(state.optString("phase", "installing") +
             (state.optBoolean("busy") ? " · " + state.optInt("percent") + "%" : ""));
         if (!state.optBoolean("busy")) {
@@ -230,7 +276,7 @@ final class InlineShellWidget extends LinearLayout {
       try {
         File proot = new File(activity.getApplicationInfo().nativeLibraryDir, "libproot.so");
         File loader = new File(activity.getApplicationInfo().nativeLibraryDir, "libprootloader.so");
-        File fs = new File(moduleData(), "debian/rootfs");
+        File fs = rootfs();
         if (!proot.canExecute()) throw new IOException("PRoot executable is missing");
         if (!loader.canExecute()) throw new IOException("PRoot loader is missing");
         if (!new File(fs, "usr/bin/bash").isFile()) throw new IOException("Debian image is not installed");
@@ -241,6 +287,7 @@ final class InlineShellWidget extends LinearLayout {
         bind(command, new File("/vendor"), "/vendor");
         bind(command, new File("/apex"), "/apex");
         bind(command, new File(activity.getApplicationInfo().dataDir), "/app-data");
+        bind(command, godData(), "/god-data");
         bind(command, moduleData(), "/shell-data");
         bind(command, activity.getExternalFilesDir(null), "/external-app");
         if (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager())
@@ -334,17 +381,27 @@ final class InlineShellWidget extends LinearLayout {
 
   private void append(String chunk) {
     if (closed || chunk == null) return;
+    String cleaned = clean(chunk);
+    if (cleaned.isEmpty()) return;
     final String display;
+    boolean trimmed = false;
     synchronized (transcript) {
-      transcript.append(clean(chunk));
-      if (transcript.length() > UiConfig.TERMINAL_SCROLLBACK_CHARS)
+      transcript.append(cleaned);
+      if (transcript.length() > UiConfig.TERMINAL_SCROLLBACK_CHARS) {
         transcript.delete(0, transcript.length() - UiConfig.TERMINAL_SCROLLBACK_CHARS);
+        trimmed = true;
+      }
       display = transcript.toString();
     }
+    boolean replace = trimmed;
+    boolean follow = stickToBottom;
     ui(() -> {
       if (output == null) return;
-      output.setText(display);
-      if (scroll != null) scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+      if (replace) output.setText(display); else output.append(cleaned);
+      if (follow && scroll != null) {
+        stickToBottom = true;
+        scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
+      }
     });
   }
 
