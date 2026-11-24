@@ -327,18 +327,18 @@ public final class BtKeyboardModule implements ModuleV1 {
 
   private void addKeyboardRows(LinearLayout parent) {
     String[][] rows = new String[][] {
-        {"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="},
+        {"Esc", "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="},
         {"Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"},
         {"Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"},
         {"Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "Enter"},
-        {"Ctrl", "Alt", "Space", "←", "↑", "↓", "→", "Alt", "Ctrl"}
+        {"Ctrl", "Win", "Alt", "Space", "←", "↑", "↓", "→", "Alt", "Ctrl"}
     };
     int[][] usages = new int[][] {
-        {53,30,31,32,33,34,35,36,37,38,39,45,46},
+        {41,53,30,31,32,33,34,35,36,37,38,39,45,46},
         {43,20,26,8,21,23,28,24,12,18,19,47,48},
         {57,4,22,7,9,10,11,13,14,15,51,52},
         {0,29,27,6,25,5,17,16,54,55,56,40},
-        {0,0,44,79,82,81,80,0,0}
+        {0,0,0,44,79,82,81,80,0,0}
     };
     for (int row = 0; row < rows.length; row++) {
       LinearLayout line = new LinearLayout(activity);
@@ -377,6 +377,9 @@ public final class BtKeyboardModule implements ModuleV1 {
             refreshModifiers();
             styleCyberKey(key, altOn);
           });
+        } else if (label.equals("Win")) {
+          key.setContentDescription("Windows Start menu");
+          key.setOnClickListener(v -> controller.sendKeystroke(HidReportDescriptor.MOD_GUI, 0));
         } else if (label.equals("Space")) {
           key.setOnClickListener(v -> controller.sendKeystroke(modifiersForUsage(usage), 44));
         } else if (usage == 0) {
@@ -416,7 +419,7 @@ public final class BtKeyboardModule implements ModuleV1 {
     button.setMinimumWidth(0);
     button.setPadding(dp(2), 0, dp(2), 0);
     android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
-    frame.setColor(0xff1a2238);
+    frame.setColor(0xff000000);
     frame.setCornerRadius(dp(6));
     frame.setStroke(dp(1), 0xff2a3555);
     button.setBackground(frame);
@@ -457,10 +460,10 @@ public final class BtKeyboardModule implements ModuleV1 {
   private void styleCyberKey(Button button, boolean active) {
     if (button == null) return;
     android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
-    frame.setColor(active ? 0xff00d4ff : 0xff1a2238);
+    frame.setColor(0xff000000);
     frame.setCornerRadius(dp(6));
     frame.setStroke(dp(1), active ? 0xff00d4ff : 0xff2a3555);
-    button.setTextColor(active ? 0xff000000 : 0xfff8fafc);
+    button.setTextColor(active ? 0xff00d4ff : 0xfff8fafc);
     button.setBackground(frame);
   }
 
