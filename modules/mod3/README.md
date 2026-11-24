@@ -18,11 +18,13 @@ If GOD is missing, Debian Shell explains what to install instead of downloading 
 - `+ TAB` starts another live PTY. Every tab keeps its own process, output, scroll position and command history.
 - Tap a tab to switch. Long-press a tab to close it.
 - `HIST` lists commands recorded in the current tab; selecting one sends it again.
-- The keypad is compact by design, leaving the reclaimed height to the terminal. Terminal output stays anchored while typing unless you scroll away from the bottom.
+- The keypad rows are 23% taller than 2.0.0 for more reliable touch input while still leaving the reclaimed screen area to the terminal. Terminal output stays anchored while typing unless you scroll away from the bottom.
 
 ## Input and clipboard
 
 The built-in keypad sends shell escapes for arrows, Backspace and Delete, so cursor editing works as it does in a terminal. Hardware keyboards map printable keys, Backspace, Delete, arrows, Home/End, Tab, Escape and Enter to the same shell input.
+
+Readline's erase replies are applied immediately to the terminal buffer. Backspace therefore removes the character on screen at once instead of waiting for Enter to redraw the prompt.
 
 - `COPY` copies the terminal selection, or the full transcript when nothing is selected.
 - `PASTE` injects clipboard text into the active shell.
@@ -31,4 +33,4 @@ The built-in keypad sends shell escapes for arrows, Backspace and Delete, so cur
 
 ## Compatibility
 
-Debian Shell 2.0.0 requires host oTraiL 0.4.34 (57) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.
+Debian Shell 2.0.1 requires host oTraiL 0.4.34 (57) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.

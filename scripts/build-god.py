@@ -151,7 +151,12 @@ def source(version="0.4.34"):
 
 def package(debian_only=False):
     state = json.loads((BUILD / 'prepared.json').read_text())
-    sourcezip, baseline = source('0.4.34')
+    if debian_only:
+        # Reuse the published source archive unchanged; only the Debian module is rebuilt.
+        sourcezip = RELEASES / 'otrail-source-0.4.34.zip'
+        baseline = ''
+    else:
+        sourcezip, baseline = source('0.4.34')
     prefix = 'https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'
 
     def artifact(path, **kwargs):
@@ -272,12 +277,12 @@ def package(debian_only=False):
     debian_manifest = dict(
         id='mod3',
         name='Debian Shell',
-        version='2.0.0',
+        version='2.0.1',
         api=1,
         minApp=57,
         minSdk=35,
         entry='in.otrail.extensions.mod1.DebianShell')
-    debian_package = RELEASES / 'DEBIAN-2.0.0.oTrail0'
+    debian_package = RELEASES / 'DEBIAN-2.0.1.oTrail0'
     with zipfile.ZipFile(debian_package, 'w', zipfile.ZIP_DEFLATED) as out:
         out.write(code / 'classes.dex', 'classes.dex')
         out.writestr('module.json', json.dumps(debian_manifest))
@@ -302,7 +307,7 @@ def package(debian_only=False):
         sha256=sha(debian_package),
         sizeBytes=debian_package.stat().st_size,
         **verifier,
-        notes='Shell management UI with multiple live tabs, preserved per-tab output and history, compact keypad, stable scrolling, hardware backspace/cursor mapping and copy/paste controls. Requires GOD 4.2.0 for the shared Debian image.')
+        notes='Shell management UI with multiple live tabs, preserved per-tab output and history, 23% taller keypad rows, immediate terminal Backspace/cursor redraw, stable scrolling and copy/paste controls. Requires GOD 4.2.0 for the shared Debian image.')
 
     versions = [debian_release] + ([] if debian_only else [god_release])
     chains = [] if debian_only else [metadata]

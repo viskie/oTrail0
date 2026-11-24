@@ -49,7 +49,7 @@ public final class DebianShell implements ModuleV1 {
   private static final int KEY_MOD = 1;
   private static final int KEY_ACTION = 2;
   private static final int KEY_ACTIVE = 3;
-  private static final int KEYBOARD_ROW_HEIGHT_DP = 20;
+  private static final int KEYBOARD_ROW_HEIGHT_DP = 25;
 
   private Activity activity;
   private Host host;
@@ -192,7 +192,7 @@ public final class DebianShell implements ModuleV1 {
     return row;
   }
 
-  /** Keys are deliberately short; the reclaimed height belongs to the terminal. */
+  /** Keys are deliberately short, but tall enough for reliable touch input. */
   private View keyboardPanel() {
     LinearLayout panel = new LinearLayout(activity);
     panel.setOrientation(LinearLayout.VERTICAL);
@@ -844,41 +844,29 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void append(Session session, String chunk) {
-    if (session == null || chunk == null) return;
-    String clean = clean(chunk);
-    if (clean.isEmpty()) return;
+    if (session == null || chunk == null || chunk.isEmpty()) return;
     String display;
-    boolean trimmed = false;
     synchronized (session.transcript) {
-      session.transcript.append(clean);
+      session.write(chunk);
       if (session.transcript.length() > UiConfig.TERMINAL_SCROLLBACK_CHARS) {
-        session.transcript.delete(0, session.transcript.length() - UiConfig.TERMINAL_SCROLLBACK_CHARS);
-        trimmed = true;
+        int removed = session.transcript.length() - UiConfig.TERMINAL_SCROLLBACK_CHARS;
+        session.transcript.delete(0, removed);
+        session.cursor = Math.max(0, session.cursor - removed);
       }
       display = session.transcript.toString();
     }
-    boolean replace = trimmed;
     boolean follow = session.stickToBottom;
+    int saved = session.savedScroll;
     ui(() -> {
       if (closed || active != session) return;
-      if (replace) {
-        terminal.setText(display);
-      } else {
-        terminal.append(clean);
-      }
+      terminal.setText(display);
       if (follow) {
         session.stickToBottom = true;
         scrollToEnd(session);
+      } else {
+        terminalScroll.post(() -> terminalScroll.scrollTo(0, saved));
       }
     });
-  }
-
-  private String clean(String value) {
-    String text = value
-        .replaceAll("\u001B\\][^\u0007]*(?:\u0007|\u001B\\\\)", "")
-        .replaceAll("\u001B\\[[0-?]*[ -/]*[@-~]", "")
-        .replaceAll("\u001B[@-_]", "");
-    return text.replace("\r\n", "\n").replace('\r', '\n');
   }
 
   private void scrollToEnd(Session session) {
@@ -1075,6 +1063,7 @@ public final class DebianShell implements ModuleV1 {
     private final int number;
     private final StringBuilder transcript = new StringBuilder();
     private final StringBuilder line = new StringBuilder();
+    private final StringBuilder pendingControl = new StringBuilder();
     private final List<String> history = new ArrayList<>();
     private Process process;
     private OutputStream input;
@@ -1082,10 +1071,156 @@ public final class DebianShell implements ModuleV1 {
     private boolean exited;
     private boolean launching;
     private boolean stickToBottom = true;
+    private boolean pendingCarriageReturn;
     private int savedScroll;
+    private int cursor;
 
     private Session(int number) {
       this.number = number;
+    }
+
+    /**
+     * Applies terminal output while keeping readline's erase/cursor replies visible.
+     * The old implementation stripped every escape sequence, so Backspace changed
+     * the shell's buffer but the line only redrew when Enter arrived.
+     */
+    private void write(String raw) {
+      String data = raw;
+      if (pendingControl.length() > 0) {
+        data = pendingControl + raw;
+        pendingControl.setLength(0);
+      }
+      if (pendingCarriageReturn) {
+        pendingCarriageReturn = false;
+        if (data.startsWith("\n")) {
+          data = data.substring(1);
+        } else {
+          cursor = lineStart(cursor);
+        }
+      }
+      int index = 0;
+      while (index < data.length()) {
+        char value = data.charAt(index);
+        if (value == '\u001b') {
+          int end = escapeEnd(data, index);
+          if (end < 0) {
+            pendingControl.append(data.substring(index));
+            break;
+          }
+          applyEscape(data.substring(index, end + 1));
+          index = end + 1;
+        } else if (value == '\b' || value == '\u007f') {
+          if (cursor > 0) {
+            transcript.deleteCharAt(cursor - 1);
+            cursor--;
+          }
+          index++;
+        } else if (value == '\r') {
+          if (index + 1 >= data.length()) {
+            pendingCarriageReturn = true;
+            index++;
+          } else if (data.charAt(index + 1) == '\n') {
+            index += 2;
+            transcript.insert(cursor++, '\n');
+          } else {
+            cursor = lineStart(cursor);
+            index++;
+          }
+        } else if (value == '\n') {
+          transcript.insert(cursor++, '\n');
+          index++;
+        } else {
+          int end = index;
+          while (end < data.length()) {
+            char next = data.charAt(end);
+            if (next == '\u001b' || next == '\b' || next == '\u007f'
+                || next == '\r' || next == '\n') break;
+            end++;
+          }
+          transcript.insert(cursor, data, index, end);
+          cursor += end - index;
+          index = end;
+        }
+      }
+      if (cursor < 0) cursor = 0;
+      if (cursor > transcript.length()) cursor = transcript.length();
+    }
+
+    private int lineStart(int position) {
+      int start = Math.max(0, Math.min(position, transcript.length()));
+      while (start > 0 && transcript.charAt(start - 1) != '\n') start--;
+      return start;
+    }
+
+    private int lineEnd(int position) {
+      int end = Math.max(0, Math.min(position, transcript.length()));
+      while (end < transcript.length() && transcript.charAt(end) != '\n') end++;
+      return end;
+    }
+
+    private int escapeEnd(String data, int start) {
+      if (start + 1 >= data.length()) return -1;
+      char kind = data.charAt(start + 1);
+      if (kind == '[') {
+        for (int index = start + 2; index < data.length(); index++) {
+          char value = data.charAt(index);
+          if (value >= 0x40 && value <= 0x7e) return index;
+        }
+        return -1;
+      }
+      if (kind == ']' || kind == 'P' || kind == '^' || kind == '_') {
+        for (int index = start + 2; index < data.length(); index++) {
+          char value = data.charAt(index);
+          if (value == '\u0007') return index;
+          if (value == '\u001b' && index + 1 < data.length()
+              && data.charAt(index + 1) == '\\') return index + 1;
+        }
+        return -1;
+      }
+      return start + 1;
+    }
+
+    private void applyEscape(String sequence) {
+      if (sequence.length() < 3 || sequence.charAt(1) != '[') return;
+      char command = sequence.charAt(sequence.length() - 1);
+      String parameters = sequence.substring(2, sequence.length() - 1);
+      int count = parameter(parameters, 0, 1);
+      int start = lineStart(cursor);
+      int end = lineEnd(cursor);
+      if (command == 'D') {
+        cursor = Math.max(start, cursor - Math.max(1, count));
+      } else if (command == 'C') {
+        cursor = Math.min(end, cursor + Math.max(1, count));
+      } else if (command == 'K') {
+        int mode = parameter(parameters, 0, 0);
+        if (mode == 0) {
+          transcript.delete(cursor, end);
+        } else if (mode == 1) {
+          transcript.delete(start, cursor);
+          cursor = start;
+        } else if (mode == 2) {
+          transcript.delete(start, end);
+          cursor = start;
+        }
+      } else if (command == 'P' || command == 'X') {
+        transcript.delete(cursor, Math.min(end, cursor + Math.max(1, count)));
+      } else if (command == 'J' && parameter(parameters, 0, 0) == 2) {
+        transcript.setLength(0);
+        cursor = 0;
+      } else if (command == 'H' || command == 'f') {
+        cursor = start;
+      }
+    }
+
+    private int parameter(String parameters, int index, int fallback) {
+      if (parameters.isEmpty()) return fallback;
+      String[] values = parameters.split(";", -1);
+      if (index >= values.length || values[index].isEmpty()) return fallback;
+      try {
+        return Integer.parseInt(values[index]);
+      } catch (NumberFormatException error) {
+        return fallback;
+      }
     }
   }
 
