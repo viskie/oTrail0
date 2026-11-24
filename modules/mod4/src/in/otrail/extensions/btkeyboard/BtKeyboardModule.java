@@ -41,6 +41,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   private Host host;
   private BluetoothHidController controller;
   private LinearLayout scanRoot;
+  private TextView keyboardConnection, keyboardStatus;
   private ScrollView keyboardScreen;
   private boolean keyboardVisible;
   private boolean keyboardDismissed;
@@ -117,16 +118,8 @@ public final class BtKeyboardModule implements ModuleV1 {
     keyboardRoot.setOrientation(LinearLayout.VERTICAL);
     keyboardRoot.setPadding(dp(10), dp(8), dp(10), dp(10));
     keyboardScreen.addView(keyboardRoot, new ScrollView.LayoutParams(-1, -2));
-    LinearLayout backRow = new LinearLayout(activity);
-    backRow.setGravity(Gravity.CENTER_VERTICAL);
-    Button back = chip("← BACK TO DEVICES", this::showScanScreen);
-    backRow.addView(back, new LinearLayout.LayoutParams(dp(150), dp(32)));
-    TextView keyboardTitle = label("FULL KEYBOARD / TRACKPAD", 13, UiConfig.MODULE_TEXT);
-    keyboardTitle.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, android.graphics.Typeface.BOLD));
-    backRow.addView(keyboardTitle, new LinearLayout.LayoutParams(0, -2, 1));
-    keyboardRoot.addView(backRow);
     addCyberKeyboard(keyboardRoot);
-    keyboardRoot.addView(mediaSection());
+
     container.addView(keyboardScreen, new android.widget.FrameLayout.LayoutParams(-1, -1));
 
     if (!permissionsGranted()) {
@@ -271,9 +264,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   private void addCyberKeyboard(LinearLayout parent) {
-    int trackpadHeight = Math.max(dp(170), Math.min(dp(240),
-        (int) (activity.getResources().getDisplayMetrics().heightPixels
-            / activity.getResources().getDisplayMetrics().density / 2)));
+
     parent.setPadding(dp(6), dp(4), dp(6), dp(4));
 
     LinearLayout topBar = new LinearLayout(activity);
@@ -282,8 +273,8 @@ public final class BtKeyboardModule implements ModuleV1 {
     TextView title = label("CYBER COMBO REMOTE", 16, UiConfig.MODULE_TEXT);
     title.setTypeface(android.graphics.Typeface.create(UiConfig.STATUS_FONT, android.graphics.Typeface.BOLD));
     topBar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-    TextView disconnected = label("• CONNECTED", 10, 0xff55ff55);
-    topBar.addView(disconnected, new LinearLayout.LayoutParams(-2, -2));
+    keyboardConnection = label("", 10, UiConfig.MODULE_TEXT);
+    topBar.addView(keyboardConnection, new LinearLayout.LayoutParams(-2, -2));
     Button devices = cyberKey("Devices", 0, false);
     devices.setTextColor(UiConfig.MODULE_ACCENT);
     devices.setOnClickListener(v -> showScanScreen());
@@ -295,37 +286,13 @@ public final class BtKeyboardModule implements ModuleV1 {
     trackpadRow.setGravity(Gravity.CENTER_VERTICAL);
     trackpadRow.setPadding(0, dp(4), 0, dp(4));
 
-    LinearLayout trackpadWrap = new LinearLayout(activity);
-    trackpadWrap.setOrientation(LinearLayout.VERTICAL);
-    trackpadWrap.setGravity(Gravity.CENTER);
-    trackpadWrap.setPadding(dp(8), dp(8), dp(8), dp(8));
-    android.graphics.drawable.GradientDrawable trackpadFrame = new android.graphics.drawable.GradientDrawable();
-    trackpadFrame.setColor(0xff111827);
-    trackpadFrame.setCornerRadius(dp(12));
-    trackpadFrame.setStroke(dp(1), 0xff00d4ff);
-    trackpadWrap.setBackground(trackpadFrame);
     TrackpadView trackpad = new TrackpadView();
-    trackpad.setMinimumHeight(trackpadHeight);
-    trackpadWrap.addView(trackpad, new LinearLayout.LayoutParams(-1, trackpadHeight));
-    trackpadRow.addView(trackpadWrap, new LinearLayout.LayoutParams(0, -2, 1));
-
-    LinearLayout sideCapsule = new LinearLayout(activity);
-    sideCapsule.setOrientation(LinearLayout.VERTICAL);
-    sideCapsule.setPadding(dp(4), dp(8), dp(4), dp(8));
-    android.graphics.drawable.GradientDrawable capsuleFrame = new android.graphics.drawable.GradientDrawable();
-    capsuleFrame.setColor(0xfff2e8cf);
-    capsuleFrame.setCornerRadius(dp(18));
-    sideCapsule.setBackground(capsuleFrame);
-    sideCapsule.addView(cyberSideButton("🔊", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_VOLUME_UP)), new LinearLayout.LayoutParams(dp(42), dp(42)));
-    sideCapsule.addView(cyberSideButton("−", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_VOLUME_DOWN)), new LinearLayout.LayoutParams(dp(42), dp(42)));
-    sideCapsule.addView(cyberSideButton("🔇", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_MUTE)), new LinearLayout.LayoutParams(dp(42), dp(42)));
-    sideCapsule.addView(cyberSideButton("⋯", () -> {}), new LinearLayout.LayoutParams(dp(42), dp(42)));
-    trackpadRow.addView(sideCapsule, new LinearLayout.LayoutParams(dp(58), trackpadHeight));
-    parent.addView(trackpadRow, new LinearLayout.LayoutParams(-1, -2));
+    trackpad.setBackground(panelBackground(0xff00d4ff));
+    trackpadRow.setMinimumHeight(dp(64));
 
     LinearLayout mouseRow = new LinearLayout(activity);
     mouseRow.setGravity(Gravity.CENTER_HORIZONTAL);
-    mouseRow.setPadding(0, 0, 0, dp(8));
+    mouseRow.setPadding(0, 0, dp(4), 0);
     Button left = cyberKey("L", 0, false);
     left.setOnClickListener(v -> controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0));
     styleCyberKey(left, false);
@@ -336,21 +303,25 @@ public final class BtKeyboardModule implements ModuleV1 {
     styleCyberKey(right, false);
     android.graphics.drawable.GradientDrawable rightFrame = (android.graphics.drawable.GradientDrawable) right.getBackground();
     rightFrame.setStroke(dp(1), 0xff9b59ff);
-    mouseRow.addView(left, new LinearLayout.LayoutParams(dp(150), dp(30)));
-    mouseRow.addView(right, new LinearLayout.LayoutParams(dp(150), dp(30)));
-    parent.addView(mouseRow, new LinearLayout.LayoutParams(-1, -2));
+    mouseRow.addView(left, new LinearLayout.LayoutParams(0, -1, 1));
+    mouseRow.addView(right, new LinearLayout.LayoutParams(0, -1, 1));
+    trackpadRow.addView(mouseRow, new LinearLayout.LayoutParams(0, -1, 2));
+    trackpadRow.addView(trackpad, new LinearLayout.LayoutParams(0, -1, 3));
+    parent.addView(trackpadRow, new LinearLayout.LayoutParams(-1, dp(64), 1));
 
     addKeyboardRows(parent);
 
+    keyboardStatus = label("", 10, 0xffffff00);
+    parent.addView(keyboardStatus);
     LinearLayout mediaRow = new LinearLayout(activity);
     mediaRow.setGravity(Gravity.CENTER_HORIZONTAL);
     mediaRow.setPadding(0, dp(4), 0, dp(2));
-    mediaRow.addView(cyberMedia("⏮", HidReportDescriptor.MEDIA_PREVIOUS), new LinearLayout.LayoutParams(dp(48), dp(30)));
-    mediaRow.addView(cyberMedia("⏯", HidReportDescriptor.MEDIA_PLAY_PAUSE), new LinearLayout.LayoutParams(dp(48), dp(30)));
-    mediaRow.addView(cyberMedia("⏭", HidReportDescriptor.MEDIA_NEXT), new LinearLayout.LayoutParams(dp(48), dp(30)));
-    mediaRow.addView(cyberMedia("🔉", HidReportDescriptor.MEDIA_VOLUME_DOWN), new LinearLayout.LayoutParams(dp(48), dp(30)));
-    mediaRow.addView(cyberMedia("🔊", HidReportDescriptor.MEDIA_VOLUME_UP), new LinearLayout.LayoutParams(dp(48), dp(30)));
-    mediaRow.addView(cyberMedia("🔇", HidReportDescriptor.MEDIA_MUTE), new LinearLayout.LayoutParams(dp(48), dp(30)));
+    mediaRow.addView(cyberMedia("⏮", HidReportDescriptor.MEDIA_PREVIOUS), new LinearLayout.LayoutParams(0, dp(30), 1));
+    mediaRow.addView(cyberMedia("⏯", HidReportDescriptor.MEDIA_PLAY_PAUSE), new LinearLayout.LayoutParams(0, dp(30), 1));
+    mediaRow.addView(cyberMedia("⏭", HidReportDescriptor.MEDIA_NEXT), new LinearLayout.LayoutParams(0, dp(30), 1));
+    mediaRow.addView(cyberMedia("🔉", HidReportDescriptor.MEDIA_VOLUME_DOWN), new LinearLayout.LayoutParams(0, dp(30), 1));
+    mediaRow.addView(cyberMedia("🔊", HidReportDescriptor.MEDIA_VOLUME_UP), new LinearLayout.LayoutParams(0, dp(30), 1));
+    mediaRow.addView(cyberMedia("🔇", HidReportDescriptor.MEDIA_MUTE), new LinearLayout.LayoutParams(0, dp(30), 1));
     parent.addView(mediaRow, new LinearLayout.LayoutParams(-1, -2));
   }
 
@@ -418,7 +389,9 @@ public final class BtKeyboardModule implements ModuleV1 {
           });
         }
         styleCyberKey(key, false);
-        line.addView(key, new LinearLayout.LayoutParams(0, dp(30), weight));
+        LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, dp(30), weight);
+        cell.setMargins(dp(1), 0, dp(1), 0);
+        line.addView(key, cell);
       }
       parent.addView(line, new LinearLayout.LayoutParams(-1, -2));
     }
@@ -807,6 +780,8 @@ public final class BtKeyboardModule implements ModuleV1 {
     activity.runOnUiThread(() -> {
       if (controller == null) return;
       boolean connected = controller.isConnected();
+      keyboardConnection.setText(connected ? "● CONNECTED" : "○ DISCONNECTED");
+      keyboardConnection.setTextColor(connected ? 0xff55ff55 : 0xffff3838);
       if (connection != null) {
         connection.setText(connected
             ? "Live host · " + controller.connectedName()
@@ -831,6 +806,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   private void showStatus(String message, boolean error) {
+    if (keyboardStatus != null) keyboardStatus.post(() -> keyboardStatus.setText(message));
     if (activity == null) return;
     activity.runOnUiThread(() -> {
       if (status == null) return;
