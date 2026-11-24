@@ -504,7 +504,7 @@ final class BluetoothHidController {
       status("Connect a host before typing.", true);
       return;
     }
-    if (usage <= 0 || usage > 255) return;
+    if (usage < 0 || usage > 255 || (usage == 0 && modifier == 0)) return;
     byte[] down = {(byte) modifier, 0, (byte) usage, 0, 0, 0, 0, 0};
     byte[] up = new byte[8];
     try {
