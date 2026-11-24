@@ -309,7 +309,10 @@ public final class BtKeyboardModule implements ModuleV1 {
     trackpadRow.addView(trackpad, new LinearLayout.LayoutParams(0, -1, 3));
     parent.addView(trackpadRow, new LinearLayout.LayoutParams(-1, dp(64), 1));
 
-    addKeyboardRows(parent);
+    LinearLayout keys = new LinearLayout(activity);
+    keys.setOrientation(LinearLayout.VERTICAL);
+    parent.addView(keys);
+    addKeyboardRows(keys, "ABC");
 
     keyboardStatus = label("", 10, 0xffffff00);
     parent.addView(keyboardStatus);
@@ -325,21 +328,44 @@ public final class BtKeyboardModule implements ModuleV1 {
     parent.addView(mediaRow, new LinearLayout.LayoutParams(-1, -2));
   }
 
-  private void addKeyboardRows(LinearLayout parent) {
+  private void addKeyboardRows(LinearLayout parent, String layer) {
+    parent.removeAllViews();
     String[][] rows = new String[][] {
-        {"Esc", "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="},
+        {"Esc", "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "⌫"},
         {"Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]"},
         {"Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"},
         {"Shift", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "Enter"},
-        {"Ctrl", "Win", "Alt", "Space", "←", "↑", "↓", "→", "Alt", "Ctrl"}
+        {"Ctrl", "Win", "Alt", "Space", "←", "↑", "↓", "→", "?123", "Fn"}
     };
     int[][] usages = new int[][] {
-        {41,53,30,31,32,33,34,35,36,37,38,39,45,46},
+        {41,53,30,31,32,33,34,35,36,37,38,39,45,46,42},
         {43,20,26,8,21,23,28,24,12,18,19,47,48},
         {57,4,22,7,9,10,11,13,14,15,51,52},
         {0,29,27,6,25,5,17,16,54,55,56,40},
-        {0,0,0,44,79,82,81,80,0,0}
+        {0,0,0,44,80,82,81,79,0,0}
     };
+    if ("?123".equals(layer)) {
+      rows = new String[][] {
+          {"1","2","3","4","5","6","7","8","9","0","⌫"},
+          {"!","@","#","$","%","^","&","*","(",")"},
+          {"~","`","_","-","+","=","[","]","{","}","|","\\"},
+          {"<",">",",",".","/", "?",":",";","'","\"","Enter"},
+          {"Ctrl","Alt","Space","←","↑","↓","→","ABC","Fn"}
+      };
+      usages = new int[][] {new int[11],new int[10],new int[12],new int[11],{0,0,44,80,82,81,79,0,0}};
+      usages[0][10] = 42;
+      usages[3][10] = 40;
+    } else if ("Fn".equals(layer)) {
+      rows = new String[][] {
+          {"Esc","F1","F2","F3","F4","F5","F6"},
+          {"Tab","F7","F8","F9","F10","F11","F12"},
+          {"Insert","Home","PgUp","Delete","End","PgDn","⌫"},
+          {"PrtSc","Scroll Lock","Pause","Menu","Enter"},
+          {"Ctrl","Win","Alt","Shift","←","↑","↓","→","ABC","?123"}
+      };
+      usages = new int[][] {{41,58,59,60,61,62,63},{43,64,65,66,67,68,69},
+          {73,74,75,76,77,78,42},{70,71,72,101,40},{0,0,0,0,80,82,81,79,0,0}};
+    }
     for (int row = 0; row < rows.length; row++) {
       LinearLayout line = new LinearLayout(activity);
       line.setGravity(Gravity.CENTER_VERTICAL);
@@ -353,7 +379,12 @@ public final class BtKeyboardModule implements ModuleV1 {
           weight = 1.35f;
         }
         Button key = cyberKey(label, usage, true);
-        if (label.equals("Caps")) {
+        if (label.equals("ABC") || label.equals("?123") || label.equals("Fn")) {
+          key.setOnClickListener(v -> addKeyboardRows(parent, label));
+        } else if ("?123".equals(layer) && row < 4 && usage == 0) {
+          BluetoothHidController.KeyStroke stroke = BluetoothHidController.KeyStroke.forCharacter(label.charAt(0));
+          key.setOnClickListener(v -> controller.sendKeystroke((modifiers() & ~HidReportDescriptor.MOD_SHIFT) | stroke.modifier, stroke.usage));
+        } else if (label.equals("Caps")) {
           key.setOnClickListener(v -> {
             capsOn = !capsOn;
             styleCyberKey(key, capsOn);
@@ -391,7 +422,8 @@ public final class BtKeyboardModule implements ModuleV1 {
             controller.sendKeystroke(mods, finalUsage);
           });
         }
-        styleCyberKey(key, false);
+        styleCyberKey(key, (label.equals("Ctrl") && ctrlOn) || (label.equals("Alt") && altOn)
+            || (label.equals("Shift") && shiftOn) || (label.equals("Caps") && capsOn));
         LinearLayout.LayoutParams cell = new LinearLayout.LayoutParams(0, dp(30), weight);
         cell.setMargins(dp(1), 0, dp(1), 0);
         line.addView(key, cell);
@@ -401,9 +433,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   private int modifiersForUsage(int usage) {
-    int mods = modifiers();
-    if (capsOn && usage >= 4 && usage <= 29) mods ^= HidReportDescriptor.MOD_SHIFT;
-    return mods;
+    return modifiers();
   }
 
   private Button cyberKey(String text, int usage, boolean keyboard) {

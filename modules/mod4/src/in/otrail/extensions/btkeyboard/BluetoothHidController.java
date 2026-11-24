@@ -673,7 +673,7 @@ final class BluetoothHidController {
     }
   }
 
-  private static final class KeyStroke {
+  static final class KeyStroke {
     final int modifier;
     final int usage;
 
