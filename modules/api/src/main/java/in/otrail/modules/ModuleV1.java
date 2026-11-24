@@ -36,6 +36,8 @@ public interface ModuleV1 {
   }
   String id();
   View create(Activity activity,Host host) throws Exception;
+  /** Return true if the module consumed the back press (for example closing an internal full-screen view). */
+  default boolean backPressed() { return false; }
   interface Progress {
     void update(String phase,int percent,String log);
     boolean cancelled();

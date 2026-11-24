@@ -1,8 +1,8 @@
 {
-  "versionCode": 58,
-  "versionName": "0.4.35",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.35-debug.apk",
-  "sha256": "ea3ec4fbd302438d406a57b5f4fc8a5122cb7a5372bbe212eae86158b9dbb860",
-  "sizeBytes": 42189815,
-  "notes": "Adds the Logger module and host-side module event/crash logging. Logger captures module install, activation, load, lifecycle, task, failure and uncaught-crash events with searchable UI and text export."
+  "versionCode": 59,
+  "versionName": "0.4.36",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.36-debug.apk",
+  "sha256": "a1a0d23ad98e52fa33ac42f0af81344a259aba1d4a03359ce0aa259d9035d49c",
+  "sizeBytes": 41411276,
+  "notes": "Adds a persistent floating back button to module and module-manager screens, plus BT full-screen back handling."
 }

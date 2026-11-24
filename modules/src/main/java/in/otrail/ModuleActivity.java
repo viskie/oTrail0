@@ -10,7 +10,7 @@ import in.otrail.modules.ModuleV1;
 import java.io.*;
 
 public final class ModuleActivity extends Activity implements ModuleV1.Host {
-  private ModuleV1 module;private ModuleStore store;private SignedModuleCatalog.Release release;
+  private ModuleV1 module;private ModuleStore store;private SignedModuleCatalog.Release release;private View floatingBack;
   @Override public void onCreate(Bundle state){super.onCreate(state);store=new ModuleStore(this);
     try{
       String id=getIntent().getStringExtra("id"),version=store.active(id);
@@ -19,6 +19,7 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
       log("open", "version " + release.version());
       module=store.load(release);View view=module.create(this,this);setContentView(view);
       log("create.complete", "");
+      addFloatingBack();
     }catch(Exception|LinkageError e){failed(e);}
   }
   private void failed(Throwable e){
@@ -86,7 +87,37 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
   @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);log("activity.result","request "+request+" result "+result);if(module!=null)try{module.activityResult(request,result,data);}catch(RuntimeException e){failed(e);}}
   @Override protected void onResume(){super.onResume();log("resume","");if(module!=null)try{module.resume();}catch(RuntimeException e){failed(e);}}
   @Override protected void onPause(){log("pause","");if(module!=null)try{module.pause();}catch(RuntimeException e){CrashReports.save(this,"Module pause",e);}super.onPause();}
-  @Override protected void onDestroy(){log("close","");if(module!=null)try{module.close();}catch(RuntimeException e){CrashReports.save(this,"Module close",e);}super.onDestroy();}
+  @Override public void onBackPressed(){if(module!=null&&module.backPressed())return;super.onBackPressed();}
+  @Override protected void onDestroy(){log("close","");if(module!=null)try{module.close();}catch(RuntimeException e){CrashReports.save(this,"Module close",e);}removeFloatingBack();super.onDestroy();}
+  private void addFloatingBack(){
+    View decor=getWindow().getDecorView();
+    if(!(decor instanceof android.view.ViewGroup))return;
+    if(floatingBack!=null)return;
+    android.widget.Button button=new android.widget.Button(this);
+    button.setText("←");
+    button.setTextSize(14);
+    button.setTextColor(0xffffffff);
+    button.setAllCaps(false);
+    android.graphics.drawable.GradientDrawable frame=new android.graphics.drawable.GradientDrawable();
+    frame.setColor(0xaa111111);
+    frame.setCornerRadius(dp(21));
+    button.setBackground(frame);
+    button.setElevation(dp(6));
+    button.setOnClickListener(v->onBackPressed());
+    android.widget.FrameLayout.LayoutParams params=new android.widget.FrameLayout.LayoutParams(dp(42),dp(42));
+    params.gravity=android.view.Gravity.TOP|android.view.Gravity.START;
+    params.leftMargin=dp(8);params.topMargin=dp(8);
+    button.setLayoutParams(params);
+    ((android.view.ViewGroup)decor).addView(button);
+    floatingBack=button;
+  }
+  private void removeFloatingBack(){
+    if(floatingBack==null)return;
+    View parent=(View)floatingBack.getParent();
+    if(parent instanceof android.view.ViewGroup)((android.view.ViewGroup)parent).removeView(floatingBack);
+    floatingBack=null;
+  }
+  private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
   @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus){getWindow().setDecorFitsSystemWindows(false);android.view.WindowInsetsController controller=getWindow().getDecorView().getWindowInsetsController();if(controller!=null){controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);controller.hide(android.view.WindowInsets.Type.systemBars());}}}
 
 }

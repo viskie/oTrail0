@@ -287,12 +287,12 @@ public final class BtKeyboardModule implements ModuleV1 {
     side.addView(right, new LinearLayout.LayoutParams(-1, 0, 1));
     side.addView(scrollUp, new LinearLayout.LayoutParams(-1, 0, 1));
     side.addView(scrollDown, new LinearLayout.LayoutParams(-1, 0, 1));
-    top.addView(side, new LinearLayout.LayoutParams(sideWidth, dp(286)));
+    top.addView(side, new LinearLayout.LayoutParams(sideWidth, dp(360)));
 
     TrackpadView trackpad = new TrackpadView();
-    trackpad.setMinimumHeight(dp(286));
-    top.addView(trackpad, new LinearLayout.LayoutParams(0, dp(286), 1));
-    parent.addView(top, new LinearLayout.LayoutParams(-1, dp(286)));
+    trackpad.setMinimumHeight(dp(360));
+    top.addView(trackpad, new LinearLayout.LayoutParams(0, dp(360), 1));
+    parent.addView(top, new LinearLayout.LayoutParams(-1, dp(360)));
 
     LinearLayout modifiers = new LinearLayout(activity);
     modifiers.setGravity(Gravity.CENTER_VERTICAL);
@@ -556,6 +556,15 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   @Override
+  public boolean backPressed() {
+    if (keyboardVisible) {
+      showScanScreen();
+      return true;
+    }
+    return false;
+  }
+
+  @Override
   public void close() {
     if (controller != null) controller.close();
     controller = null;
@@ -801,8 +810,8 @@ public final class BtKeyboardModule implements ModuleV1 {
           float dy = event.getY() - lastY;
           lastX = event.getX();
           lastY = event.getY();
-          remainderX += dx / 3f;
-          remainderY += dy / 3f;
+          remainderX += dx * 0.633333f;
+          remainderY += dy * 0.633333f;
           int moveX = (int) remainderX;
           int moveY = (int) remainderY;
           remainderX -= moveX;

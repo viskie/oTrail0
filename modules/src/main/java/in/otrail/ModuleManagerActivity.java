@@ -20,7 +20,7 @@ public final class ModuleManagerActivity extends Activity {
     root.addView(button("Refresh versions from GitHub",()->refresh(true)));
     status=label("Loading installed modules…",12);root.addView(status);progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);root.addView(progress);
     ScrollView scroll=new ScrollView(this);cards=new LinearLayout(this);cards.setOrientation(LinearLayout.VERTICAL);scroll.addView(cards);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
-    setContentView(root);refresh(false);
+    setContentView(root);addFloatingBack();refresh(false);
   }
   private TextView label(String text,int size){TextView v=new TextView(this);AppStyle.text(v);v.setTextSize(size);v.setTextColor(UiConfig.INK);v.setText(text);v.setPadding(8,8,8,8);return v;}
   private Button button(String text,Runnable action){Button b=new Button(this);b.setText(text);AppStyle.button(b);b.setOnClickListener(v->action.run());return b;}
@@ -107,7 +107,36 @@ public final class ModuleManagerActivity extends Activity {
   private void open(SignedModuleCatalog.Release r){ModuleLog.event(r.id(),"launcher.open",r.version());startActivity(new Intent(this,ModuleActivity.class).putExtra("id",r.id()));}
   private void error(Exception e){ui(()->{status.setText("Module operation failed: "+e.getMessage());progress.setProgress(0);});ModuleLog.event("manager","failure",e.getClass().getSimpleName()+": "+e.getMessage());CrashReports.save(this,"Module manager",e);}
   @Override protected void onResume(){super.onResume();if(store!=null)refresh(false);}
-  @Override protected void onDestroy(){worker.shutdownNow();super.onDestroy();}
+  @Override protected void onDestroy(){removeFloatingBack();worker.shutdownNow();super.onDestroy();}
+  private View floatingBack;
+  private void addFloatingBack(){
+    View decor=getWindow().getDecorView();
+    if(!(decor instanceof ViewGroup))return;
+    if(floatingBack!=null)return;
+    Button button=new Button(this);
+    button.setText("←");
+    button.setTextSize(14);
+    button.setTextColor(0xffffffff);
+    button.setAllCaps(false);
+    android.graphics.drawable.GradientDrawable frame=new android.graphics.drawable.GradientDrawable();
+    frame.setColor(0xaa111111);
+    frame.setCornerRadius(dp(21));
+    button.setBackground(frame);
+    button.setElevation(dp(6));
+    button.setOnClickListener(v->finish());
+    android.widget.FrameLayout.LayoutParams params=new android.widget.FrameLayout.LayoutParams(dp(42),dp(42));
+    params.gravity=android.view.Gravity.TOP|android.view.Gravity.START;
+    params.leftMargin=dp(8);params.topMargin=dp(8);
+    button.setLayoutParams(params);
+    ((ViewGroup)decor).addView(button);
+    floatingBack=button;
+  }
+  private void removeFloatingBack(){
+    if(floatingBack==null)return;
+    View parent=(View)floatingBack.getParent();
+    if(parent instanceof ViewGroup)((ViewGroup)parent).removeView(floatingBack);
+    floatingBack=null;
+  }
   @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus){getWindow().setDecorFitsSystemWindows(false);android.view.WindowInsetsController controller=getWindow().getDecorView().getWindowInsetsController();if(controller!=null){controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);controller.hide(android.view.WindowInsets.Type.systemBars());}}}
 
 }
