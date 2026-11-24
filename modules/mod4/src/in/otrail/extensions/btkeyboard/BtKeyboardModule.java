@@ -228,9 +228,9 @@ public final class BtKeyboardModule implements ModuleV1 {
     textInput.setSingleLine(true);
     textInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
     textInput.setImeOptions(EditorInfo.IME_ACTION_SEND);
-    textRow.addView(textInput, new LinearLayout.LayoutParams(0, dp(34), 1));
+    textRow.addView(textInput, new LinearLayout.LayoutParams(0, dp(30), 1));
     Button send = chip("SEND", this::sendText);
-    textRow.addView(send, new LinearLayout.LayoutParams(dp(64), dp(34)));
+    textRow.addView(send, new LinearLayout.LayoutParams(dp(64), dp(30)));
     panel.addView(textRow, new LinearLayout.LayoutParams(-1, -2));
     textInput.setOnEditorActionListener((view, action, event) -> {
       if (action == EditorInfo.IME_ACTION_SEND) {
@@ -271,6 +271,9 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   private void addCyberKeyboard(LinearLayout parent) {
+    int trackpadHeight = Math.max(dp(170), Math.min(dp(240),
+        (int) (activity.getResources().getDisplayMetrics().heightPixels
+            / activity.getResources().getDisplayMetrics().density / 2)));
     parent.setPadding(dp(6), dp(4), dp(6), dp(4));
 
     LinearLayout topBar = new LinearLayout(activity);
@@ -297,13 +300,13 @@ public final class BtKeyboardModule implements ModuleV1 {
     trackpadWrap.setGravity(Gravity.CENTER);
     trackpadWrap.setPadding(dp(8), dp(8), dp(8), dp(8));
     android.graphics.drawable.GradientDrawable trackpadFrame = new android.graphics.drawable.GradientDrawable();
-    trackpadFrame.setColor(UiConfig.MODULE_SURFACE);
+    trackpadFrame.setColor(0xff111827);
     trackpadFrame.setCornerRadius(dp(12));
-    trackpadFrame.setStroke(dp(1), UiConfig.MODULE_ACCENT);
+    trackpadFrame.setStroke(dp(1), 0xff00d4ff);
     trackpadWrap.setBackground(trackpadFrame);
     TrackpadView trackpad = new TrackpadView();
-    trackpad.setMinimumHeight(dp(250));
-    trackpadWrap.addView(trackpad, new LinearLayout.LayoutParams(-1, dp(250)));
+    trackpad.setMinimumHeight(trackpadHeight);
+    trackpadWrap.addView(trackpad, new LinearLayout.LayoutParams(-1, trackpadHeight));
     trackpadRow.addView(trackpadWrap, new LinearLayout.LayoutParams(0, -2, 1));
 
     LinearLayout sideCapsule = new LinearLayout(activity);
@@ -317,7 +320,7 @@ public final class BtKeyboardModule implements ModuleV1 {
     sideCapsule.addView(cyberSideButton("−", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_VOLUME_DOWN)), new LinearLayout.LayoutParams(dp(42), dp(42)));
     sideCapsule.addView(cyberSideButton("🔇", () -> controller.sendConsumer(HidReportDescriptor.MEDIA_MUTE)), new LinearLayout.LayoutParams(dp(42), dp(42)));
     sideCapsule.addView(cyberSideButton("⋯", () -> {}), new LinearLayout.LayoutParams(dp(42), dp(42)));
-    trackpadRow.addView(sideCapsule, new LinearLayout.LayoutParams(dp(58), dp(250)));
+    trackpadRow.addView(sideCapsule, new LinearLayout.LayoutParams(dp(58), trackpadHeight));
     parent.addView(trackpadRow, new LinearLayout.LayoutParams(-1, -2));
 
     LinearLayout mouseRow = new LinearLayout(activity);
@@ -325,10 +328,16 @@ public final class BtKeyboardModule implements ModuleV1 {
     mouseRow.setPadding(0, 0, 0, dp(8));
     Button left = cyberKey("L", 0, false);
     left.setOnClickListener(v -> controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0));
+    styleCyberKey(left, false);
+    android.graphics.drawable.GradientDrawable leftFrame = (android.graphics.drawable.GradientDrawable) left.getBackground();
+    leftFrame.setStroke(dp(1), 0xff9b59ff);
     Button right = cyberKey("R", 0, false);
     right.setOnClickListener(v -> controller.sendMouse(HidReportDescriptor.MOUSE_RIGHT, 0, 0, 0));
-    mouseRow.addView(left, new LinearLayout.LayoutParams(dp(150), dp(34)));
-    mouseRow.addView(right, new LinearLayout.LayoutParams(dp(150), dp(34)));
+    styleCyberKey(right, false);
+    android.graphics.drawable.GradientDrawable rightFrame = (android.graphics.drawable.GradientDrawable) right.getBackground();
+    rightFrame.setStroke(dp(1), 0xff9b59ff);
+    mouseRow.addView(left, new LinearLayout.LayoutParams(dp(150), dp(30)));
+    mouseRow.addView(right, new LinearLayout.LayoutParams(dp(150), dp(30)));
     parent.addView(mouseRow, new LinearLayout.LayoutParams(-1, -2));
 
     addKeyboardRows(parent);
@@ -336,12 +345,12 @@ public final class BtKeyboardModule implements ModuleV1 {
     LinearLayout mediaRow = new LinearLayout(activity);
     mediaRow.setGravity(Gravity.CENTER_HORIZONTAL);
     mediaRow.setPadding(0, dp(4), 0, dp(2));
-    mediaRow.addView(cyberMedia("⏮", HidReportDescriptor.MEDIA_PREVIOUS), new LinearLayout.LayoutParams(dp(48), dp(34)));
-    mediaRow.addView(cyberMedia("⏯", HidReportDescriptor.MEDIA_PLAY_PAUSE), new LinearLayout.LayoutParams(dp(48), dp(34)));
-    mediaRow.addView(cyberMedia("⏭", HidReportDescriptor.MEDIA_NEXT), new LinearLayout.LayoutParams(dp(48), dp(34)));
-    mediaRow.addView(cyberMedia("🔉", HidReportDescriptor.MEDIA_VOLUME_DOWN), new LinearLayout.LayoutParams(dp(48), dp(34)));
-    mediaRow.addView(cyberMedia("🔊", HidReportDescriptor.MEDIA_VOLUME_UP), new LinearLayout.LayoutParams(dp(48), dp(34)));
-    mediaRow.addView(cyberMedia("🔇", HidReportDescriptor.MEDIA_MUTE), new LinearLayout.LayoutParams(dp(48), dp(34)));
+    mediaRow.addView(cyberMedia("⏮", HidReportDescriptor.MEDIA_PREVIOUS), new LinearLayout.LayoutParams(dp(48), dp(30)));
+    mediaRow.addView(cyberMedia("⏯", HidReportDescriptor.MEDIA_PLAY_PAUSE), new LinearLayout.LayoutParams(dp(48), dp(30)));
+    mediaRow.addView(cyberMedia("⏭", HidReportDescriptor.MEDIA_NEXT), new LinearLayout.LayoutParams(dp(48), dp(30)));
+    mediaRow.addView(cyberMedia("🔉", HidReportDescriptor.MEDIA_VOLUME_DOWN), new LinearLayout.LayoutParams(dp(48), dp(30)));
+    mediaRow.addView(cyberMedia("🔊", HidReportDescriptor.MEDIA_VOLUME_UP), new LinearLayout.LayoutParams(dp(48), dp(30)));
+    mediaRow.addView(cyberMedia("🔇", HidReportDescriptor.MEDIA_MUTE), new LinearLayout.LayoutParams(dp(48), dp(30)));
     parent.addView(mediaRow, new LinearLayout.LayoutParams(-1, -2));
   }
 
@@ -409,7 +418,7 @@ public final class BtKeyboardModule implements ModuleV1 {
           });
         }
         styleCyberKey(key, false);
-        line.addView(key, new LinearLayout.LayoutParams(0, dp(34), weight));
+        line.addView(key, new LinearLayout.LayoutParams(0, dp(30), weight));
       }
       parent.addView(line, new LinearLayout.LayoutParams(-1, -2));
     }
@@ -434,16 +443,20 @@ public final class BtKeyboardModule implements ModuleV1 {
     button.setMinimumWidth(0);
     button.setPadding(dp(2), 0, dp(2), 0);
     android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
-    frame.setColor(UiConfig.MODULE_SURFACE_ALT);
+    frame.setColor(0xff1a2238);
     frame.setCornerRadius(dp(6));
-    frame.setStroke(dp(1), UiConfig.MODULE_DIVIDER);
+    frame.setStroke(dp(1), 0xff2a3555);
     button.setBackground(frame);
+    button.setTextColor(0xfff8fafc);
     return button;
   }
 
   private Button cyberMedia(String text, int usage) {
     Button button = cyberKey(text, usage, false);
     button.setOnClickListener(v -> controller.sendConsumer(usage));
+    android.graphics.drawable.GradientDrawable frame =
+        (android.graphics.drawable.GradientDrawable) button.getBackground();
+    frame.setStroke(dp(1), 0xff00d4ff);
     return button;
   }
 
@@ -471,10 +484,10 @@ public final class BtKeyboardModule implements ModuleV1 {
   private void styleCyberKey(Button button, boolean active) {
     if (button == null) return;
     android.graphics.drawable.GradientDrawable frame = new android.graphics.drawable.GradientDrawable();
-    frame.setColor(active ? UiConfig.MODULE_ACCENT : UiConfig.MODULE_SURFACE_ALT);
+    frame.setColor(active ? 0xff00d4ff : 0xff1a2238);
     frame.setCornerRadius(dp(6));
-    frame.setStroke(dp(1), active ? UiConfig.MODULE_ACCENT : UiConfig.MODULE_DIVIDER);
-    button.setTextColor(active ? 0xff000000 : UiConfig.MODULE_TEXT);
+    frame.setStroke(dp(1), active ? 0xff00d4ff : 0xff2a3555);
+    button.setTextColor(active ? 0xff000000 : 0xfff8fafc);
     button.setBackground(frame);
   }
 
@@ -549,10 +562,10 @@ public final class BtKeyboardModule implements ModuleV1 {
   private void styleModifier(Button button, boolean active) {
     if (button == null) return;
     GradientDrawable frame = new GradientDrawable();
-    frame.setColor(active ? UiConfig.MODULE_ACCENT : UiConfig.MODULE_SURFACE_ALT);
+    frame.setColor(active ? 0xff00d4ff : 0xff1a2238);
     frame.setCornerRadius(dp(6));
-    frame.setStroke(dp(1), active ? UiConfig.MODULE_ACCENT : UiConfig.MODULE_DIVIDER);
-    button.setTextColor(active ? 0xff000000 : UiConfig.MODULE_TEXT);
+    frame.setStroke(dp(1), active ? 0xff00d4ff : 0xff2a3555);
+    button.setTextColor(active ? 0xff000000 : 0xfff8fafc);
     button.setBackground(frame);
   }
 
