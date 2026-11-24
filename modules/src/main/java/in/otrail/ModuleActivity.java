@@ -16,10 +16,13 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
       String id=getIntent().getStringExtra("id"),version=store.active(id);
       for(SignedModuleCatalog.Release r:store.catalog(false))if(r.id().equals(id)&&r.version().equals(version))release=r;
       if(release==null)throw new IOException("Activate a module version first");
+      log("open", "version " + release.version());
       module=store.load(release);View view=module.create(this,this);setContentView(view);
+      log("create.complete", "");
     }catch(Exception|LinkageError e){failed(e);}
   }
   private void failed(Throwable e){
+    log("failure", e.getClass().getSimpleName() + ": " + e.getMessage());
     CrashReports.save(this,"Downloaded module",e);Toast.makeText(this,"Module stopped: "+e.getMessage(),Toast.LENGTH_LONG).show();
     if(release!=null){try{store.rollback(release.id());}catch(Exception ignored){store.deactivate(release.id());}}finish();
   }
@@ -27,7 +30,7 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
   @Override public String photoContext(long time)throws Exception{photoAccess();try(TrailDb db=new TrailDb(this)){return PhotoIndex.context(db,time).toString();}}
   @Override public void savePhoto(String json)throws Exception{photoAccess();try(TrailDb db=new TrailDb(this)){PhotoIndex.save(db,json);}}
   @Override public String photos(long stop)throws Exception{photoAccess();try(TrailDb db=new TrailDb(this)){return PhotoIndex.list(db,stop);}}
-  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){super.onRequestPermissionsResult(request,permissions,grants);if(module!=null)try{module.permissionResult(request,permissions,grants);}catch(RuntimeException e){failed(e);}}
+  @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){super.onRequestPermissionsResult(request,permissions,grants);log("permission.result","request "+request);if(module!=null)try{module.permissionResult(request,permissions,grants);}catch(RuntimeException e){failed(e);}}
   @Override public File packageFile(){return store.file(release);}
   @Override public File privateDirectory(){File f=new File(getFilesDir(),"modules/data/"+release.id());f.mkdirs();return f;}
   @Override public String taskStatus(){return ModuleTaskService.readStatus(this,release.id());}
@@ -38,8 +41,11 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
     if(!found)throw new IOException("Toolchain is not in the verified catalog");
     android.util.AtomicFile atomic=new android.util.AtomicFile(new File(privateDirectory(),"selected-toolchain"));FileOutputStream out=atomic.startWrite();try{out.write(id.getBytes(java.nio.charset.StandardCharsets.UTF_8));atomic.finishWrite(out);}catch(Exception e){atomic.failWrite(out);throw e;}
   }
-  @Override public void cancelTask(){startService(new Intent(this,ModuleTaskService.class).setAction("cancel"));}
+  @Override public void cancelTask(){log("task.cancel","");startService(new Intent(this,ModuleTaskService.class).setAction("cancel"));}
   @Override public void startTask(String request) throws Exception {
+    String action="";
+    try{action=new org.json.JSONObject(request).optString("action","");}catch(Exception ignored){}
+    log("task.request", action.isEmpty()?"request "+request.length()+" chars":"action "+action+" · "+request.length()+" chars");
     startTask(release.id(),release.version(),request);
   }
   @Override public File moduleDirectory(String id) throws Exception {
@@ -59,6 +65,7 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
   }
   private void startTask(String id,String version,String request) throws Exception {
     if(request.length()>500000)throw new IOException("Module task too large");
+    ModuleLog.event(id,"task.start","version "+version);
     startForegroundService(new Intent(this,ModuleTaskService.class)
         .putExtra("id",id)
         .putExtra("version",version)
@@ -71,11 +78,15 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
     if(id==null||!id.matches("[a-z][a-z0-9-]{0,63}"))throw new IOException("Invalid module ID");
     return id;
   }
-  @Override public void installBuiltApk(File file) throws Exception {AppUpdater.prepareBuiltApk(this,file);AppUpdater.install(this,new File(getFilesDir(),"updates/verified.apk"));}
-  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(module!=null)try{module.activityResult(request,result,data);}catch(RuntimeException e){failed(e);}}
-  @Override protected void onResume(){super.onResume();if(module!=null)try{module.resume();}catch(RuntimeException e){failed(e);}}
-  @Override protected void onPause(){if(module!=null)try{module.pause();}catch(RuntimeException e){CrashReports.save(this,"Module pause",e);}super.onPause();}
-  @Override protected void onDestroy(){if(module!=null)try{module.close();}catch(RuntimeException e){CrashReports.save(this,"Module close",e);}super.onDestroy();}
+  @Override public void installBuiltApk(File file) throws Exception {log("apk.install",file==null?"":file.getName());AppUpdater.prepareBuiltApk(this,file);AppUpdater.install(this,new File(getFilesDir(),"updates/verified.apk"));}
+  @Override public void log(String event,String detail){ModuleLog.event(release==null?"module-host":release.id(),event,detail);}
+  @Override public String logs(int limit){return ModuleLog.readJson(limit);}
+  @Override public String crashLog(){return CrashReports.read(this);}
+  @Override public void clearLogs(){ModuleLog.clear();}
+  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);log("activity.result","request "+request+" result "+result);if(module!=null)try{module.activityResult(request,result,data);}catch(RuntimeException e){failed(e);}}
+  @Override protected void onResume(){super.onResume();log("resume","");if(module!=null)try{module.resume();}catch(RuntimeException e){failed(e);}}
+  @Override protected void onPause(){log("pause","");if(module!=null)try{module.pause();}catch(RuntimeException e){CrashReports.save(this,"Module pause",e);}super.onPause();}
+  @Override protected void onDestroy(){log("close","");if(module!=null)try{module.close();}catch(RuntimeException e){CrashReports.save(this,"Module close",e);}super.onDestroy();}
   @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus){getWindow().setDecorFitsSystemWindows(false);android.view.WindowInsetsController controller=getWindow().getDecorView().getWindowInsetsController();if(controller!=null){controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);controller.hide(android.view.WindowInsets.Type.systemBars());}}}
 
 }

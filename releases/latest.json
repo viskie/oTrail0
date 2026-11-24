@@ -1,8 +1,8 @@
 {
-  "versionCode": 57,
-  "versionName": "0.4.34",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.34-debug.apk",
-  "sha256": "1140064c63e89bfddf125517824e3b61c7208b41ffa9438ecee02d3bc81bf05b",
-  "sizeBytes": 42177643,
-  "notes": "Moves the shared Debian image into GOD. Debian Shell now appears from its module and provides multi-tab shells with preserved output/history, compact keys, stable scrolling, hardware key mapping and copy/paste controls."
+  "versionCode": 58,
+  "versionName": "0.4.35",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.35-debug.apk",
+  "sha256": "ea3ec4fbd302438d406a57b5f4fc8a5122cb7a5372bbe212eae86158b9dbb860",
+  "sizeBytes": 42189815,
+  "notes": "Adds the Logger module and host-side module event/crash logging. Logger captures module install, activation, load, lifecycle, task, failure and uncaught-crash events with searchable UI and text export."
 }

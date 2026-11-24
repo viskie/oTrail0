@@ -13,7 +13,7 @@ public final class ModuleManagerActivity extends Activity {
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
   private ModuleStore store;private LinearLayout cards;private TextView status;private ProgressBar progress;
   private final Set<String> expanded=new LinkedHashSet<>();
-  @Override public void onCreate(Bundle state){super.onCreate(state);store=new ModuleStore(this);
+  @Override public void onCreate(Bundle state){super.onCreate(state);store=new ModuleStore(this);ModuleLog.event("manager","open","");
     LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(12,12,12,12);root.setBackground(AppStyle.canvas());
     root.addView(button("← Back to settings",this::finish));root.addView(label("Extension modules",20));
     root.addView(label("Repository: viskie/oTrail0 · Signed catalog · API 1",12));
@@ -27,6 +27,7 @@ public final class ModuleManagerActivity extends Activity {
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
   private void ui(Runnable r){runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())r.run();});}
   private void refresh(boolean online){worker.execute(()->{try{
+    if(online)ModuleLog.event("manager","catalog.refresh","");
     List<SignedModuleCatalog.Release> versions=store.catalog(online);
     ui(()->{
       cards.removeAllViews();
@@ -67,7 +68,7 @@ public final class ModuleManagerActivity extends Activity {
           if(!store.installed(r))row.addView(button("Download & install module",()->password(r)));
           else{
             row.addView(button(active?"Open module":"Activate this version",()->{if(active)open(r);else activate(r);}));
-            if(active){row.addView(button("Deactivate",()->{store.deactivate(r.id());refresh(false);}));row.addView(button("Roll back version",()->worker.execute(()->{try{store.rollback(r.id());ui(()->refresh(false));}catch(Exception e){error(e);}})));}
+            if(active){row.addView(button("Deactivate",()->{ModuleLog.event(r.id(),"deactivate",r.version());store.deactivate(r.id());refresh(false);}));row.addView(button("Roll back version",()->worker.execute(()->{try{ModuleLog.event(r.id(),"rollback","from "+r.version());store.rollback(r.id());ui(()->refresh(false));}catch(Exception e){error(e);}})));}
             else row.addView(button("Delete downloaded version",()->confirmDelete(r)));
           }
           body.addView(row);
@@ -83,7 +84,7 @@ public final class ModuleManagerActivity extends Activity {
       .setMessage("Removes this downloaded module package from the phone. The active version and module data are kept.")
       .setPositiveButton("Delete",(d,w)->deleteOne(r)).setNegativeButton("Cancel",null).show();
   }
-  private void deleteOne(SignedModuleCatalog.Release r){status.setText("Deleting "+r.name()+" "+r.version()+"…");worker.execute(()->{try{store.deleteVersion(r);ui(()->refresh(false));}catch(Exception e){error(e);}});}
+  private void deleteOne(SignedModuleCatalog.Release r){status.setText("Deleting "+r.name()+" "+r.version()+"…");ModuleLog.event(r.id(),"delete",r.version());worker.execute(()->{try{store.deleteVersion(r);ui(()->refresh(false));}catch(Exception e){error(e);}});}
   /** Numeric component comparison so 1.1.10 ranks above 1.1.9. */
   private static int compareVersions(String left,String right){
     String[] a=left.split("[^0-9]+"),b=right.split("[^0-9]+");int count=Math.max(a.length,b.length);
@@ -99,12 +100,12 @@ public final class ModuleManagerActivity extends Activity {
       .setPositiveButton("Install",(d,w)->{char[] password=input.getText().toString().toCharArray();input.setText("");download(r,password);})
       .setNegativeButton("Cancel",null).show();
   }
-  private void download(SignedModuleCatalog.Release r,char[] password){status.setText("Downloading "+r.name()+" "+r.version());progress.setProgress(0);worker.execute(()->{try{
-    store.install(r,password,p->ui(()->{progress.setProgress(p);status.setText("Downloading "+r.name()+" · "+p+"%");}));if(r.id().equals("mod3"))store.activate(r);ui(()->{refresh(false);if(r.id().equals("mod3"))open(r);});
+  private void download(SignedModuleCatalog.Release r,char[] password){status.setText("Downloading "+r.name()+" "+r.version());progress.setProgress(0);ModuleLog.event(r.id(),"install.start","version "+r.version());worker.execute(()->{try{
+    store.install(r,password,p->ui(()->{progress.setProgress(p);status.setText("Downloading "+r.name()+" · "+p+"%");}));ModuleLog.event(r.id(),"install.complete","version "+r.version());if(r.id().equals("mod3"))store.activate(r);ui(()->{refresh(false);if(r.id().equals("mod3"))open(r);});
   }catch(Exception e){error(e);}});}
-  private void activate(SignedModuleCatalog.Release r){worker.execute(()->{try{store.activate(r);ui(()->{refresh(false);open(r);});}catch(Exception e){error(e);}});}
-  private void open(SignedModuleCatalog.Release r){startActivity(new Intent(this,ModuleActivity.class).putExtra("id",r.id()));}
-  private void error(Exception e){ui(()->{status.setText("Module operation failed: "+e.getMessage());progress.setProgress(0);});CrashReports.save(this,"Module manager",e);}
+  private void activate(SignedModuleCatalog.Release r){ModuleLog.event(r.id(),"activate",r.version());worker.execute(()->{try{store.activate(r);ui(()->{refresh(false);open(r);});}catch(Exception e){error(e);}});}
+  private void open(SignedModuleCatalog.Release r){ModuleLog.event(r.id(),"launcher.open",r.version());startActivity(new Intent(this,ModuleActivity.class).putExtra("id",r.id()));}
+  private void error(Exception e){ui(()->{status.setText("Module operation failed: "+e.getMessage());progress.setProgress(0);});ModuleLog.event("manager","failure",e.getClass().getSimpleName()+": "+e.getMessage());CrashReports.save(this,"Module manager",e);}
   @Override protected void onResume(){super.onResume();if(store!=null)refresh(false);}
   @Override protected void onDestroy(){worker.shutdownNow();super.onDestroy();}
   @Override public void onWindowFocusChanged(boolean focus){super.onWindowFocusChanged(focus);if(focus){getWindow().setDecorFitsSystemWindows(false);android.view.WindowInsetsController controller=getWindow().getDecorView().getWindowInsetsController();if(controller!=null){controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);controller.hide(android.view.WindowInsets.Type.systemBars());}}}

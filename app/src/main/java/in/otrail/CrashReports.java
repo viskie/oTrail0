@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 public final class CrashReports extends Application {
   public void onCreate() {
     super.onCreate();
+    ModuleLog.init(this);
     Thread.UncaughtExceptionHandler previous=Thread.getDefaultUncaughtExceptionHandler();
     Thread.setDefaultUncaughtExceptionHandler((thread,error)->{
       save(this,"Uncaught on "+thread.getName(),error);
@@ -18,6 +19,7 @@ public final class CrashReports extends Application {
     });
   }
   static synchronized void save(Context c,String stage,Throwable error) {
+    ModuleLog.event("host","crash",stage+"\n"+(error==null?"unknown":android.util.Log.getStackTraceString(error)));
     File file=new File(c.getFilesDir(),"otrail-errors.log");
     try {
       if(file.length()>1024*1024){File old=new File(c.getFilesDir(),"otrail-errors.previous.log");old.delete();file.renameTo(old);}

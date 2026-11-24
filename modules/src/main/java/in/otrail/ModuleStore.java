@@ -54,17 +54,21 @@ final class ModuleStore {
   boolean enabled(String id){return !active(id).isEmpty()&&available(id);}
   void deactivate(String id){try{marker(id).getParentFile().mkdirs();Files.write(marker(id).toPath(),new byte[]{32});}catch(IOException ignored){}context.getSharedPreferences("downloaded_modules",0).edit().remove("active."+id).apply();}
   void activate(SignedModuleCatalog.Release r) throws Exception {
+    ModuleLog.event(r.id(),"activate.verify",r.version());
     ModuleV1 trial=load(r);trial.close();
     String previous=active(r.id());
     android.util.AtomicFile atom=new android.util.AtomicFile(marker(r.id()));FileOutputStream stream=atom.startWrite();try{stream.write(r.version().getBytes(java.nio.charset.StandardCharsets.UTF_8));atom.finishWrite(stream);}catch(Exception e){atom.failWrite(stream);throw e;}
     context.getSharedPreferences("downloaded_modules",0).edit().putString("previous."+r.id(),previous).putString("active."+r.id(),r.version()).commit();
+    ModuleLog.event(r.id(),"activate.complete",r.version());
   }
   void rollback(String id) throws Exception {
+    ModuleLog.event(id,"rollback.request","");
     String previous=context.getSharedPreferences("downloaded_modules",0).getString("previous."+id,"");
     for(SignedModuleCatalog.Release r:catalog(false))if(r.id().equals(id)&&r.version().equals(previous)){activate(r);return;}
     throw new IOException("No previously active version is available");
   }
   void deleteVersion(SignedModuleCatalog.Release r) throws Exception {
+    ModuleLog.event(r.id(),"delete.start",r.version());
     if(active(r.id()).equals(r.version()))throw new IOException("Deactivate this version before deleting it");
     File file=file(r);
     if(file.exists()){
@@ -77,6 +81,7 @@ final class ModuleStore {
     if(r.version().equals(preferences.getString("previous."+r.id(),"")))preferences.edit().remove("previous."+r.id()).apply();
   }
   void install(SignedModuleCatalog.Release r,char[] password,Progress progress) throws Exception {
+    ModuleLog.event(r.id(),"install.verify",r.version());
     try {
       if(!r.installHash().isEmpty()){
       javax.crypto.spec.PBEKeySpec spec=new javax.crypto.spec.PBEKeySpec(password,java.util.Base64.getDecoder().decode(r.installSalt()),120000,256);
@@ -98,6 +103,7 @@ final class ModuleStore {
       }
       verify(r,part);
       Files.move(part.toPath(),ready.toPath(),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+      ModuleLog.event(r.id(),"install.stored",r.version());
     }finally{c.disconnect();part.delete();}
   }
   private void checkCompatibility(SignedModuleCatalog.Release r) throws Exception {
@@ -119,6 +125,7 @@ final class ModuleStore {
     }
   }
   ModuleV1 load(SignedModuleCatalog.Release r) throws Exception {
+    ModuleLog.event(r.id(),"load.start",r.version());
     checkCompatibility(r);File pkg=file(r);verify(r,pkg);
     DexClassLoader loader=new DexClassLoader(pkg.getAbsolutePath(),context.getCodeCacheDir().getAbsolutePath(),null,ModuleV1.class.getClassLoader());
     Object object=loader.loadClass(r.entry()).getDeclaredConstructor().newInstance();

@@ -23,7 +23,7 @@ public final class ModuleTaskService extends Service {
     startForeground(2403,new Notification.Builder(this,"module_tasks").setSmallIcon(android.R.drawable.stat_sys_download).setContentTitle("oTraiL module tools").setContentText("Running on this phone").setOngoing(true).build());
     if(busy)return START_NOT_STICKY;if(intent==null){stopSelf();return START_NOT_STICKY;}
     moduleId=intent.getStringExtra("id");String version=intent.getStringExtra("version"),request=intent.getStringExtra("request");
-    busy=true;cancelled=false;save("Starting",0,"",true);
+    busy=true;cancelled=false;ModuleLog.event(moduleId,"task.worker.start","version "+version);save("Starting",0,"",true);
     worker.execute(()->{ModuleV1 module=null;try{
       ModuleStore store=new ModuleStore(this);SignedModuleCatalog.Release release=null;
       for(SignedModuleCatalog.Release r:store.catalog(false))if(r.id().equals(moduleId)&&r.version().equals(version))release=r;
@@ -32,11 +32,20 @@ public final class ModuleTaskService extends Service {
       // Shell provisioning only needs the module package and its verified rootfs spec.
       if(!"shellSetup".equals(task.optString("action")))task.put("_verifiedToolchain",store.selectedToolchain(moduleId));
       module.task(store.file(release),directory(this,moduleId),task.toString(),new ModuleV1.Progress(){
-        public void update(String phase,int percent,String log){save(phase,percent,log,true);}
+        private String loggedPhase="";
+        private int loggedPercent=-1;
+        public void update(String phase,int percent,String log){
+          if(!phase.equals(loggedPhase)||percent-loggedPercent>=5||percent>=100){
+            ModuleLog.event(moduleId,"task.progress",phase+" · "+percent+"%");
+            loggedPhase=phase;loggedPercent=percent;
+          }
+          save(phase,percent,log,true);
+        }
         public boolean cancelled(){return cancelled||Thread.currentThread().isInterrupted();}
       });
       save(cancelled?"Cancelled":"Complete",cancelled?0:100,lastLog(),false);
-    }catch(Exception|LinkageError error){save("Failed",0,lastLog()+"\n"+error.toString(),false);CrashReports.save(this,"Module task",error);}
+      ModuleLog.event(moduleId,cancelled?"task.cancelled":"task.complete","version "+version);
+    }catch(Exception|LinkageError error){ModuleLog.event(moduleId,"task.failure",error.getClass().getSimpleName()+": "+error.getMessage());save("Failed",0,lastLog()+"\n"+error.toString(),false);CrashReports.save(this,"Module task",error);}
     finally{if(module!=null)try{module.close();}catch(RuntimeException ignored){}busy=false;stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();}});
     return START_NOT_STICKY;
   }

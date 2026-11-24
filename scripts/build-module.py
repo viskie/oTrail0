@@ -2,11 +2,12 @@
 """Compile a separate module and append its version to the signed catalog, preserving old artifacts."""
 import argparse,base64,hashlib,json,os,pathlib,subprocess,tempfile,zipfile
 root=pathlib.Path(__file__).resolve().parents[1];releases=root/'modules/releases'
-p=argparse.ArgumentParser();p.add_argument('module',choices=['god','cam','bt']);p.add_argument('version');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('module',choices=['god','cam','bt','logger']);p.add_argument('version');args=p.parse_args()
 sdk=pathlib.Path(os.environ['ANDROID_HOME']);java=pathlib.Path(os.environ['JAVA_HOME']);classes=root/'app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes'
 modules={'god':('GOD','mod1','in.otrail.extensions.mod1.SourceStudio',23,35),
          'cam':('CAM','mod2','in.otrail.extensions.cam.CameraModule',24,30),
-         'bt':('BTKEYBOARD','mod4','in.otrail.extensions.btkeyboard.BtKeyboardModule',57,30)}
+         'bt':('BTKEYBOARD','mod4','in.otrail.extensions.btkeyboard.BtKeyboardModule',57,30),
+         'logger':('LOGGER','mod6','in.otrail.extensions.logger.LoggerModule',58,30)}
 name,mid,entry,min_app,min_sdk=modules[args.module]
 build=root/f'modules/{mid}/build/package-{args.version}';build.mkdir(parents=True,exist_ok=True);compiled=build/'classes';compiled.mkdir(exist_ok=True)
 subprocess.run([str(java/'bin/javac'),'-source','8','-target','8','-Xlint:-options','-classpath',str(sdk/'platforms/android-37.0/android.jar')+os.pathsep+str(classes),'-d',str(compiled),*map(str,(root/f'modules/{mid}/src').rglob('*.java'))],check=True)
@@ -27,7 +28,8 @@ subprocess.run(['openssl','dgst','-sha256','-verify',str(pub),'-signature',str(s
 catalog=json.loads(payload)
 notes={'god':'Three-column landscape controls; existing GOD settings, drafts, sources and toolchains retained.',
        'cam':'Camera2 photo capture, geotags/time/stop metadata, photo index, stop albums and configurable public photo folder. Controls follow camera capabilities.',
-       'bt':'Integrated Bluetooth HID remote with in-app scan, pairing, connection, error reporting, text/key input, trackpad and media keys. No companion APK is bundled or installed.'}[args.module]
+       'bt':'Integrated Bluetooth HID remote with in-app scan, pairing, connection, error reporting, text/key input, trackpad and media keys. No companion APK is bundled or installed.',
+       'logger':'Host-observed module lifecycle, task and crash log with searchable UI, error filter and text export.'}[args.module]
 release=dict(manifest,url='https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'+output.name,sha256=hashlib.sha256(output.read_bytes()).hexdigest(),sizeBytes=output.stat().st_size,notes=notes)
 if args.module=='god':
  previous=next(item for item in catalog['versions'] if item['id']=='mod1');release.update(installSalt=previous['installSalt'],installHash=previous['installHash'])

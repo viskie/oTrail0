@@ -27,6 +27,12 @@ public interface ModuleV1 {
     String selectedToolchain() throws Exception;
     void selectToolchain(String id) throws Exception;
     void installBuiltApk(File file) throws Exception;
+
+    /** Optional diagnostics for modules; old hosts keep these as safe no-ops. */
+    default void log(String event, String detail) {}
+    default String logs(int limit) { return "[]"; }
+    default String crashLog() { return ""; }
+    default void clearLogs() {}
   }
   String id();
   View create(Activity activity,Host host) throws Exception;
