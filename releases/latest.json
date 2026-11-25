@@ -1,8 +1,8 @@
 {
-  "versionCode": 60,
-  "versionName": "0.4.37",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.37-debug.apk",
-  "sha256": "2ca0bb6b22af57980d20e795926b51087a6cc309fe025af13fa8e4b607730bd8",
-  "sizeBytes": 41411512,
-  "notes": "Tap the Debian shell icon to switch the full landscape right panel between the terminal and the existing boxes. The terminal session stays alive while hidden."
+  "versionCode": 61,
+  "versionName": "0.4.38",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.38-debug.apk",
+  "sha256": "8fae3eb0d571c465d08ec28185fb4cf3aceed2a035ec39459e5512fd9fd6be4d",
+  "sizeBytes": 41414072,
+  "notes": "Debian Shell tabs and PTYs now survive rotation, navigation to the map/extensions and backgrounding. Reopening restores terminal scrollback; ps aux gets a synthetic btime; shell keypad text is larger and the bottom navigation row is compact."
 }

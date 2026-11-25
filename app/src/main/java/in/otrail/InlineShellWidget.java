@@ -292,6 +292,11 @@ final class InlineShellWidget extends LinearLayout {
         bind(command, activity.getExternalFilesDir(null), "/external-app");
         if (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager())
           bind(command, Environment.getExternalStorageDirectory(), "/shared-storage");
+        try {
+          bind(command, procStatFile(), "/proc/stat");
+        } catch (Exception ignored) {
+          // Older Android releases already expose btime in the guest /proc.
+        }
         command.add("-w");
         command.add("/root");
         command.add("/usr/bin/script");
@@ -319,6 +324,27 @@ final class InlineShellWidget extends LinearLayout {
         append("\n[In-app shell failed: " + error.getMessage() + "]\n");
       }
     });
+  }
+
+  private File procStatFile() throws IOException {
+    File result = new File(moduleData(), "proc-stat");
+    result.getParentFile().mkdirs();
+    String stat = "";
+    try {
+      stat = new String(java.nio.file.Files.readAllBytes(
+          java.nio.file.Paths.get("/proc/stat")), StandardCharsets.UTF_8);
+    } catch (Exception ignored) {
+      // Use a synthetic boot time when the host hides /proc/stat.
+    }
+    if (!stat.contains("btime ")) {
+      long boot = (System.currentTimeMillis() - android.os.SystemClock.elapsedRealtime()) / 1000L;
+      if (stat.isEmpty()) stat = "cpu  0 0 0 0 0 0 0 0 0 0\n";
+      if (!stat.endsWith("\n")) stat += "\n";
+      stat += "btime " + boot + "\n";
+    }
+    java.nio.file.Files.write(result.toPath(), stat.getBytes(StandardCharsets.UTF_8));
+    result.setReadable(true, false);
+    return result;
   }
 
   private void bind(List<String> command, File file, String guest) throws IOException {

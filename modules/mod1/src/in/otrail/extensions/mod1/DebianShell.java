@@ -33,7 +33,9 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,6 +61,7 @@ public final class DebianShell implements ModuleV1 {
   private android.webkit.WebView terminal;
   private boolean pageReady;
   private final List<String> waitingScripts = new ArrayList<>();
+  private final Set<Integer> hydrated = new HashSet<>();
   private android.content.SharedPreferences prefs;
   private View tools, keypad;
   private TextView debugText;
@@ -83,8 +86,10 @@ public final class DebianShell implements ModuleV1 {
   }
 
   @Override public View create(Activity activity, Host host) {
+    if (root != null) detach();
     this.activity = activity;
     this.host = host;
+    this.closed = false;
     try {
       activity.getWindow().setSoftInputMode(
           WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
@@ -120,7 +125,10 @@ public final class DebianShell implements ModuleV1 {
     root.addView(debugText);
     root.addView(navRow());
 
+    buildTabs();
+    if (active == null && !sessions.isEmpty()) switchSession(sessions.get(0));
     root.requestFocus();
+    host.keepProcessAlive(true);
     setup(false);
     handler.post(poll);
     return root;
@@ -182,9 +190,14 @@ public final class DebianShell implements ModuleV1 {
       @Override public void onPageFinished(android.webkit.WebView view, String url) {
         if (closed) return;
         pageReady = true;
-        applyAppearance();
-        for (String script : waitingScripts) js(script);
         waitingScripts.clear();
+        hydrated.clear();
+        applyAppearance();
+        buildTabs();
+        if (active != null) {
+          js("select(" + active.number + ")");
+          replay(active);
+        }
       }
     });
     terminal.addJavascriptInterface(new Bridge(), "Shell");
@@ -203,7 +216,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void js(String script) {
-    if (closed) return;
+    if (closed || terminal == null) return;
     if (pageReady) terminal.evaluateJavascript(script, null);
     else waitingScripts.add(script);
   }
@@ -428,7 +441,7 @@ public final class DebianShell implements ModuleV1 {
     key.setAllCaps(false);
     key.setSingleLine(true);
     key.setGravity(Gravity.CENTER);
-    key.setTextSize(9);
+    key.setTextSize(11);
     key.setTextColor(kind == KEY_MOD ? UiConfig.MODULE_TEXT : 0xff000000);
     key.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     key.setIncludeFontPadding(false);
@@ -561,6 +574,7 @@ public final class DebianShell implements ModuleV1 {
     button.setText(text);
     button.setTextSize(9);
     button.setTextColor(UiConfig.MODULE_BUTTON_TEXT);
+    button.setIncludeFontPadding(false);
     button.setAllCaps(false);
     button.setSingleLine(true);
     button.setEllipsize(TextUtils.TruncateAt.END);
@@ -609,7 +623,7 @@ public final class DebianShell implements ModuleV1 {
     for (String[] item : items) {
       Button button = chip(item[0], () -> runNav(item[1]));
       button.setTextSize(8);
-      nav.addView(button, new LinearLayout.LayoutParams(0, dp(UiConfig.MODULE_NAV_HEIGHT_DP), 1));
+      nav.addView(button, new LinearLayout.LayoutParams(0, -2, 1));
     }
     return nav;
   }
@@ -635,10 +649,15 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private File godDirectory() {
+    return godDirectory(host);
+  }
+
+  private File godDirectory(Host ownerHost) {
     try {
-      return host.moduleDirectory("mod1");
+      return ownerHost.moduleDirectory("mod1");
     } catch (Exception error) {
-      return new File(activity.getFilesDir(), "modules/data/mod1");
+      Activity owner = activity;
+      return new File(owner == null ? new File("/") : owner.getFilesDir(), "modules/data/mod1");
     }
   }
 
@@ -646,8 +665,16 @@ public final class DebianShell implements ModuleV1 {
     return new File(godDirectory(), "debian/rootfs");
   }
 
+  private File rootfs(Host ownerHost) {
+    return new File(godDirectory(ownerHost), "debian/rootfs");
+  }
+
   private File bash() {
     return new File(rootfs(), "usr/bin/bash");
+  }
+
+  private File bash(Host ownerHost) {
+    return new File(rootfs(ownerHost), "usr/bin/bash");
   }
 
   private void setup(boolean force) {
@@ -705,7 +732,7 @@ public final class DebianShell implements ModuleV1 {
   private final Runnable poll = this::pollNow;
 
   private void pollNow() {
-    if (closed) return;
+    if (closed || activity == null) return;
     try {
       if (bash().isFile()) {
         setupRequested = false;
@@ -724,7 +751,7 @@ public final class DebianShell implements ModuleV1 {
     } catch (Exception error) {
       debug("FAIL · status poll · " + error);
     }
-    handler.postDelayed(poll, 1500);
+    if (activity != null) handler.postDelayed(poll, 1500);
   }
 
   private void ensureShells() {
@@ -762,6 +789,7 @@ public final class DebianShell implements ModuleV1 {
     }
     active = session;
     js("select(" + session.number + ")");
+    replay(session);
     buildTabs();
     root.requestFocus();
   }
@@ -806,18 +834,21 @@ public final class DebianShell implements ModuleV1 {
 
   private void launch(Session session) {
     if (closed || session == null || session.exited) return;
+    Activity owner = activity;
+    Host ownerHost = host;
+    if (owner == null || ownerHost == null) return;
     synchronized (session) {
       if (session.process != null || session.launching) return;
       session.launching = true;
     }
     io.execute(() -> {
       try {
-        File proot = new File(activity.getApplicationInfo().nativeLibraryDir, "libproot.so");
-        File loader = new File(activity.getApplicationInfo().nativeLibraryDir, "libprootloader.so");
-        File filesystem = rootfs();
+        File proot = new File(owner.getApplicationInfo().nativeLibraryDir, "libproot.so");
+        File loader = new File(owner.getApplicationInfo().nativeLibraryDir, "libprootloader.so");
+        File filesystem = rootfs(ownerHost);
         if (!proot.canExecute()) throw new IOException("Executable PRoot is missing from oTraiL");
         if (!loader.canExecute()) throw new IOException("Executable PRoot loader is missing from oTraiL");
-        if (!bash().isFile()) throw new IOException("Install the shared Debian image from GOD first");
+        if (!bash(ownerHost).isFile()) throw new IOException("Install the shared Debian image from GOD first");
 
         List<String> command = new ArrayList<>(Arrays.asList(
             proot.getPath(),
@@ -831,12 +862,17 @@ public final class DebianShell implements ModuleV1 {
         bind(command, new File("/system"), "/system");
         bind(command, new File("/vendor"), "/vendor");
         bind(command, new File("/apex"), "/apex");
-        bind(command, new File(activity.getApplicationInfo().dataDir), "/app-data");
-        bind(command, godDirectory(), "/god-data");
-        bind(command, host.privateDirectory(), "/shell-data");
-        bind(command, activity.getExternalFilesDir(null), "/external-app");
+        bind(command, new File(owner.getApplicationInfo().dataDir), "/app-data");
+        bind(command, godDirectory(ownerHost), "/god-data");
+        bind(command, ownerHost.privateDirectory(), "/shell-data");
+        bind(command, owner.getExternalFilesDir(null), "/external-app");
         if (Build.VERSION.SDK_INT < 30 || Environment.isExternalStorageManager()) {
           bind(command, Environment.getExternalStorageDirectory(), "/shared-storage");
+        }
+        try {
+          bind(command, procStatFile(ownerHost), "/proc/stat");
+        } catch (Exception error) {
+          debug("proc-stat unavailable · " + error.getMessage());
         }
         command.add("-w");
         command.add("/root");
@@ -853,7 +889,7 @@ public final class DebianShell implements ModuleV1 {
         builder.environment().put("TERM", "xterm-256color");
         builder.environment().put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
         builder.environment().put("LANG", "C.UTF-8");
-        builder.environment().put("PROOT_TMP_DIR", activity.getCacheDir().getPath());
+        builder.environment().put("PROOT_TMP_DIR", owner.getCacheDir().getPath());
         builder.environment().put("PROOT_LOADER", loader.getPath());
 
         Process process = builder.start();
@@ -884,6 +920,30 @@ public final class DebianShell implements ModuleV1 {
         debug("FAIL · launch · " + error);
       }
     });
+  }
+
+  /**
+   * Android kernels may hide /proc/stat's btime line from PRoot guests, which makes
+   * procps print "unable to get system boot time". Bind a small compatible stat file.
+   */
+  private File procStatFile(Host ownerHost) throws IOException {
+    File result = new File(ownerHost.privateDirectory(), "proc-stat");
+    String stat = "";
+    try {
+      stat = new String(java.nio.file.Files.readAllBytes(
+          java.nio.file.Paths.get("/proc/stat")), StandardCharsets.UTF_8);
+    } catch (Exception ignored) {
+      // The host may deny /proc/stat; the synthetic btime below is enough for procps.
+    }
+    if (!stat.contains("btime ")) {
+      long boot = (System.currentTimeMillis() - android.os.SystemClock.elapsedRealtime()) / 1000L;
+      if (stat.isEmpty()) stat = "cpu  0 0 0 0 0 0 0 0 0 0\n";
+      if (!stat.endsWith("\n")) stat += "\n";
+      stat += "btime " + boot + "\n";
+    }
+    java.nio.file.Files.write(result.toPath(), stat.getBytes(StandardCharsets.UTF_8));
+    result.setReadable(true, false);
+    return result;
   }
 
   private void bind(List<String> command, File file, String guest) throws IOException {
@@ -957,6 +1017,12 @@ public final class DebianShell implements ModuleV1 {
 
   private void append(Session session, String chunk) {
     if (session == null || chunk == null || chunk.isEmpty()) return;
+    synchronized (session.scrollback) {
+      session.scrollback.append(chunk);
+      int maximum = UiConfig.TERMINAL_SCROLLBACK_CHARS;
+      if (session.scrollback.length() > maximum)
+        session.scrollback.delete(0, session.scrollback.length() - maximum);
+    }
     synchronized (session.pending) {
       session.pending.append(chunk);
       if (session.frameScheduled) return;
@@ -969,9 +1035,21 @@ public final class DebianShell implements ModuleV1 {
         session.pending.setLength(0);
         session.frameScheduled = false;
       }
-      if (sessions.contains(session))
+      if (sessions.contains(session) && hydrated.contains(session.number))
         js("tabs.get(" + session.number + ").term.write(" + JSONObject.quote(frame) + ")");
     }, 16);
+  }
+
+  /** Replay Java-side scrollback when a WebView tab is first shown after reattachment. */
+  private void replay(Session session) {
+    if (session == null || !hydrated.add(session.number)) return;
+    String text;
+    synchronized (session.scrollback) {
+      text = session.scrollback.toString();
+    }
+    if (!text.isEmpty()) {
+      js("tabs.get(" + session.number + ").term.write(" + JSONObject.quote(text) + ")");
+    }
   }
 
   private void copyTerminal() {
@@ -1107,6 +1185,7 @@ public final class DebianShell implements ModuleV1 {
 
   private void exitAll() {
     closeSessions();
+    if (host != null) host.keepProcessAlive(false);
     if (activity != null) activity.finish();
   }
 
@@ -1131,6 +1210,29 @@ public final class DebianShell implements ModuleV1 {
     StudioTasks.run(packageFile, data, request, progress);
   }
 
+  /** Detach the current Activity/WebView while keeping PTYs, tabs and scrollback alive. */
+  @Override public void detach() {
+    handler.removeCallbacks(poll);
+    if (terminal != null) {
+      if (root != null) root.removeView(terminal);
+      terminal.removeJavascriptInterface("Shell");
+      terminal.destroy();
+    }
+    terminal = null;
+    pageReady = false;
+    waitingScripts.clear();
+    hydrated.clear();
+    root = null;
+    tabsRow = null;
+    keyboardRows = null;
+    status = null;
+    tools = null;
+    keypad = null;
+    debugText = null;
+    activity = null;
+    host = null;
+  }
+
   @Override public void close() {
     closed = true;
     handler.removeCallbacks(poll);
@@ -1138,10 +1240,11 @@ public final class DebianShell implements ModuleV1 {
     io.shutdownNow();
     inputQueue.shutdownNow();
     if (terminal != null) {
-      root.removeView(terminal);
+      if (root != null) root.removeView(terminal);
       terminal.removeJavascriptInterface("Shell");
       terminal.destroy();
     }
+    if (host != null) host.keepProcessAlive(false);
     activity = null;
     host = null;
   }
@@ -1149,6 +1252,7 @@ public final class DebianShell implements ModuleV1 {
   private final class Session {
     private final int number;
     private final StringBuilder pending = new StringBuilder();
+    private final StringBuilder scrollback = new StringBuilder();
     private final StringBuilder line = new StringBuilder();
     private final List<String> history = new ArrayList<>();
     private final File ttyFile;

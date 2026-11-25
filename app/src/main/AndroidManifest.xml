@@ -20,6 +20,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
@@ -32,7 +33,13 @@
         <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
         <activity android:name=".RemoteDesktopActivity" android:exported="false" android:screenOrientation="unspecified"/>
         <activity android:name=".ModuleManagerActivity" android:exported="false" android:process=":modules"/>
-        <activity android:name=".ModuleActivity" android:exported="false" android:process=":modules"/>
+        <activity android:name=".ModuleActivity" android:exported="false" android:process=":modules"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard|navigation|density|fontScale|locale|layoutDirection|uiMode"/>
+        <service android:name=".ModuleSessionService" android:exported="false"
+            android:process=":modules" android:foregroundServiceType="specialUse" android:stopWithTask="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keep active Debian shell PTY sessions alive while oTraiL is in the background"/>
+        </service>
         <service android:name=".ModuleTaskService" android:exported="false" android:process=":compiler" android:foregroundServiceType="dataSync"/>
         <receiver android:name=".BootReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver>
         <receiver android:name=".DownloadReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.DOWNLOAD_COMPLETE"/></intent-filter></receiver>

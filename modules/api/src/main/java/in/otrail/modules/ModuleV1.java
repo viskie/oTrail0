@@ -33,6 +33,8 @@ public interface ModuleV1 {
     default String logs(int limit) { return "[]"; }
     default String crashLog() { return ""; }
     default void clearLogs() {}
+    /** Keep the module process alive while its background sessions are running. */
+    default void keepProcessAlive(boolean active) {}
   }
   String id();
   View create(Activity activity,Host host) throws Exception;
@@ -49,5 +51,7 @@ public interface ModuleV1 {
   default void permissionResult(int request,String[] permissions,int[] grants) {}
   default void resume() {}
   default void pause() {}
+  /** Release views/activity references without ending background work owned by the module. */
+  default void detach() {}
   default void close() {}
 }

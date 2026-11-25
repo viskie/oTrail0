@@ -1,5 +1,20 @@
 # Installable builds
 
+## 0.4.38 — 2026-11-25
+
+`oTraiL-0.4.38-debug.apk` — versionCode 61. Debian Shell tabs and PTYs survive
+rotation, navigating back to the map/extensions and normal backgrounding. The
+module retains its session objects, restores per-tab scrollback into the new
+xterm view and keeps the `:modules` process alive with a foreground session
+service. `ps aux` gets a synthetic `/proc/stat` with `btime`, shell keypad labels
+are 11 sp (row height unchanged), and the bottom navigation buttons wrap to
+their text height. Debian Shell 2.1.1 requires this host. Same signing
+certificate, install in place.
+
+Verified by clean compiling the host and Debian module and passing the JVM test
+suite; phone-side rotation, backgrounding and PRoot `ps aux` behavior remain
+unverified because no Android device is connected.
+
 ## 0.4.26 — 2026-11-22
 
 `oTraiL-0.4.26-debug.apk` — versionCode 49. Debian Shell now starts bash through

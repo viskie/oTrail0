@@ -10,6 +10,8 @@ import in.otrail.modules.ModuleV1;
 import java.io.*;
 
 public final class ModuleActivity extends Activity implements ModuleV1.Host {
+  private static ModuleV1 retainedModule;
+  private static String retainedId="",retainedVersion="";
   private ModuleV1 module;private ModuleStore store;private SignedModuleCatalog.Release release;private View floatingBack;
   @Override public void onCreate(Bundle state){super.onCreate(state);store=new ModuleStore(this);
     try{
@@ -17,7 +19,12 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
       for(SignedModuleCatalog.Release r:store.catalog(false))if(r.id().equals(id)&&r.version().equals(version))release=r;
       if(release==null)throw new IOException("Activate a module version first");
       log("open", "version " + release.version());
-      module=store.load(release);View view=module.create(this,this);setContentView(view);
+      if(retainedModule!=null&&id.equals(retainedId)&&version.equals(retainedVersion)){
+        module=retainedModule;retainedModule=null;log("reuse", "retained module instance");
+      }else{
+        releaseRetained(id);module=store.load(release);
+      }
+      View view=module.create(this,this);setContentView(view);
       log("create.complete", "");
       addFloatingBack();
     }catch(Exception|LinkageError e){failed(e);}
@@ -88,7 +95,25 @@ public final class ModuleActivity extends Activity implements ModuleV1.Host {
   @Override protected void onResume(){super.onResume();log("resume","");if(module!=null)try{module.resume();}catch(RuntimeException e){failed(e);}}
   @Override protected void onPause(){log("pause","");if(module!=null)try{module.pause();}catch(RuntimeException e){CrashReports.save(this,"Module pause",e);}super.onPause();}
   @Override public void onBackPressed(){if(module!=null&&module.backPressed())return;super.onBackPressed();}
-  @Override protected void onDestroy(){log("close","");if(module!=null)try{module.close();}catch(RuntimeException e){CrashReports.save(this,"Module close",e);}removeFloatingBack();super.onDestroy();}
+  @Override protected void onDestroy(){
+    log("close","");
+    if(module!=null){
+      if(release!=null&&"mod3".equals(release.id())){
+        try{module.detach();retainedModule=module;retainedId=release.id();retainedVersion=release.version();}
+        catch(RuntimeException e){CrashReports.save(this,"Module detach",e);}
+      }else try{module.close();}catch(RuntimeException e){CrashReports.save(this,"Module close",e);}
+      module=null;
+    }
+    removeFloatingBack();super.onDestroy();
+  }
+  static void releaseRetained(String id){
+    if(retainedModule==null||!id.equals(retainedId))return;
+    try{retainedModule.close();}catch(RuntimeException ignored){}
+    retainedModule=null;retainedId="";retainedVersion="";
+  }
+  @Override public void keepProcessAlive(boolean active){
+    if(active)ModuleSessionService.start(this);else ModuleSessionService.stop(this);
+  }
   private void addFloatingBack(){
     View decor=getWindow().getDecorView();
     if(!(decor instanceof android.view.ViewGroup))return;
