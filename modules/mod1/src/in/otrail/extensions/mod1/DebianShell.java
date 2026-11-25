@@ -23,7 +23,6 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import in.otrail.UiConfig;
 import in.otrail.modules.ModuleV1;
@@ -57,9 +56,13 @@ public final class DebianShell implements ModuleV1 {
   private LinearLayout tabsRow;
   private LinearLayout keyboardRows;
   private TextView status;
-  private TextView terminal;
+  private android.webkit.WebView terminal;
+  private boolean pageReady;
+  private final List<String> waitingScripts = new ArrayList<>();
+  private android.content.SharedPreferences prefs;
+  private View tools, keypad;
   private TextView debugText;
-  private ScrollView terminalScroll;
+
 
   private final List<Session> sessions = new ArrayList<>();
   private Session active;
@@ -72,7 +75,7 @@ public final class DebianShell implements ModuleV1 {
   private boolean ctrl;
   private boolean closed;
   private boolean setupRequested;
-  private boolean switchingTab;
+
   private int nextTab;
 
   @Override public String id() {
@@ -84,7 +87,7 @@ public final class DebianShell implements ModuleV1 {
     this.host = host;
     try {
       activity.getWindow().setSoftInputMode(
-          WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+          WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
               | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     } catch (Exception ignored) {
       // A few OEM windows reject soft-input hints.
@@ -103,9 +106,14 @@ public final class DebianShell implements ModuleV1 {
     root.addView(status);
     root.addView(tabsBar(), new LinearLayout.LayoutParams(-1, dp(32)));
     root.addView(terminalPanel(), new LinearLayout.LayoutParams(-1, 0, 1));
-    root.addView(clipboardRow(), new LinearLayout.LayoutParams(-1, dp(24)));
-    root.addView(keyboardPanel(), new LinearLayout.LayoutParams(-1, -2));
+    tools = clipboardRow();
+    tools.setVisibility(prefs.getBoolean("tools", true) ? View.VISIBLE : View.GONE);
+    root.addView(tools, new LinearLayout.LayoutParams(-1, dp(24)));
 
+
+    keypad = keyboardPanel();
+    root.addView(keypad);
+    keypad.setVisibility(prefs.getBoolean("keypad", true) ? View.VISIBLE : View.GONE);
     debugText = label("ready", 9, UiConfig.MODULE_MUTED);
     debugText.setSingleLine(true);
     debugText.setEllipsize(TextUtils.TruncateAt.START);
@@ -130,6 +138,7 @@ public final class DebianShell implements ModuleV1 {
     TextView title = label("Debian shell manager", UiConfig.MODULE_HEADER_SIZE_SP, UiConfig.MODULE_TEXT);
     title.setTypeface(Typeface.create(UiConfig.STATUS_FONT, Typeface.BOLD));
     bar.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+    bar.addView(chip("Aa", this::appearance));
     bar.addView(chip("REPAIR", this::repair),
         new LinearLayout.LayoutParams(-2, dp(UiConfig.MODULE_KEY_HEIGHT_DP)));
     bar.addView(chip("HALT", this::exitAll),
@@ -153,33 +162,139 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private View terminalPanel() {
-    terminal = label("", UiConfig.TERMINAL_TEXT_SIZE_SP, UiConfig.TERMINAL_TEXT);
-    terminal.setTypeface(Typeface.MONOSPACE);
-    terminal.setTextIsSelectable(true);
-    terminal.setLineSpacing(0, UiConfig.TERMINAL_LINE_SPACING);
-    terminal.setText("Waiting for the shared Debian image…");
-
-    terminalScroll = new ScrollView(activity);
-    terminalScroll.setFillViewport(true);
-    terminalScroll.setVerticalScrollBarEnabled(true);
-    terminalScroll.addView(terminal, new ScrollView.LayoutParams(-1, -2));
-    terminalScroll.setOnScrollChangeListener((view, scrollX, scrollY, oldX, oldY) -> {
-      if (switchingTab || active == null) return;
-      View child = terminalScroll.getChildAt(0);
-      if (child == null) return;
-      int maximum = Math.max(0, child.getHeight() - terminalScroll.getHeight());
-      active.stickToBottom = maximum - scrollY <= dp(24);
-      active.savedScroll = scrollY;
+    prefs = activity.getSharedPreferences("debian-terminal", Context.MODE_PRIVATE);
+    terminal = new android.webkit.WebView(activity) {
+      @Override public android.view.inputmethod.InputConnection onCreateInputConnection(EditorInfo info) {
+        android.view.inputmethod.InputConnection connection = super.onCreateInputConnection(info);
+        info.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN;
+        return connection;
+      }
+    };
+    terminal.setBackgroundColor(UiConfig.TERMINAL_BACKGROUND);
+    android.webkit.WebSettings settings = terminal.getSettings();
+    settings.setJavaScriptEnabled(true);
+    settings.setAllowFileAccess(false);
+    settings.setAllowContentAccess(false);
+    settings.setBlockNetworkLoads(true);
+    terminal.setWebViewClient(new android.webkit.WebViewClient() {
+      @Override public boolean shouldOverrideUrlLoading(android.webkit.WebView view,
+          android.webkit.WebResourceRequest request) { return true; }
+      @Override public void onPageFinished(android.webkit.WebView view, String url) {
+        if (closed) return;
+        pageReady = true;
+        applyAppearance();
+        for (String script : waitingScripts) js(script);
+        waitingScripts.clear();
+      }
     });
+    terminal.addJavascriptInterface(new Bridge(), "Shell");
+    try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(host.packageFile());
+         InputStream stream = zip.getInputStream(zip.getEntry("terminal.html"))) {
+      java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+      byte[] buffer = new byte[8192];
+      int count;
+      while ((count = stream.read(buffer)) != -1) bytes.write(buffer, 0, count);
+      terminal.loadData(android.util.Base64.encodeToString(bytes.toByteArray(),
+          android.util.Base64.NO_WRAP), "text/html", "base64");
+    } catch (Exception failure) {
+      throw new IllegalStateException("Unable to load packaged terminal", failure);
+    }
+    return terminal;
+  }
 
-    LinearLayout frame = new LinearLayout(activity);
-    GradientDrawable background = new GradientDrawable();
-    background.setColor(UiConfig.TERMINAL_BACKGROUND);
-    background.setCornerRadius(dp(10));
-    frame.setBackground(background);
-    frame.setPadding(dp(7), dp(5), dp(7), dp(5));
-    frame.addView(terminalScroll, new LinearLayout.LayoutParams(-1, -1));
-    return frame;
+  private void js(String script) {
+    if (closed) return;
+    if (pageReady) terminal.evaluateJavascript(script, null);
+    else waitingScripts.add(script);
+  }
+
+  public final class Bridge {
+    @android.webkit.JavascriptInterface public boolean hardwareKeyboard() {
+      for (int id : android.view.InputDevice.getDeviceIds()) {
+        android.view.InputDevice device = android.view.InputDevice.getDevice(id);
+        if (device != null && !device.isVirtual()
+            && device.getKeyboardType() == android.view.InputDevice.KEYBOARD_TYPE_ALPHABETIC) return true;
+      }
+      return false;
+    }
+    @android.webkit.JavascriptInterface public void input(int id, String data) {
+      ui(() -> {
+        for (Session session : sessions) {
+          if (session.number != id) continue;
+          if ("\r".equals(data)) recordCommand(session);
+          else if ("\u007f".equals(data) && session.line.length() > 0)
+            session.line.setLength(session.line.length() - 1);
+          else if (!data.isEmpty() && data.charAt(0) >= ' ') session.line.append(data);
+          send(session, data);
+          break;
+        }
+      });
+    }
+    @android.webkit.JavascriptInterface public void size(int id, int cols, int rows) {
+      ui(() -> {
+        if (active == null || active.number != id) return;
+        active.cols = Math.max(2, Math.min(1000, cols));
+        active.rows = Math.max(1, Math.min(1000, rows));
+        resize(active);
+      });
+    }
+  }
+
+  private void resize(Session session) {
+    if (closed || !session.running) return;
+    io.execute(() -> {
+      synchronized (session.resizeLock) {
+        if (!session.running || !session.ttyFile.isFile()) return;
+        try {
+          String path = new String(java.nio.file.Files.readAllBytes(session.ttyFile.toPath()),
+              StandardCharsets.US_ASCII).trim();
+          if (!path.matches("/dev/pts/[0-9]+")) return;
+          Process resize = new ProcessBuilder("/system/bin/stty", "-F", path,
+              "rows", Integer.toString(session.rows), "cols", Integer.toString(session.cols)).start();
+          if (resize.waitFor() != 0 && session.running) debug("Resize failed · " + path);
+        } catch (Exception failure) {
+          if (session.running) debug("Resize · " + failure.getMessage());
+        }
+      }
+    });
+  }
+
+  private void applyAppearance() {
+    js("configure(" + prefs.getInt("size",13) + ","
+        + JSONObject.quote(prefs.getBoolean("jetbrains",false) ? "JetBrains, monospace" : "monospace")
+        + "," + prefs.getInt("theme",0) + ")");
+  }
+
+  private void appearance() {
+    String[] themes = {"oTrail Dark", "AMOLED", "High contrast"};
+    String[] items = {"Colors · " + themes[prefs.getInt("theme",0)],
+        "Font · " + (prefs.getBoolean("jetbrains",false) ? "JetBrains Mono" : "System Mono"),
+        "Size · " + prefs.getInt("size",13), "Toggle clipboard controls", "Toggle shell keyboard"};
+    new AlertDialog.Builder(activity).setTitle("Terminal appearance").setItems(items,(d,i) -> {
+      if (i == 0) new AlertDialog.Builder(activity).setItems(themes,(dialog,n) -> {
+        prefs.edit().putInt("theme",n).apply(); applyAppearance();
+      }).show();
+      if (i == 1) {
+        prefs.edit().putBoolean("jetbrains",!prefs.getBoolean("jetbrains",false)).apply(); applyAppearance();
+      }
+      if (i == 2) {
+        String[] sizes = new String[15];
+        for (int n=0;n<sizes.length;n++) sizes[n] = Integer.toString(10+n);
+        new AlertDialog.Builder(activity).setTitle("Font size").setItems(sizes,(dialog,n) -> {
+          prefs.edit().putInt("size",10+n).apply(); applyAppearance();
+        }).show();
+      }
+      if (i == 4) {
+        boolean visible = keypad.getVisibility() != View.VISIBLE;
+        prefs.edit().putBoolean("keypad",visible).apply();
+        keypad.setVisibility(visible ? View.VISIBLE : View.GONE);
+      }
+      if (i == 3) {
+        boolean visible = tools.getVisibility() != View.VISIBLE;
+        prefs.edit().putBoolean("tools",visible).apply();
+        tools.setVisibility(visible ? View.VISIBLE : View.GONE);
+      }
+    }).show();
   }
 
   private View clipboardRow() {
@@ -313,7 +428,7 @@ public final class DebianShell implements ModuleV1 {
     key.setAllCaps(false);
     key.setSingleLine(true);
     key.setGravity(Gravity.CENTER);
-    key.setTextSize(8);
+    key.setTextSize(9);
     key.setTextColor(kind == KEY_MOD ? UiConfig.MODULE_TEXT : 0xff000000);
     key.setTypeface(Typeface.create(UiConfig.BODY_FONT, Typeface.BOLD));
     key.setIncludeFontPadding(false);
@@ -645,16 +760,8 @@ public final class DebianShell implements ModuleV1 {
       root.requestFocus();
       return;
     }
-    if (active != null) active.savedScroll = terminalScroll.getScrollY();
     active = session;
-    switchingTab = true;
-    terminal.setText(session.transcript.toString());
-    terminalScroll.post(() -> {
-      View child = terminalScroll.getChildAt(0);
-      int maximum = child == null ? 0 : Math.max(0, child.getHeight() - terminalScroll.getHeight());
-      terminalScroll.scrollTo(0, session.stickToBottom ? maximum : session.savedScroll);
-      switchingTab = false;
-    });
+    js("select(" + session.number + ")");
     buildTabs();
     root.requestFocus();
   }
@@ -666,11 +773,10 @@ public final class DebianShell implements ModuleV1 {
     Process process = session.process;
     if (process != null) process.destroy();
     sessions.remove(session);
+    js("drop(" + session.number + ")");
     if (active == session) {
       active = null;
-      if (sessions.isEmpty()) {
-        terminal.setText("");
-      } else {
+      if (!sessions.isEmpty()) {
         switchSession(sessions.get(0));
       }
     }
@@ -736,7 +842,9 @@ public final class DebianShell implements ModuleV1 {
         command.add("/root");
         command.add("/usr/bin/script");
         command.add("-qfec");
-        command.add("/usr/bin/bash --noprofile --norc -i");
+        command.add("stty rows " + session.rows + " cols " + session.cols
+            + "; tty > /shell-data/" + session.ttyFile.getName()
+            + "; exec /usr/bin/bash --noprofile --norc -i");
         command.add("/dev/null");
 
         ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true);
@@ -785,11 +893,14 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void read(Session session, Process process) {
-    try (InputStream input = process.getInputStream()) {
-      byte[] buffer = new byte[8192];
+    try (java.io.Reader input = new java.io.InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)) {
+      char[] buffer = new char[8192];
       int count;
       while ((count = input.read(buffer)) >= 0) {
-        append(session, new String(buffer, 0, count, StandardCharsets.UTF_8));
+        if (!session.sizeSent && session.ttyFile.length() > 0) {
+          session.sizeSent = true; resize(session);
+        }
+        append(session, new String(buffer, 0, count));
       }
     } catch (Exception error) {
       if (!closed && process.isAlive()) append(session, "\n[output error: " + error + "]\n");
@@ -813,6 +924,7 @@ public final class DebianShell implements ModuleV1 {
         session.exited = true;
       }
     }
+    session.ttyFile.delete();
     int exit = code;
     append(session, "\n[Shell exited " + exit
         + (exit == 159 ? " · Android blocked PRoot; tap REINSTALL" : "") + "]\n");
@@ -845,58 +957,35 @@ public final class DebianShell implements ModuleV1 {
 
   private void append(Session session, String chunk) {
     if (session == null || chunk == null || chunk.isEmpty()) return;
-    String display;
-    synchronized (session.transcript) {
-      session.write(chunk);
-      if (session.transcript.length() > UiConfig.TERMINAL_SCROLLBACK_CHARS) {
-        int removed = session.transcript.length() - UiConfig.TERMINAL_SCROLLBACK_CHARS;
-        session.transcript.delete(0, removed);
-        session.cursor = Math.max(0, session.cursor - removed);
-      }
-      display = session.transcript.toString();
+    synchronized (session.pending) {
+      session.pending.append(chunk);
+      if (session.frameScheduled) return;
+      session.frameScheduled = true;
     }
-    boolean follow = session.stickToBottom;
-    int saved = session.savedScroll;
-    ui(() -> {
-      if (closed || active != session) return;
-      terminal.setText(display);
-      if (follow) {
-        session.stickToBottom = true;
-        scrollToEnd(session);
-      } else {
-        terminalScroll.post(() -> terminalScroll.scrollTo(0, saved));
+    handler.postDelayed(() -> {
+      String frame;
+      synchronized (session.pending) {
+        frame = session.pending.toString();
+        session.pending.setLength(0);
+        session.frameScheduled = false;
       }
-    });
-  }
-
-  private void scrollToEnd(Session session) {
-    ScrollView scroll = terminalScroll;
-    if (scroll == null) return;
-    scroll.post(() -> {
-      if (!closed && active == session && session.stickToBottom) {
-        scroll.fullScroll(View.FOCUS_DOWN);
-      }
-    });
+      if (sessions.contains(session))
+        js("tabs.get(" + session.number + ").term.write(" + JSONObject.quote(frame) + ")");
+    }, 16);
   }
 
   private void copyTerminal() {
-    Session session = active;
-    if (session == null) return;
-    int start = terminal.getSelectionStart();
-    int end = terminal.getSelectionEnd();
-    CharSequence text;
-    if (start >= 0 && end > start) {
-      text = terminal.getText().subSequence(start, end);
-    } else {
-      text = session.transcript.toString();
-    }
-    if (text.length() == 0) {
-      show("Nothing to copy");
-      return;
-    }
-    ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
-    clipboard.setPrimaryClip(ClipData.newPlainText("oTraiL shell", text));
-    show("Copied " + text.length() + " characters");
+    if (!pageReady) return;
+    terminal.evaluateJavascript("selected()", value -> {
+      if (closed) return;
+      try {
+        String text = new org.json.JSONArray("[" + value + "]").getString(0);
+        if (text.isEmpty()) { show("Nothing to copy"); return; }
+        ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+        clipboard.setPrimaryClip(ClipData.newPlainText("oTraiL shell", text));
+        show("Copied " + text.length() + " characters");
+      } catch (Exception failure) { debug("Copy failed · " + failure); }
+    });
   }
 
   private void pasteTerminal() {
@@ -923,14 +1012,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void selectAll() {
-    if (terminal == null) return;
-    CharSequence text = terminal.getText();
-    if (text instanceof android.text.Spannable) {
-      android.text.Selection.setSelection(
-          (android.text.Spannable) text, 0, text.length());
-    }
-    terminal.requestFocus();
-    show("Selected all terminal text");
+    js("if(active) active.term.selectAll()");
   }
 
   private void showHistory() {
@@ -1035,9 +1117,9 @@ public final class DebianShell implements ModuleV1 {
       Process process = session.process;
       if (process != null) process.destroy();
     }
+    for (Session session : sessions) js("drop(" + session.number + ")");
     sessions.clear();
     active = null;
-    if (terminal != null) terminal.setText("");
     buildTabs();
   }
 
@@ -1055,172 +1137,30 @@ public final class DebianShell implements ModuleV1 {
     closeSessions();
     io.shutdownNow();
     inputQueue.shutdownNow();
+    if (terminal != null) {
+      root.removeView(terminal);
+      terminal.removeJavascriptInterface("Shell");
+      terminal.destroy();
+    }
     activity = null;
     host = null;
   }
 
   private final class Session {
     private final int number;
-    private final StringBuilder transcript = new StringBuilder();
+    private final StringBuilder pending = new StringBuilder();
     private final StringBuilder line = new StringBuilder();
-    private final StringBuilder pendingControl = new StringBuilder();
     private final List<String> history = new ArrayList<>();
+    private final File ttyFile;
+    private final Object resizeLock = new Object();
+    private volatile int cols = 80, rows = 24;
+    private volatile boolean running;
+    private boolean sizeSent, frameScheduled, exited, launching;
     private Process process;
     private OutputStream input;
-    private boolean running;
-    private boolean exited;
-    private boolean launching;
-    private boolean stickToBottom = true;
-    private boolean pendingCarriageReturn;
-    private int savedScroll;
-    private int cursor;
-
     private Session(int number) {
       this.number = number;
-    }
-
-    /**
-     * Applies terminal output while keeping readline's erase/cursor replies visible.
-     * The old implementation stripped every escape sequence, so Backspace changed
-     * the shell's buffer but the line only redrew when Enter arrived.
-     */
-    private void write(String raw) {
-      String data = raw;
-      if (pendingControl.length() > 0) {
-        data = pendingControl + raw;
-        pendingControl.setLength(0);
-      }
-      if (pendingCarriageReturn) {
-        pendingCarriageReturn = false;
-        if (data.startsWith("\n")) {
-          data = data.substring(1);
-        } else {
-          cursor = lineStart(cursor);
-        }
-      }
-      int index = 0;
-      while (index < data.length()) {
-        char value = data.charAt(index);
-        if (value == '\u001b') {
-          int end = escapeEnd(data, index);
-          if (end < 0) {
-            pendingControl.append(data.substring(index));
-            break;
-          }
-          applyEscape(data.substring(index, end + 1));
-          index = end + 1;
-        } else if (value == '\b' || value == '\u007f') {
-          if (cursor > 0) {
-            transcript.deleteCharAt(cursor - 1);
-            cursor--;
-          }
-          index++;
-        } else if (value == '\r') {
-          if (index + 1 >= data.length()) {
-            pendingCarriageReturn = true;
-            index++;
-          } else if (data.charAt(index + 1) == '\n') {
-            index += 2;
-            transcript.insert(cursor++, '\n');
-          } else {
-            cursor = lineStart(cursor);
-            index++;
-          }
-        } else if (value == '\n') {
-          transcript.insert(cursor++, '\n');
-          index++;
-        } else {
-          int end = index;
-          while (end < data.length()) {
-            char next = data.charAt(end);
-            if (next == '\u001b' || next == '\b' || next == '\u007f'
-                || next == '\r' || next == '\n') break;
-            end++;
-          }
-          transcript.insert(cursor, data, index, end);
-          cursor += end - index;
-          index = end;
-        }
-      }
-      if (cursor < 0) cursor = 0;
-      if (cursor > transcript.length()) cursor = transcript.length();
-    }
-
-    private int lineStart(int position) {
-      int start = Math.max(0, Math.min(position, transcript.length()));
-      while (start > 0 && transcript.charAt(start - 1) != '\n') start--;
-      return start;
-    }
-
-    private int lineEnd(int position) {
-      int end = Math.max(0, Math.min(position, transcript.length()));
-      while (end < transcript.length() && transcript.charAt(end) != '\n') end++;
-      return end;
-    }
-
-    private int escapeEnd(String data, int start) {
-      if (start + 1 >= data.length()) return -1;
-      char kind = data.charAt(start + 1);
-      if (kind == '[') {
-        for (int index = start + 2; index < data.length(); index++) {
-          char value = data.charAt(index);
-          if (value >= 0x40 && value <= 0x7e) return index;
-        }
-        return -1;
-      }
-      if (kind == ']' || kind == 'P' || kind == '^' || kind == '_') {
-        for (int index = start + 2; index < data.length(); index++) {
-          char value = data.charAt(index);
-          if (value == '\u0007') return index;
-          if (value == '\u001b' && index + 1 < data.length()
-              && data.charAt(index + 1) == '\\') return index + 1;
-        }
-        return -1;
-      }
-      return start + 1;
-    }
-
-    private void applyEscape(String sequence) {
-      if (sequence.length() < 3 || sequence.charAt(1) != '[') return;
-      char command = sequence.charAt(sequence.length() - 1);
-      String parameters = sequence.substring(2, sequence.length() - 1);
-      int count = parameter(parameters, 0, 1);
-      int start = lineStart(cursor);
-      int end = lineEnd(cursor);
-      if (command == 'D') {
-        cursor = Math.max(start, cursor - Math.max(1, count));
-      } else if (command == 'C') {
-        cursor = Math.min(end, cursor + Math.max(1, count));
-      } else if (command == 'K') {
-        int mode = parameter(parameters, 0, 0);
-        if (mode == 0) {
-          transcript.delete(cursor, end);
-        } else if (mode == 1) {
-          transcript.delete(start, cursor);
-          cursor = start;
-        } else if (mode == 2) {
-          transcript.delete(start, end);
-          cursor = start;
-        }
-      } else if (command == 'P' || command == 'X') {
-        transcript.delete(cursor, Math.min(end, cursor + Math.max(1, count)));
-      } else if (command == 'J' && parameter(parameters, 0, 0) == 2) {
-        transcript.setLength(0);
-        cursor = 0;
-      } else if (command == 'H' || command == 'f') {
-        cursor = start;
-      }
-    }
-
-    private int parameter(String parameters, int index, int fallback) {
-      if (parameters.isEmpty()) return fallback;
-      String[] values = parameters.split(";", -1);
-      if (index >= values.length || values[index].isEmpty()) return fallback;
-      try {
-        return Integer.parseInt(values[index]);
-      } catch (NumberFormatException error) {
-        return fallback;
-      }
+      ttyFile = new File(host.privateDirectory(), "tty-" + java.util.UUID.randomUUID());
     }
   }
 
@@ -1250,6 +1190,7 @@ public final class DebianShell implements ModuleV1 {
         selectAll();
         return true;
       }
+      if (terminal.hasFocus()) return super.dispatchKeyEvent(event);
       if (control && key >= KeyEvent.KEYCODE_A && key <= KeyEvent.KEYCODE_Z) {
         sendKey(String.valueOf((char) (key - KeyEvent.KEYCODE_A + 1)));
         return true;

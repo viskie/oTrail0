@@ -1,0 +1,58 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:">
+<style>
+@font-face{font-family:JetBrains;src:url(data:font/woff2;base64,__FONT__) format('woff2')}
+html,body,.screen{margin:0;height:100%;overflow:hidden;background:#080b11}
+__CSS__
+</style><body><script>__XTERM__</script><script>__FIT__</script>
+<script>
+const tabs=new Map();
+let active, prefs={size:13,font:'monospace',theme:0};
+const themes=[
+ {background:'#080b11',foreground:'#d7f5f7',cursor:'#54e5d8'},
+ {background:'#000000',foreground:'#e6e6e6',cursor:'#b2ff59'},
+ {background:'#101010',foreground:'#ffffff',cursor:'#ffff00',brightBlack:'#aaaaaa'}
+];
+function fit(tab){
+ if(!tab || tab!==active)return;
+ tab.fit.fit();
+ Shell.size(tab.id,tab.term.cols,tab.term.rows);
+}
+function configure(size,font,theme){
+ prefs={size,font,theme};
+ for(const tab of tabs.values()){
+  tab.term.options.fontSize=size;
+  tab.term.options.fontFamily=font;
+  tab.term.options.theme=themes[theme];
+ }
+ document.fonts.ready.then(()=>fit(active));
+}
+function select(id){
+ if(active)active.el.hidden=true;
+ if(!tabs.has(id)){
+  const el=document.createElement('div');el.className='screen';document.body.appendChild(el);
+  const term=new Terminal({fontSize:prefs.size,fontFamily:prefs.font,theme:themes[prefs.theme],
+    scrollback:3000,cursorBlink:true,allowProposedApi:false});
+  const addon=new FitAddon.FitAddon();term.loadAddon(addon);term.open(el);
+  el.addEventListener('pointerdown',()=>{
+    term.textarea.inputMode=Shell.hardwareKeyboard()?'none':'text';
+  },true);
+  const tab={id,el,term,fit:addon};tabs.set(id,tab);
+  term.onData(data=>Shell.input(id,data));
+ }
+ active=tabs.get(id);active.el.hidden=false;fit(active);
+}
+function drop(id){
+ const tab=tabs.get(id);if(!tab)return;
+ if(active===tab)active=null;
+ tab.term.dispose();tab.el.remove();tabs.delete(id);
+}
+function selected(){
+ if(!active)return '';
+ const t=active.term;if(t.hasSelection())return t.getSelection();
+ const b=t.buffer.active, lines=[];
+ for(let i=0;i<b.length;i++)lines.push(b.getLine(i).translateToString(true));
+ return lines.join('\n').trimEnd();
+}
+new ResizeObserver(()=>fit(active)).observe(document.body);
+</script>

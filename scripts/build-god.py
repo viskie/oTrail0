@@ -277,15 +277,23 @@ def package(debian_only=False):
     debian_manifest = dict(
         id='mod3',
         name='Debian Shell',
-        version='2.0.1',
+        version='2.1.0',
         api=1,
         minApp=57,
         minSdk=35,
         entry='in.otrail.extensions.mod1.DebianShell')
-    debian_package = RELEASES / 'DEBIAN-2.0.1.oTrail0'
+    debian_package = RELEASES / 'DEBIAN-2.1.0.oTrail0'
     with zipfile.ZipFile(debian_package, 'w', zipfile.ZIP_DEFLATED) as out:
         out.write(code / 'classes.dex', 'classes.dex')
         out.writestr('module.json', json.dumps(debian_manifest))
+        assets = ROOT / 'modules/mod3/terminal'
+        page = (assets / 'terminal.html').read_text()
+        for marker, filename in [('__CSS__','xterm.css'), ('__XTERM__','xterm.js'), ('__FIT__','addon-fit.js')]:
+            page = page.replace(marker, (assets / filename).read_text())
+        page = page.replace('__FONT__', base64.b64encode((assets / 'mono.woff2').read_bytes()).decode())
+        out.writestr('terminal.html', page)
+        for license_file in assets.glob('LICENSE-*'):
+            out.write(license_file, 'LICENSES/' + license_file.name)
         out.write(ROOT / 'modules/mod3/README.md', 'README.md')
 
     password = (pathlib.Path.home() / '.local/share/otrail/god-install-password').read_bytes()
@@ -307,7 +315,7 @@ def package(debian_only=False):
         sha256=sha(debian_package),
         sizeBytes=debian_package.stat().st_size,
         **verifier,
-        notes='Shell management UI with multiple live tabs, preserved per-tab output and history, 23% taller keypad rows, immediate terminal Backspace/cursor redraw, stable scrolling and copy/paste controls. Requires GOD 4.2.0 for the shared Debian image.')
+        notes='Offline xterm.js terminal with ANSI colors, alternate screen, resizable PTY, per-tab scrollback, three themes and adjustable monospace fonts. Requires GOD 4.2.0 for the shared Debian image.')
 
     versions = [debian_release] + ([] if debian_only else [god_release])
     chains = [] if debian_only else [metadata]

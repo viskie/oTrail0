@@ -20,6 +20,10 @@ If GOD is missing, Debian Shell explains what to install instead of downloading 
 - `HIST` lists commands recorded in the current tab; selecting one sends it again.
 - The keypad rows are 23% taller than 2.0.0 for more reliable touch input while still leaving the reclaimed screen area to the terminal. Terminal output stays anchored while typing unless you scroll away from the bottom.
 
+The full manager bundles xterm.js 5.5.0 and FitAddon 0.10.0. Each tab has a terminal grid, a separate alternate screen and up to 3,000 lines of scrollback. Changing the viewport updates the Debian PTY dimensions.
+
+Tap **Aa** to choose oTrail Dark, AMOLED or High contrast, switch between System Mono and JetBrains Mono, set the font size from 10 to 24, or collapse the clipboard and keyboard rows. The shell keypad uses 9 sp labels with the existing key dimensions.
+
 ## Input and clipboard
 
 The built-in keypad sends shell escapes for arrows, Backspace and Delete, so cursor editing works as it does in a terminal. Hardware keyboards map printable keys, Backspace, Delete, arrows, Home/End, Tab, Escape and Enter to the same shell input.
@@ -33,4 +37,4 @@ Readline's erase replies are applied immediately to the terminal buffer. Backspa
 
 ## Compatibility
 
-Debian Shell 2.0.1 requires host oTraiL 0.4.34 (57) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.
+Debian Shell 2.1.0 requires host oTraiL 0.4.34 (57) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.
