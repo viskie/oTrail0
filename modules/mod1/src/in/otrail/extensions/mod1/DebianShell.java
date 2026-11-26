@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -50,7 +51,7 @@ public final class DebianShell implements ModuleV1 {
   private static final int KEY_MOD = 1;
   private static final int KEY_ACTION = 2;
   private static final int KEY_ACTIVE = 3;
-  private static final int KEYBOARD_ROW_HEIGHT_DP = 25;
+  private static final int KEYBOARD_ROW_HEIGHT_DP = 26;
 
   private Activity activity;
   private Host host;
@@ -78,6 +79,7 @@ public final class DebianShell implements ModuleV1 {
   private boolean ctrl;
   private boolean closed;
   private boolean setupRequested;
+  private boolean terminalInput;
 
   private int nextTab;
 
@@ -113,7 +115,7 @@ public final class DebianShell implements ModuleV1 {
     root.addView(terminalPanel(), new LinearLayout.LayoutParams(-1, 0, 1));
     tools = clipboardRow();
     tools.setVisibility(prefs.getBoolean("tools", true) ? View.VISIBLE : View.GONE);
-    root.addView(tools, new LinearLayout.LayoutParams(-1, dp(24)));
+    root.addView(tools, new LinearLayout.LayoutParams(-1, -2));
 
 
     keypad = keyboardPanel();
@@ -125,8 +127,15 @@ public final class DebianShell implements ModuleV1 {
     root.addView(debugText);
     root.addView(navRow());
 
+    int restoredActive = restoreState();
     buildTabs();
-    if (active == null && !sessions.isEmpty()) switchSession(sessions.get(0));
+    if (active == null && !sessions.isEmpty()) {
+      Session initial = null;
+      for (Session session : sessions) {
+        if (session.number == restoredActive) initial = session;
+      }
+      switchSession(initial == null ? sessions.get(0) : initial);
+    }
     root.requestFocus();
     host.keepProcessAlive(true);
     setup(false);
@@ -200,6 +209,9 @@ public final class DebianShell implements ModuleV1 {
         }
       }
     });
+    terminal.setOnFocusChangeListener((view, focused) -> {
+      if (focused) terminalInput = true;
+    });
     terminal.addJavascriptInterface(new Bridge(), "Shell");
     try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(host.packageFile());
          InputStream stream = zip.getInputStream(zip.getEntry("terminal.html"))) {
@@ -230,6 +242,11 @@ public final class DebianShell implements ModuleV1 {
       }
       return false;
     }
+    @android.webkit.JavascriptInterface public void focused(int id) {
+      ui(() -> {
+        if (active != null && active.number == id) terminalInput = true;
+      });
+    }
     @android.webkit.JavascriptInterface public void input(int id, String data) {
       ui(() -> {
         for (Session session : sessions) {
@@ -255,16 +272,28 @@ public final class DebianShell implements ModuleV1 {
 
   private void resize(Session session) {
     if (closed || !session.running) return;
+    final int cols = session.cols, rows = session.rows;
     io.execute(() -> {
       synchronized (session.resizeLock) {
         if (!session.running || !session.ttyFile.isFile()) return;
+        if (session.lastCols == cols && session.lastRows == rows) return;
         try {
           String path = new String(java.nio.file.Files.readAllBytes(session.ttyFile.toPath()),
               StandardCharsets.US_ASCII).trim();
           if (!path.matches("/dev/pts/[0-9]+")) return;
           Process resize = new ProcessBuilder("/system/bin/stty", "-F", path,
-              "rows", Integer.toString(session.rows), "cols", Integer.toString(session.cols)).start();
-          if (resize.waitFor() != 0 && session.running) debug("Resize failed · " + path);
+              "rows", Integer.toString(rows), "cols", Integer.toString(cols)).start();
+          if (!resize.waitFor(2, java.util.concurrent.TimeUnit.SECONDS)) {
+            resize.destroyForcibly();
+            if (session.running) debug("Resize timeout · " + path);
+            return;
+          }
+          if (resize.exitValue() == 0) {
+            session.lastCols = cols;
+            session.lastRows = rows;
+          } else if (session.running) {
+            debug("Resize failed · " + path);
+          }
         } catch (Exception failure) {
           if (session.running) debug("Resize · " + failure.getMessage());
         }
@@ -486,6 +515,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void typeText(String text) {
+    terminalInput = false;
     if (ctrl && text.length() == 1) {
       char code = control(text.charAt(0));
       ctrl = false;
@@ -523,6 +553,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void backspace() {
+    terminalInput = false;
     clearCtrl();
     if (active != null && active.line.length() > 0) {
       active.line.deleteCharAt(active.line.length() - 1);
@@ -531,6 +562,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void enter() {
+    terminalInput = false;
     clearCtrl();
     Session session = active;
     if (session != null) recordCommand(session);
@@ -538,6 +570,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void sendKey(String code) {
+    terminalInput = false;
     clearCtrl();
     send(active, code);
   }
@@ -548,6 +581,7 @@ public final class DebianShell implements ModuleV1 {
     if (command.isEmpty()) return;
     if (!session.history.isEmpty() && session.history.get(session.history.size() - 1).equals(command)) return;
     session.history.add(command);
+    scheduleSave();
   }
 
   private int dp(int value) {
@@ -730,6 +764,7 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private final Runnable poll = this::pollNow;
+  private final Runnable save = this::saveState;
 
   private void pollNow() {
     if (closed || activity == null) return;
@@ -752,6 +787,92 @@ public final class DebianShell implements ModuleV1 {
       debug("FAIL · status poll · " + error);
     }
     if (activity != null) handler.postDelayed(poll, 1500);
+  }
+
+  private void scheduleSave() {
+    handler.removeCallbacks(save);
+    handler.postDelayed(save, 1200);
+  }
+
+  /** Snapshot tabs so a process restart can restore their transcripts and history. */
+  private void saveState() {
+    Host owner = host;
+    if (owner == null) return;
+    try {
+      JSONObject state = new JSONObject();
+      state.put("active", active == null ? 0 : active.number);
+      state.put("next", nextTab);
+      JSONArray tabs = new JSONArray();
+      for (Session session : sessions) {
+        JSONObject item = new JSONObject();
+        item.put("number", session.number);
+        item.put("cols", session.cols);
+        item.put("rows", session.rows);
+        synchronized (session.scrollback) {
+          item.put("scrollback", session.scrollback.toString());
+        }
+        JSONArray history = new JSONArray();
+        for (String command : session.history) history.put(command);
+        item.put("history", history);
+        tabs.put(item);
+      }
+      state.put("tabs", tabs);
+      File file = new File(owner.privateDirectory(), "sessions.json");
+      byte[] bytes = state.toString().getBytes(StandardCharsets.UTF_8);
+      io.execute(() -> {
+        File temporary = new File(file.getPath() + ".tmp");
+        try {
+          java.nio.file.Files.write(temporary.toPath(), bytes);
+          if (!temporary.renameTo(file)) {
+            java.nio.file.Files.write(file.toPath(), bytes);
+            temporary.delete();
+          }
+        } catch (Exception error) {
+          debug("State save · " + error.getMessage());
+        }
+      });
+    } catch (Exception error) {
+      debug("State snapshot · " + error.getMessage());
+    }
+  }
+
+  private int restoreState() {
+    if (host == null || !sessions.isEmpty()) return 0;
+    File file = new File(host.privateDirectory(), "sessions.json");
+    if (!file.isFile()) return 0;
+    try {
+      JSONObject state = new JSONObject(new String(
+          java.nio.file.Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8));
+      JSONArray tabs = state.optJSONArray("tabs");
+      if (tabs == null) return 0;
+      int activeNumber = state.optInt("active", 0);
+      int maximum = UiConfig.TERMINAL_SCROLLBACK_CHARS;
+      for (int index = 0; index < tabs.length(); index++) {
+        JSONObject item = tabs.optJSONObject(index);
+        if (item == null) continue;
+        int number = item.optInt("number", 0);
+        if (number <= 0) number = ++nextTab;
+        else nextTab = Math.max(nextTab, number);
+        Session session = new Session(number);
+        String text = item.optString("scrollback", "");
+        if (text.length() > maximum) text = text.substring(text.length() - maximum);
+        session.scrollback.append(text);
+        JSONArray history = item.optJSONArray("history");
+        if (history != null) {
+          for (int entry = 0; entry < history.length(); entry++) {
+            String command = history.optString(entry, "");
+            if (!command.isEmpty()) session.history.add(command);
+          }
+        }
+        session.cols = Math.max(2, Math.min(1000, item.optInt("cols", 80)));
+        session.rows = Math.max(1, Math.min(1000, item.optInt("rows", 24)));
+        sessions.add(session);
+      }
+      return activeNumber;
+    } catch (Exception error) {
+      debug("State restore · " + error.getMessage());
+      return 0;
+    }
   }
 
   private void ensureShells() {
@@ -780,18 +901,22 @@ public final class DebianShell implements ModuleV1 {
     switchSession(session);
     buildTabs();
     launch(session);
+    scheduleSave();
   }
 
   private void switchSession(Session session) {
     if (session == null || session == active) {
-      root.requestFocus();
+      if (terminalInput && terminal != null) js("focusTerminal(" + session.number + ")");
+      else root.requestFocus();
       return;
     }
     active = session;
     js("select(" + session.number + ")");
     replay(session);
     buildTabs();
-    root.requestFocus();
+    scheduleSave();
+    if (terminalInput && terminal != null) js("focusTerminal(" + session.number + ")");
+    else root.requestFocus();
   }
 
   private void closeSession(Session session) {
@@ -802,6 +927,7 @@ public final class DebianShell implements ModuleV1 {
     if (process != null) process.destroy();
     sessions.remove(session);
     js("drop(" + session.number + ")");
+    scheduleSave();
     if (active == session) {
       active = null;
       if (!sessions.isEmpty()) {
@@ -1190,6 +1316,11 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void closeSessions() {
+    handler.removeCallbacks(save);
+    if (host != null) {
+      new File(host.privateDirectory(), "sessions.json").delete();
+      new File(host.privateDirectory(), "sessions.json.tmp").delete();
+    }
     for (Session session : new ArrayList<>(sessions)) {
       session.exited = true;
       session.running = false;
@@ -1213,6 +1344,9 @@ public final class DebianShell implements ModuleV1 {
   /** Detach the current Activity/WebView while keeping PTYs, tabs and scrollback alive. */
   @Override public void detach() {
     handler.removeCallbacks(poll);
+    handler.removeCallbacks(save);
+    if (host != null) host.keepProcessAlive(!sessions.isEmpty());
+    if (!sessions.isEmpty()) saveState();
     if (terminal != null) {
       if (root != null) root.removeView(terminal);
       terminal.removeJavascriptInterface("Shell");
@@ -1231,6 +1365,12 @@ public final class DebianShell implements ModuleV1 {
     debugText = null;
     activity = null;
     host = null;
+    terminalInput = false;
+  }
+
+  @Override public void pause() {
+    if (host != null && !sessions.isEmpty()) host.keepProcessAlive(true);
+    if (!sessions.isEmpty()) saveState();
   }
 
   @Override public void close() {
@@ -1260,6 +1400,7 @@ public final class DebianShell implements ModuleV1 {
     private volatile int cols = 80, rows = 24;
     private volatile boolean running;
     private boolean sizeSent, frameScheduled, exited, launching;
+    private int lastCols = -1, lastRows = -1;
     private Process process;
     private OutputStream input;
     private Session(int number) {

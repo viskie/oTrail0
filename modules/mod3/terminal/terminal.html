@@ -3,6 +3,7 @@
 <style>
 @font-face{font-family:JetBrains;src:url(data:font/woff2;base64,__FONT__) format('woff2')}
 html,body,.screen{margin:0;height:100%;overflow:hidden;background:#080b11}
+.screen,.xterm{touch-action:none;overscroll-behavior:none}
 __CSS__
 </style><body><script>__XTERM__</script><script>__FIT__</script>
 <script>
@@ -27,6 +28,25 @@ function configure(size,font,theme){
  }
  document.fonts.ready.then(()=>fit(active));
 }
+function wheel(tab,direction){
+ if(!tab)return;
+ const alt=tab.term.buffer.active.type==='alternate';
+ const mouse=tab.term.element&&tab.term.element.classList.contains('enable-mouse-events');
+ if(alt&&!mouse){
+  const now=Date.now();
+  if(!tab.pageAt||now-tab.pageAt>140){
+   tab.pageAt=now;Shell.input(tab.id,direction<0?'\u001b[5~':'\u001b[6~');
+  }
+  return;
+ }
+ const target=tab.el.querySelector('.xterm-viewport')||tab.term.element||tab.el;
+ const box=tab.el.getBoundingClientRect();
+ target.dispatchEvent(new WheelEvent('wheel',{deltaY:direction,deltaMode:1,bubbles:true,
+   cancelable:true,clientX:box.left+box.width/2,clientY:box.top+box.height/2}));
+}
+function focusTerminal(id){
+ const tab=tabs.get(id);if(tab)tab.term.focus();
+}
 function select(id){
  if(active)active.el.hidden=true;
  if(!tabs.has(id)){
@@ -37,7 +57,26 @@ function select(id){
   el.addEventListener('pointerdown',()=>{
     term.textarea.inputMode=Shell.hardwareKeyboard()?'none':'text';
   },true);
-  const tab={id,el,term,fit:addon};tabs.set(id,tab);
+  term.textarea.addEventListener('focus',()=>Shell.focused(id));
+  const tab={id,el,term,fit:addon};
+  let touch={on:false,last:0,acc:0};
+  el.addEventListener('touchstart',event=>{
+   if(event.touches.length!==1)return;
+   touch={on:true,last:event.touches[0].clientY,acc:0};
+  },{passive:true});
+  el.addEventListener('touchmove',event=>{
+   if(!touch.on||event.touches.length!==1)return;
+   if(tab.term.buffer.active.type!=='alternate')return;
+   event.preventDefault();
+   const y=event.touches[0].clientY;
+   touch.acc+=y-touch.last;touch.last=y;
+   const line=Math.max(10,prefs.size*1.3);
+   while(touch.acc>=line){touch.acc-=line;wheel(tab,-1);}
+   while(touch.acc<=-line){touch.acc+=line;wheel(tab,1);}
+  },{passive:false});
+  const stop=()=>{touch.on=false;touch.acc=0;};
+  el.addEventListener('touchend',stop);el.addEventListener('touchcancel',stop);
+  tabs.set(id,tab);
   term.onData(data=>Shell.input(id,data));
  }
  active=tabs.get(id);active.el.hidden=false;fit(active);

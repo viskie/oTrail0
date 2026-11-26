@@ -277,12 +277,12 @@ def package(debian_only=False):
     debian_manifest = dict(
         id='mod3',
         name='Debian Shell',
-        version='2.1.1',
+        version='2.1.2',
         api=1,
         minApp=61,
         minSdk=35,
         entry='in.otrail.extensions.mod1.DebianShell')
-    debian_package = RELEASES / 'DEBIAN-2.1.1.oTrail0'
+    debian_package = RELEASES / 'DEBIAN-2.1.2.oTrail0'
     with zipfile.ZipFile(debian_package, 'w', zipfile.ZIP_DEFLATED) as out:
         out.write(code / 'classes.dex', 'classes.dex')
         out.writestr('module.json', json.dumps(debian_manifest))
