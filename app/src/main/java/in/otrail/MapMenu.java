@@ -9,7 +9,7 @@ import android.widget.*;
 /** In-app collapsible navigation, with a transparent floating icon-and-label list. */
 final class MapMenu extends FrameLayout {
   private final Activity activity;private final FrameLayout shade;private final LinearLayout panel;
-  MapMenu(Activity a,boolean history,Runnable tracker,Runnable places,Runnable stops,Runnable journeys,Runnable navigationHistory,Runnable religiousDirectory,Runnable settings,Runnable updates,Runnable historicalTrails){super(a);activity=a;setElevation(dp(9));
+  MapMenu(Activity a,boolean history,Runnable tracker,Runnable places,Runnable stops,Runnable journeys,Runnable navigationHistory,Runnable religiousDirectory,Runnable modules,Runnable settings,Runnable updates,Runnable historicalTrails){super(a);activity=a;setElevation(dp(9));
     ImageButton trigger=new ImageButton(a);trigger.setContentDescription("Open navigation menu");trigger.setTooltipText("Navigation menu");trigger.setImageDrawable(new Hamburger());trigger.setColorFilter(UiConfig.LOCATE_LOGO_COLOR);trigger.setScaleType(ImageView.ScaleType.FIT_CENTER);
     int inset=dp(Math.round((UiConfig.LOCATE_SIZE_DP-28*UiConfig.LOCATE_VISUAL_SCALE)/2));trigger.setPadding(inset,inset,inset,inset);trigger.setBackground(NeonBorderDrawable.menuIcon(trigger,UiConfig.LOCATE_BORDER_COLOR));
     LayoutParams iconPosition=new LayoutParams(dp(UiConfig.LOCATE_SIZE_DP),dp(UiConfig.LOCATE_SIZE_DP),Gravity.TOP|Gravity.START);iconPosition.setMargins(dp(10),dp(10),0,0);addView(trigger,iconPosition);
@@ -25,6 +25,7 @@ final class MapMenu extends FrameLayout {
     add("Historical trails",android.R.drawable.ic_menu_upload,UiConfig.MENU_ICON_HISTORICAL_COLOR,historicalTrails);
     add("Navigation history",android.R.drawable.ic_menu_directions,UiConfig.MENU_ICON_NAVIGATION_HISTORY_COLOR,navigationHistory);
     add("Religious places",android.R.drawable.ic_menu_compass,UiConfig.MENU_ICON_RELIGIOUS_COLOR,religiousDirectory);
+    add(UiConfig.text("modules_title"),android.R.drawable.ic_menu_manage,UiConfig.MENU_ICON_SETTINGS_COLOR,modules);
     add(UiConfig.text("settings"),android.R.drawable.ic_menu_preferences,UiConfig.MENU_ICON_SETTINGS_COLOR,settings);
     add("App updates",android.R.drawable.stat_sys_download_done,UiConfig.MENU_ICON_UPDATES_COLOR,updates);
     trigger.setOnClickListener(v->{shade.setVisibility(VISIBLE);shade.bringToFront();});

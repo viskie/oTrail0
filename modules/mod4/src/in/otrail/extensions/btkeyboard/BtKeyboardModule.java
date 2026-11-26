@@ -37,7 +37,7 @@ public final class BtKeyboardModule implements ModuleV1 {
   private static final int REQUEST_ACCESS = 401;
   private static final int REQUEST_ENABLE = 402;
 
-  private Activity activity;
+  private volatile Activity activity;
   private Host host;
   private BluetoothHidController controller;
   private LinearLayout scanRoot;
@@ -729,7 +729,7 @@ public final class BtKeyboardModule implements ModuleV1 {
 
   private void refreshDevices() {
     if (deviceList == null || activity == null) return;
-    activity.runOnUiThread(() -> {
+    withActivity(() -> {
       if (deviceList == null || controller == null) return;
       deviceList.removeAllViews();
       List<BluetoothHidController.DeviceEntry> devices = controller.devices();
@@ -794,7 +794,7 @@ public final class BtKeyboardModule implements ModuleV1 {
 
   private void showKeyboardScreen() {
     if (keyboardScreen == null || scanRoot == null) return;
-    activity.runOnUiThread(() -> {
+    withActivity(() -> {
       keyboardDismissed = false;
       scanRoot.setVisibility(View.GONE);
       keyboardScreen.setVisibility(View.VISIBLE);
@@ -804,7 +804,7 @@ public final class BtKeyboardModule implements ModuleV1 {
 
   private void showScanScreen() {
     if (keyboardScreen == null || scanRoot == null) return;
-    activity.runOnUiThread(() -> {
+    withActivity(() -> {
       keyboardDismissed = true;
       keyboardScreen.setVisibility(View.GONE);
       scanRoot.setVisibility(View.VISIBLE);
@@ -812,8 +812,15 @@ public final class BtKeyboardModule implements ModuleV1 {
     });
   }
 
+  private void withActivity(Runnable action) {
+    Activity owner = activity;
+    if (owner != null) owner.runOnUiThread(() -> {
+      if (activity == owner && !owner.isDestroyed() && !owner.isFinishing()) action.run();
+    });
+  }
+
   private void refreshState() {
-    activity.runOnUiThread(() -> {
+    withActivity(() -> {
       if (controller == null) return;
       boolean connected = controller.isConnected();
       keyboardConnection.setText(connected ? "● CONNECTED" : "○ DISCONNECTED");
@@ -842,9 +849,8 @@ public final class BtKeyboardModule implements ModuleV1 {
   }
 
   private void showStatus(String message, boolean error) {
-    if (keyboardStatus != null) keyboardStatus.post(() -> keyboardStatus.setText(message));
-    if (activity == null) return;
-    activity.runOnUiThread(() -> {
+    withActivity(() -> {
+      if (keyboardStatus != null) keyboardStatus.setText(message);
       if (status == null) return;
       status.setText(message);
       status.setTextColor(error ? UiConfig.TERMINAL_ERROR : UiConfig.MODULE_MUTED);
@@ -917,6 +923,23 @@ public final class BtKeyboardModule implements ModuleV1 {
     private long downAt;
     private boolean moved;
     private boolean twoFingers;
+    private boolean held;
+    private float wheelRemainder;
+    private final Runnable hold = () -> {
+      held = true;
+      controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0);
+    };
+
+    private void releaseHold() {
+      removeCallbacks(hold);
+      if (held) controller.sendMouse(0, 0, 0, 0);
+      held = false;
+    }
+
+    @Override protected void onDetachedFromWindow() {
+      releaseHold();
+      super.onDetachedFromWindow();
+    }
 
     TrackpadView() {
       super(activity);
@@ -946,15 +969,20 @@ public final class BtKeyboardModule implements ModuleV1 {
           downAt = System.currentTimeMillis();
           moved = false;
           twoFingers = false;
+          wheelRemainder = 0;
+          postDelayed(hold, android.view.ViewConfiguration.getLongPressTimeout());
           return true;
         case MotionEvent.ACTION_POINTER_DOWN:
+          releaseHold();
           twoFingers = true;
           lastY = averageY(event);
           return true;
         case MotionEvent.ACTION_MOVE:
           if (event.getPointerCount() >= 2) {
             float y = averageY(event);
-            int wheel = Math.round((lastY - y) / 7f);
+            wheelRemainder += (lastY - y) / 7f;
+            int wheel = (int) wheelRemainder;
+            wheelRemainder -= wheel;
             lastY = y;
             if (wheel != 0) {
               moved = true;
@@ -962,6 +990,7 @@ public final class BtKeyboardModule implements ModuleV1 {
             }
             return true;
           }
+          if (twoFingers) return true;
           float dx = event.getX() - lastX;
           float dy = event.getY() - lastY;
           lastX = event.getX();
@@ -973,19 +1002,22 @@ public final class BtKeyboardModule implements ModuleV1 {
           remainderX -= moveX;
           remainderY -= moveY;
           if (moveX != 0 || moveY != 0) {
+            removeCallbacks(hold);
             moved = true;
-            controller.sendMouse(0, moveX, moveY, 0);
+            controller.sendMouse(held ? HidReportDescriptor.MOUSE_LEFT : 0, moveX, moveY, 0);
           }
           return true;
         case MotionEvent.ACTION_UP:
           getParent().requestDisallowInterceptTouchEvent(false);
-          if (!twoFingers && !moved && System.currentTimeMillis() - downAt < 350) {
+          if (!twoFingers && !held && !moved) {
             controller.sendMouse(HidReportDescriptor.MOUSE_LEFT, 0, 0, 0);
             controller.sendMouse(0, 0, 0, 0);
             performClick();
           }
+          releaseHold();
           return true;
         case MotionEvent.ACTION_CANCEL:
+          releaseHold();
           getParent().requestDisallowInterceptTouchEvent(false);
           return true;
         default:

@@ -1,8 +1,8 @@
 {
-  "versionCode": 61,
-  "versionName": "0.4.38",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.38-debug.apk",
-  "sha256": "8fae3eb0d571c465d08ec28185fb4cf3aceed2a035ec39459e5512fd9fd6be4d",
-  "sizeBytes": 41414072,
-  "notes": "Debian Shell tabs and PTYs now survive rotation, navigation to the map/extensions and backgrounding. Reopening restores terminal scrollback; ps aux gets a synthetic btime; shell keypad text is larger and the bottom navigation row is compact."
+  "versionCode": 62,
+  "versionName": "0.4.39",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.39-debug.apk",
+  "sha256": "abbf08771c23b8f077d3ee7245f6906a2d4caa2a397d1c65697febf32fc966d8",
+  "sizeBytes": 41421820,
+  "notes": "Module cards in Extension modules expand and collapse instantly without reloading or re-verifying the catalog, the active module can be opened from the collapsed card, and Extension modules is now an entry in the main navigation menu. REPORTS 1.0.1 fixes daily/weekly/monthly views opening on an empty period and makes per-day chart bars readable."
 }

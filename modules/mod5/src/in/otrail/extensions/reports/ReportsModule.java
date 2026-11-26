@@ -36,6 +36,7 @@ public final class ReportsModule implements ModuleV1 {
   private LinearLayout summary, insights, bars;
   private TextView rangeLabel, status;
   private Button daily, weekly, monthly, custom;
+  private HorizontalScrollView barScroll;
   private int mode;
   private long start, end;
   private final Calendar anchor = Calendar.getInstance();
@@ -168,7 +169,7 @@ public final class ReportsModule implements ModuleV1 {
     TextView activityHeading = text("Distance activity", 15, ORANGE);
     activityHeading.setPadding(0, dp(12), 0, dp(4));
     root.addView(activityHeading);
-    HorizontalScrollView barScroll = new HorizontalScrollView(activity);
+    barScroll = new HorizontalScrollView(activity);
     barScroll.setHorizontalScrollBarEnabled(false);
     bars = new LinearLayout(activity);
     bars.setOrientation(LinearLayout.HORIZONTAL);
@@ -192,7 +193,40 @@ public final class ReportsModule implements ModuleV1 {
     if (value != 3) anchor.setTimeInMillis(System.currentTimeMillis());
     updateTabStyles();
     computeRange();
+    focusRangeWithData();
+    updateRangeLabel();
     reload();
+  }
+
+  /**
+   * A daily/weekly/monthly view that opens on a period with no recorded fixes reads as all zeroes.
+   * Fall back to the period holding the newest fix so the default view always shows real data.
+   */
+  private void focusRangeWithData() {
+    if (mode == 3) return;
+    try (TrailDb db = new TrailDb(activity)) {
+      if (hasFix(db, start, end)) return;
+      long latest = latestFix(db);
+      if (latest <= 0) return;
+      anchor.setTimeInMillis(latest);
+      computeRange();
+    } catch (Exception ignored) {
+      // Keep the default range when the database cannot be inspected.
+    }
+  }
+
+  private boolean hasFix(TrailDb db, long from, long to) throws Exception {
+    try (Cursor c = db.getReadableDatabase().rawQuery(
+        "SELECT 1 FROM fixes WHERE time_ms>=? AND time_ms<? LIMIT 1",
+        new String[] {"" + from, "" + to})) {
+      return c.moveToFirst();
+    }
+  }
+
+  private long latestFix(TrailDb db) throws Exception {
+    try (Cursor c = db.getReadableDatabase().rawQuery("SELECT MAX(time_ms) FROM fixes", null)) {
+      return c.moveToFirst() && !c.isNull(0) ? c.getLong(0) : 0;
+    }
   }
 
   private void updateTabStyles() {
@@ -352,16 +386,19 @@ public final class ReportsModule implements ModuleV1 {
     bars.removeAllViews();
     double max = 1;
     for (Bucket b : buckets) max = Math.max(max, b.meters);
+    View newest = null;
     for (Bucket b : buckets) {
       LinearLayout column = new LinearLayout(activity);
       column.setOrientation(LinearLayout.VERTICAL);
       column.setGravity(Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM);
       column.setPadding(dp(3), 0, dp(3), 0);
-      TextView value = text(b.meters >= 1000
-          ? String.format(Locale.US, "%.1f", b.meters / 1000) : "", 9, MUTED);
+      // Every interval with recorded distance keeps a readable value, even below 1 km.
+      TextView value = text(b.meters <= 0 ? "" : b.meters >= 1000
+          ? String.format(Locale.US, "%.1f", b.meters / 1000)
+          : String.format(Locale.US, "%.0fm", b.meters), 9, MUTED);
       value.setGravity(Gravity.CENTER);
       View bar = new View(activity);
-      int height = b.meters <= 0 ? dp(2) : Math.max(dp(3), (int) (dp(110) * b.meters / max));
+      int height = b.meters <= 0 ? dp(2) : Math.max(dp(8), (int) (dp(110) * b.meters / max));
       bar.setBackground(panel(b.meters <= 0 ? 0xff25303a : LIME, b.meters <= 0 ? 0xff25303a : LIME));
       TextView label = text(b.label, 9, MUTED);
       label.setGravity(Gravity.CENTER);
@@ -377,8 +414,16 @@ public final class ReportsModule implements ModuleV1 {
         updateRangeLabel();
         reload();
       });
-      bars.addView(column, new LinearLayout.LayoutParams(dp(40), -2));
+      if (b.meters > 0) newest = column;
+      bars.addView(column, new LinearLayout.LayoutParams(dp(46), -2));
     }
+    // Hours and days are laid out oldest-first; scroll to the most recent interval with data.
+    final View target = newest;
+    bars.post(() -> {
+      if (barScroll == null) return;
+      if (target == null) barScroll.fullScroll(View.FOCUS_RIGHT);
+      else barScroll.smoothScrollTo(Math.max(0, target.getLeft() - dp(24)), 0);
+    });
   }
 
   private Report report(TrailDb db) throws Exception {
@@ -489,24 +534,34 @@ public final class ReportsModule implements ModuleV1 {
 
   private List<Bucket> buckets(List<TrailDb.Fix> fixes) {
     List<Bucket> out = new ArrayList<>();
+    // Calendar stepping keeps hour and day edges correct across DST changes and short months.
+    Calendar c = Calendar.getInstance();
+    c.setTimeInMillis(start);
     if (mode == 0) {
-      Calendar c = Calendar.getInstance();
-      c.setTimeInMillis(start);
+      c.set(Calendar.MINUTE, 0);
+      c.set(Calendar.SECOND, 0);
+      c.set(Calendar.MILLISECOND, 0);
       for (int i = 0; i < 24; i++) {
         Bucket b = new Bucket();
-        b.start = start + i * 3600_000L;
-        b.end = b.start + 3600_000L;
+        b.start = c.getTimeInMillis();
+        c.add(Calendar.HOUR_OF_DAY, 1);
+        b.end = c.getTimeInMillis();
         b.label = String.format(Locale.US, "%02d", i);
         out.add(b);
       }
     } else {
+      c.set(Calendar.HOUR_OF_DAY, 0);
+      c.set(Calendar.MINUTE, 0);
+      c.set(Calendar.SECOND, 0);
+      c.set(Calendar.MILLISECOND, 0);
       long days = Math.max(1, (end - start + DAY - 1) / DAY);
-      long step = days > 45 ? 7 * DAY : DAY;
-      for (long t = start; t < end; t += step) {
+      int step = days > 45 ? 7 : 1;
+      while (c.getTimeInMillis() < end) {
         Bucket b = new Bucket();
-        b.start = t;
-        b.end = Math.min(end, t + step);
-        b.label = shortFormat.format(new Date(t));
+        b.start = Math.max(start, c.getTimeInMillis());
+        c.add(Calendar.DAY_OF_MONTH, step);
+        b.end = Math.min(end, c.getTimeInMillis());
+        b.label = shortFormat.format(new Date(b.start));
         out.add(b);
       }
     }
@@ -519,11 +574,11 @@ public final class ReportsModule implements ModuleV1 {
       if (meters / (dt / 1000.0) > 60) continue;
       if (a.speed() < .8f && b.speed() < .8f
           && meters < Math.max(5, (a.accuracy() + b.accuracy()) / 2)) continue;
+      // Split the drive across hour/day edges instead of dropping or misattributing it.
       for (Bucket bucket : out) {
-        if (b.time() >= bucket.start && b.time() < bucket.end) {
-          bucket.meters += meters;
-          break;
-        }
+        long from = Math.max(a.time(), bucket.start);
+        long to = Math.min(b.time(), bucket.end);
+        if (to > from) bucket.meters += meters * (to - from) / (double) dt;
       }
     }
     return out;

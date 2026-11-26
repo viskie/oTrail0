@@ -53,11 +53,21 @@ public final class ModuleManagerActivity extends Activity {
         TextView name=label(title,16);name.setLayoutParams(new LinearLayout.LayoutParams(0,-2,1));header.addView(name);
         String metaText=list.size()+" version"+(list.size()==1?"":"s")+" · "+(newVersion!=null?"NEW "+newVersion.version():installed?"installed":"available");
         TextView meta=label(metaText,11);meta.setTextColor(newVersion!=null?UiConfig.LIME:UiConfig.MUTED);if(newVersion!=null)meta.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);header.addView(meta);
-        Button toggle=button(expanded.contains(id)?"▾":"▸",()->{if(expanded.contains(id))expanded.remove(id);else expanded.add(id);refresh(false);});
+        // Collapsing is a local view change: it must never wait on the catalog or the network.
+        final LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setVisibility(expanded.contains(id)?View.VISIBLE:View.GONE);
+        final Button toggle=button(expanded.contains(id)?"▾":"▸",()->{});
         toggle.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));header.addView(toggle);
+        final String moduleId=id;
+        toggle.setOnClickListener(v->setExpanded(moduleId,body,toggle));
+        header.setOnClickListener(v->setExpanded(moduleId,body,toggle));
+        final SignedModuleCatalog.Release openVersion=activeVersion;
+        if(openVersion!=null){
+          // Open the active (latest installed) version without expanding the card first.
+          Button open=button("Open",()->open(openVersion));
+          open.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));header.addView(open);
+        }
         card.addView(header);
         // Body: one row per version, shown only when expanded.
-        LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setVisibility(expanded.contains(id)?View.VISIBLE:View.GONE);
         for(SignedModuleCatalog.Release r:list){
           boolean active=store.active(r.id()).equals(r.version());
           boolean fresh=newestNew!=null&&r.version().equals(newestNew.version());
@@ -78,6 +88,13 @@ public final class ModuleManagerActivity extends Activity {
       }
     });
   }catch(Exception e){error(e);}});}
+
+  private void setExpanded(String id,LinearLayout body,Button toggle){
+    boolean show=body.getVisibility()!=View.VISIBLE;
+    body.setVisibility(show?View.VISIBLE:View.GONE);
+    if(show)expanded.add(id);else expanded.remove(id);
+    toggle.setText(show?"▾":"▸");
+  }
 
   private void confirmDelete(SignedModuleCatalog.Release r){
     new AppDialogs(this).setTitle("Delete "+r.name()+" "+r.version()+"?")
@@ -105,7 +122,12 @@ public final class ModuleManagerActivity extends Activity {
   }catch(Exception e){error(e);}});}
   private void activate(SignedModuleCatalog.Release r){ModuleLog.event(r.id(),"activate",r.version());worker.execute(()->{try{store.activate(r);ui(()->{refresh(false);open(r);});}catch(Exception e){error(e);}});}
   private void open(SignedModuleCatalog.Release r){ModuleLog.event(r.id(),"launcher.open",r.version());startActivity(new Intent(this,ModuleActivity.class).putExtra("id",r.id()));}
-  private void error(Exception e){ui(()->{status.setText("Module operation failed: "+e.getMessage());progress.setProgress(0);});ModuleLog.event("manager","failure",e.getClass().getSimpleName()+": "+e.getMessage());CrashReports.save(this,"Module manager",e);}
+  private void error(Exception e){
+    if(worker.isShutdown() || Thread.currentThread().isInterrupted()) {
+      ModuleLog.event("manager","cancelled",e.toString());
+      return;
+    }
+    ui(()->{status.setText("Module operation failed: "+e.getMessage());progress.setProgress(0);});ModuleLog.event("manager","failure",e.getClass().getSimpleName()+": "+e.getMessage());if (!(e instanceof java.io.IOException)) CrashReports.save(this,"Module manager",e);}
   @Override protected void onResume(){super.onResume();if(store!=null)refresh(false);}
   @Override protected void onDestroy(){removeFloatingBack();worker.shutdownNow();super.onDestroy();}
   private View floatingBack;

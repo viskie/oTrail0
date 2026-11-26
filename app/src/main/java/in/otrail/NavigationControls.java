@@ -612,6 +612,14 @@ void search() {
     });
   }
 
+  void releaseMap(MapView map) {
+    if (lastMap == map) {
+      lastMap = null;
+      overlays.clear();
+      drawnRevision = -1;
+    }
+  }
+
   private void draw(MapView map, NavigationManager.State s) {
     if (map == null) return;
     if (lastMap != map) {

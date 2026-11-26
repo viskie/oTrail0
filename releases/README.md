@@ -1,5 +1,21 @@
 # Installable builds
 
+## 0.4.39 — 2026-11-26
+
+`oTraiL-0.4.39-debug.apk` — versionCode 62. Extension-module cards now expand and
+collapse as a local view change: the toggle no longer re-verifies the catalog or
+waits on any download, so the card opens instantly even with no connection. The
+collapsed card of an active module carries an **Open** button that launches the
+currently active (latest installed) version, and tapping the card header toggles
+its version list. **Extension modules** is also a direct entry in the main
+navigation menu, alongside Settings, so the module manager no longer has to be
+reached through Settings. Catalog verification, install checksums and the
+password gate are unchanged.
+
+Verified by compiling the host, packaging REPORTS 1.0.1 into the signed catalog
+and passing the JVM unit tests; the card and menu layout were not viewed on a
+device because no Android device is connected.
+
 ## 0.4.38 — 2026-11-25
 
 `oTraiL-0.4.38-debug.apk` — versionCode 61. Debian Shell tabs and PTYs survive

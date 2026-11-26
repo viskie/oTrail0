@@ -56,7 +56,13 @@ public final class TrackingService extends Service implements LocationListener {
             .setContentIntent(open)
             .setOngoing(true)
             .build();
-    startForeground(10, n);
+    try {
+      startForeground(10, n);
+    } catch (SecurityException | IllegalStateException denied) {
+      db.log("GPS tracking", "START DEFERRED", denied.toString());
+      stopSelf(startId);
+      return START_NOT_STICKY;
+    }
     if (trip == -1) {
       trip = db.begin();
       StopGeocoder.backfill(this);

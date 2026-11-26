@@ -41,7 +41,6 @@ final class InlineShellWidget extends LinearLayout {
   private final StringBuilder transcript = new StringBuilder();
   private TextView status, output;
   private ScrollView scroll;
-  private EditText input;
   private volatile Process process;
   private volatile OutputStream stdin;
   private boolean closed, setupRequested, launchRequested, stickToBottom = true;
@@ -58,7 +57,6 @@ final class InlineShellWidget extends LinearLayout {
     setBackground(background);
     addView(header());
     addView(terminal(), new LayoutParams(-1, 0, 1));
-    addView(inputRow());
     addView(controlRow());
     append("[In-app Debian shell]\nTap the shell icon to switch panels.\n");
     ensureShell();
@@ -91,34 +89,13 @@ final class InlineShellWidget extends LinearLayout {
     background.setColor(UiConfig.TERMINAL_BACKGROUND);
     background.setCornerRadius(dp(7));
     scroll.setBackground(background);
-    output = new TextView(activity);
+    output = new in.otrail.modules.TerminalSurface(activity, this::send);
     output.setTextColor(UiConfig.TERMINAL_TEXT);
     output.setTextSize(UiConfig.TERMINAL_TEXT_SIZE_SP);
     output.setTypeface(Typeface.MONOSPACE);
-    output.setTextIsSelectable(true);
     output.setPadding(dp(7), dp(5), dp(7), dp(5));
     scroll.addView(output, new LayoutParams(-1, -2));
     return scroll;
-  }
-
-  private View inputRow() {
-    LinearLayout row = new LinearLayout(activity);
-    row.setGravity(Gravity.CENTER_VERTICAL);
-    input = new EditText(activity);
-    input.setSingleLine(true);
-    input.setTextColor(UiConfig.TERMINAL_INPUT_TEXT);
-    input.setHintTextColor(UiConfig.MODULE_MUTED);
-    input.setHint("command");
-    input.setTextSize(UiConfig.TERMINAL_TEXT_SIZE_SP);
-    input.setTypeface(Typeface.MONOSPACE);
-    input.setBackgroundColor(UiConfig.TERMINAL_INPUT_BACKGROUND);
-    input.setPadding(dp(7), 0, dp(7), 0);
-    input.setImeOptions(EditorInfo.IME_ACTION_SEND);
-    input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-    input.setOnEditorActionListener((v, action, event) -> { submit(); return true; });
-    row.addView(input, new LayoutParams(0, dp(36), 1));
-    row.addView(chip("SEND", this::submit), new LayoutParams(dp(58), dp(36)));
-    return row;
   }
 
   private View controlRow() {
@@ -156,9 +133,7 @@ final class InlineShellWidget extends LinearLayout {
       CharSequence part = clip.getItemAt(index).coerceToText(activity);
       if (part != null) text.append(part);
     }
-    input.setText(text);
-    input.setSelection(input.length());
-    input.requestFocus();
+    send(text.toString());
   }
 
   private TextView label(String text, int size, int color) {
@@ -380,13 +355,6 @@ final class InlineShellWidget extends LinearLayout {
     int exit = code;
     ui(() -> status.setText(exit == 0 ? "shell exited" : "shell exited · " + exit));
     append("\n[Shell exited " + exit + "]\n");
-  }
-
-  private void submit() {
-    if (input == null) return;
-    String command = input.getText().toString();
-    input.setText("");
-    send(command + "\n");
   }
 
   private void send(String text) {

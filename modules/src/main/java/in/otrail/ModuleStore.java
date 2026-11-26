@@ -90,6 +90,17 @@ final class ModuleStore {
       }
     } finally { java.util.Arrays.fill(password, '\0'); }
     checkCompatibility(r);File ready=file(r);ready.getParentFile().mkdirs();
+    try {
+      downloadVerified(r, ready, progress);
+    } catch (SocketException | SocketTimeoutException transientFailure) {
+      if (Thread.currentThread().isInterrupted()) throw transientFailure;
+      ModuleLog.event(r.id(), "install.retry", transientFailure.toString());
+      progress.update(0);
+      downloadVerified(r, ready, progress);
+    }
+  }
+
+  private void downloadVerified(SignedModuleCatalog.Release r, File ready, Progress progress) throws Exception {
     File part=File.createTempFile("module-",".part",ready.getParentFile());
     HttpURLConnection c=(HttpURLConnection)new URL(r.url()).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(30000);c.setInstanceFollowRedirects(false);
     try{

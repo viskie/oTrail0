@@ -232,6 +232,7 @@ public final class MainActivity extends Activity {
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     if (map != null) {
       org.osmdroid.views.overlay.infowindow.InfoWindow.closeAllInfoWindowsOn(map);
+      stopMapCallbacks();
       MapView old = map;
       map = null;
       old.setDestroyMode(false);
@@ -363,7 +364,7 @@ public final class MainActivity extends Activity {
     map.addMapListener(new MapListener(){public boolean onScroll(ScrollEvent event){if(wtfActive()&&wtfTarget!=null&&!wtfRecentering){GeoPoint center=(GeoPoint)map.getMapCenter();if(Math.abs(center.getLatitude()-wtfTarget.getLatitude())>1e-7||Math.abs(center.getLongitude()-wtfTarget.getLongitude())>1e-7)wtfCenter();}return false;}public boolean onZoom(ZoomEvent event){map.post(()->{if(wtfActive())wtfCenter();publishLiveStatus();});return false;}});
     if(wtfActive()&&Float.isFinite(wtfCourse))map.setMapOrientation(WtfCamera.rotation(wtfCourse));
     liveBubble=new GpsBubble(this,map);mapFrame.addView(liveBubble,new FrameLayout.LayoutParams(dp(UiConfig.LIVE_BUBBLE_WIDTH_DP),-2));
-    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,this::showDownloads,()->updates.show(),()->historicalTrails.show());mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
+    mapMenu=new MapMenu(this,history,this::trackerStatus,this::oldPlaces,this::showStops,this::history,this::showNavigationHistory,this::showReligiousDirectory,()->ModuleHost.settings(this),this::showDownloads,()->updates.show(),()->historicalTrails.show());mapFrame.addView(mapMenu,new FrameLayout.LayoutParams(-1,-1));
     body.addView(mapFrame, new LinearLayout.LayoutParams(-1, 0, 1));
     applyProvider();
     selector.setOnItemSelectedListener(
@@ -1403,6 +1404,7 @@ public final class MainActivity extends Activity {
     if(moduleHost!=null){moduleHost.close();moduleHost=null;}
     downloads = true;
     if (map != null) {
+      stopMapCallbacks();
       MapView old = map;
       map = null;
       old.setDestroyMode(false);
@@ -1875,6 +1877,15 @@ public final class MainActivity extends Activity {
 
   }}
   private GeoPoint projectMotion(List<TrailDb.Fix> fixes,GeoPoint measured,boolean hold){if(hold||fixes.size()<2)return measured;int from=Math.max(0,fixes.size()-5);double speed=0;int count=0;for(int i=from;i<fixes.size();i++){float value=fixes.get(i).speed();if(Float.isFinite(value)&&value>=0){speed+=value;count++;}}if(count==0||speed<=.05)return measured;TrailDb.Fix first=fixes.get(from),last=fixes.get(fixes.size()-1);double a=Math.toRadians(first.lat()),b=Math.toRadians(last.lat()),dl=Math.toRadians(last.lon()-first.lon());double bearing=(Math.toDegrees(Math.atan2(Math.sin(dl)*Math.cos(b),Math.cos(a)*Math.sin(b)-Math.sin(a)*Math.cos(b)*Math.cos(dl)))+360)%360;return measured.destinationPoint(Math.min(50,speed/count*1.2),bearing);}
+  private void stopMapCallbacks() {
+    if (gpsMotion != null) {
+      gpsMotion.cancel();
+      gpsMotion = null;
+    }
+    animatedGpsPoint = null;
+    if (navigation != null) navigation.releaseMap(map);
+  }
+
   private void animateGps(Marker marker,GeoPoint target){if(gpsMotion!=null)gpsMotion.cancel();GeoPoint start=animatedGpsPoint==null?marker.getPosition():animatedGpsPoint;gpsMotion=android.animation.ValueAnimator.ofFloat(0f,1f);gpsMotion.setDuration(1100);gpsMotion.setInterpolator(new android.view.animation.LinearInterpolator());gpsMotion.addUpdateListener(value->{float t=(float)value.getAnimatedValue();double lat=start.getLatitude()+(target.getLatitude()-start.getLatitude())*t,lon=start.getLongitude()+(target.getLongitude()-start.getLongitude())*t;animatedGpsPoint=new GeoPoint(lat,lon);marker.setPosition(animatedGpsPoint);liveBubblePoint=animatedGpsPoint;if(liveBubble!=null)liveBubble.move(animatedGpsPoint);map.invalidate();});gpsMotion.start();}
   private void confirmNavigation(DestinationSearch.Result target){
     NavigationManager.State active=NavigationManager.get(this).state();String replace=active.route()!=null?"\nCurrent destination: "+DestinationLabel.format(active.name())+"\nThis will replace the current route after calculation.":"";
@@ -2002,6 +2013,7 @@ public final class MainActivity extends Activity {
     handler.removeCallbacks(ticker);
     stopDriveTicker();
     if(wtfTurn!=null){wtfTurn.cancel();wtfTurn=null;}
+    stopMapCallbacks();
     if (map != null) map.onDetach();
     if(gapRoadRoutes!=null)gapRoadRoutes.close();
     if(historicalTrails!=null)historicalTrails.close();
