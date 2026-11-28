@@ -1,5 +1,28 @@
 # Installable builds
 
+## 0.4.41 — 2026-11-28
+
+`oTraiL-0.4.41-debug.apk` — versionCode 64. The host manifest adds package-visibility
+queries for `upi://pay` handlers (PhonePe, JioFinance, Paytm, Google Pay, BHIM) and the
+`USE_BIOMETRIC` normal permission, and declares optional telephony hardware so the
+phone/SMS modules do not filter tablets. New **OPAY 1.0.0** (`mod12`, requires this
+host): offline-first UPI payment hand-off through installed UPI apps, live Camera2 QR
+scanner plus local QR generation, a GPS fix snapshot stored with every payment,
+a SQLite ledger with separate execution and reconciliation states, CSV/XLSX/PDF/JSON/
+SMS statement import with column mapping and idempotent duplicate handling, multi-source
+reconciliation, Indian-financial-year reports and encrypted backups. **PHONE 1.0.1**
+and **SMS 1.0.1** forward their remaining view failures to LOGGER.
+
+Verified by compiling the module core and UI with `javac` (Java 8 target), packaging
+OPAY into the signed catalog with the vendored ZXing codec linked into the DEX (catalog
+signature re-verified), the 28 new JVM unit tests, the existing test suite, `lintDebug`
+(0 errors after adding the optional telephony feature) and a signed `assembleDebug`
+(versionCode 64, `USE_BIOMETRIC`, UPI queries and the telephony feature present,
+certificate `78:CF:A6:…:78:27`). No Android device was connected, so the camera
+preview, runtime permission dialogs, UPI provider return values, pending-payment
+recovery and the biometric prompt were not exercised on hardware; no real payment was
+made by any test.
+
 ## 0.4.40 — 2026-11-28
 
 `oTraiL-0.4.40-debug.apk` — versionCode 63. The host manifest now declares

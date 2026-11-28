@@ -1,8 +1,8 @@
 {
-  "versionCode": 63,
-  "versionName": "0.4.40",
-  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.40-debug.apk",
-  "sha256": "f7a404a8437411d9289e68a3702e8068121d5981b4300160428e174157ed6359",
-  "sizeBytes": 41429988,
-  "notes": "Host now declares CALL_PHONE, READ_CONTACTS, READ_CALL_LOG, SEND_SMS and READ_SMS so the new PHONE and SMS modules can ask for them at runtime. New modules: PHONE (car-style dialer, contacts, call history), SMS (car-style inbox, threads, composer) and BROWSER (WebView with a top 40% developer panel for console, network timings, JavaScript evaluation and page info)."
+  "versionCode": 64,
+  "versionName": "0.4.41",
+  "apkUrl": "https://raw.githubusercontent.com/viskie/oTrail0/main/releases/oTraiL-0.4.41-debug.apk",
+  "sha256": "fe4228b0112c3d3cd6ea0825897654bac589035fe541904917189cd283a080fd",
+  "sizeBytes": 41434218,
+  "notes": "Host adds UPI package-visibility queries and USE_BIOMETRIC for the new OPAY module. OPAY 1.0.0: offline-first UPI hand-off with QR scanning/generation, GPS snapshot per payment, SQLite ledger, CSV/XLSX/PDF/JSON/SMS statement import, reconciliation and financial reports. PHONE 1.0.1 and SMS 1.0.1 forward their remaining view failures to LOGGER."
 }

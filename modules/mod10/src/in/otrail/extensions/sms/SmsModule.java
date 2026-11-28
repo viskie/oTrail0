@@ -345,8 +345,14 @@ public final class SmsModule implements ModuleV1 {
   }
 
   private void refreshCurrent() {
-    if (tab.equals("inbox")) loadInbox();
-    else if (tab.equals("thread")) loadThread();
+    try {
+      if (tab.equals("inbox")) loadInbox();
+      else if (tab.equals("thread")) loadThread();
+    } catch (RuntimeException error) {
+      // Every module failure is forwarded to the LOGGER module (mod6).
+      hostLog("refresh-failed", error);
+      setStatus("SMS view failed: " + message(error), RED);
+    }
   }
 
   // ---------------------------------------------------------------- data

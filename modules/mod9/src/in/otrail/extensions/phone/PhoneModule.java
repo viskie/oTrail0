@@ -356,8 +356,14 @@ public final class PhoneModule implements ModuleV1 {
   }
 
   private void refreshCurrent() {
-    if (tab.equals("contacts")) loadContacts(search == null ? "" : search.getText().toString().trim());
-    else if (tab.equals("recents")) loadRecents();
+    try {
+      if (tab.equals("contacts")) loadContacts(search == null ? "" : search.getText().toString().trim());
+      else if (tab.equals("recents")) loadRecents();
+    } catch (RuntimeException error) {
+      // Every module failure is forwarded to the LOGGER module (mod6).
+      hostLog("refresh-failed", error);
+      setStatus("Phone view failed: " + message(error), RED);
+    }
   }
 
   private void loadContacts(String query) {

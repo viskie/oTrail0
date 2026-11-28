@@ -1,0 +1,4 @@
+Transaction Date,Transaction Details,Type,Amount,Transaction ID,UPI ID
+01/04/2026 10:15:00,Paid to Swiggy,DEBIT,250.00,PP260401101500,swiggy@ybl
+01/04/2026 18:40:00,Received from Rahul,CREDIT,500.00,PP260401184000,rahul@okaxis
+02/04/2026 09:05:00,Paid to Amazon,DEBIT,1200.50,PP260402090500,amazonpay@apl

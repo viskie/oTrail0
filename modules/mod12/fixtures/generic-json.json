@@ -1,0 +1,5 @@
+[
+  {"date": "2026-04-03", "amount": "1200.50", "direction": "DEBIT", "payee": "Amazon", "utr": "412345678902", "provider": "PhonePe"},
+  {"date": "2026-04-04", "amount": "780.00", "direction": "DEBIT", "payee": "BESCOM", "utr": "BESCOM0404"},
+  {"date": "2026-04-02", "amount": "85000.00", "direction": "CREDIT", "payee": "Salary", "utr": "SAL202604"}
+]

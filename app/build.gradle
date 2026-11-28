@@ -2,9 +2,11 @@ plugins { id 'com.android.application' }
 android {
     namespace 'in.otrail'
     compileSdk { version = release(37) { minorApiLevel = 0 } }
-    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 63; versionName '0.4.40'; testInstrumentationRunner (project.findProperty('testRunner') ?: 'in.otrail.BackupInstrumentation') }
+    defaultConfig { applicationId (project.hasProperty('validationBuild') ? 'in.otrail.validation' : 'in.otrail'); minSdk 30; targetSdk 35; versionCode 64; versionName '0.4.41'; testInstrumentationRunner (project.findProperty('testRunner') ?: 'in.otrail.BackupInstrumentation') }
     sourceSets.main.java.srcDir('../modules/src/main/java')
     sourceSets.main.java.srcDir('../modules/api/src/main/java')
+    // oPay's pure core is unit-tested on the JVM; the module itself ships separately.
+    sourceSets.test.java.srcDir('../modules/mod12/src')
     def signingStore = System.getenv('OTRAIL_SIGNING_STORE') ?: providers.gradleProperty('otrailSigningStore').getOrNull()
     def signingPassword = System.getenv('OTRAIL_SIGNING_PASSWORD') ?: providers.gradleProperty('otrailSigningPassword').getOrNull()
     def signingAlias = System.getenv('OTRAIL_SIGNING_ALIAS') ?: providers.gradleProperty('otrailSigningAlias').getOrNull()
@@ -34,6 +36,7 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
+    testImplementation files('../modules/mod12/libs/zxing-core-3.5.3.jar')
 }
 
 // Keep Android's startup/dialog theme in sync with the editable Java UI configuration.
