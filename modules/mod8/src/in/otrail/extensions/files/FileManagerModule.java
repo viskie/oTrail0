@@ -216,6 +216,7 @@ public final class FileManagerModule implements ModuleV1 {
         if (problem != null) {
           current = directory;
           lastPaths.put(rootKey, directory);
+          logError("list-failed", new Exception(problem));
           setStatus(problem, RED);
           renderList(new ArrayList<>(), directory);
           return;
@@ -376,6 +377,7 @@ public final class FileManagerModule implements ModuleV1 {
         if (move) FileOps.move(source, destination);
         else FileOps.copy(source, destination);
       } catch (Exception error) {
+        logError(move ? "move-failed" : "copy-failed", error);
         failure = "Failed: " + error.getMessage();
       }
       final String problem = failure;
@@ -407,6 +409,7 @@ public final class FileManagerModule implements ModuleV1 {
             try {
               FileOps.delete(file);
             } catch (Exception error) {
+              logError("delete-failed", error);
               failure = "Failed: " + error.getMessage();
             }
             final String problem = failure;
@@ -448,6 +451,7 @@ public final class FileManagerModule implements ModuleV1 {
             setStatus("Renamed to " + name + ".", GREEN);
             open(current);
           } else {
+            logError("rename-failed", new Exception("Cannot rename " + file.getAbsolutePath()));
             setStatus("Rename failed.", RED);
           }
         })
@@ -475,6 +479,7 @@ public final class FileManagerModule implements ModuleV1 {
             setStatus("Created " + name + ".", GREEN);
             open(current);
           } else {
+            logError("mkdir-failed", new Exception("Cannot create " + target.getAbsolutePath()));
             setStatus("Could not create the folder.", RED);
           }
         })
@@ -567,6 +572,7 @@ public final class FileManagerModule implements ModuleV1 {
       try {
         text = FileOps.readText(target);
       } catch (Exception error) {
+        logError("read-failed", error);
         text = "Could not read this file: " + error.getMessage();
       }
       final String body = text;
@@ -630,6 +636,7 @@ public final class FileManagerModule implements ModuleV1 {
       pdfPage = 0;
       pdfZoom = 1f;
     } catch (Exception error) {
+      logError("pdf-open-failed", error);
       closePdfRenderer();
       setStatus("Cannot open PDF: " + error.getMessage(), RED);
       details(file);
@@ -682,6 +689,7 @@ public final class FileManagerModule implements ModuleV1 {
           }
         }
       } catch (Exception error) {
+        logError("pdf-render-failed", error);
         failure = "Cannot render page: " + error.getMessage();
       }
       final Bitmap image = bitmap;
@@ -754,7 +762,8 @@ public final class FileManagerModule implements ModuleV1 {
     } catch (Exception error) {
       try {
         activity.startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
-      } catch (Exception ignored) {
+      } catch (Exception failure) {
+        logError("permission-failed", failure);
         setStatus("Open system Settings → Apps → oTraiL → Permissions manually.", RED);
       }
     }
@@ -788,6 +797,19 @@ public final class FileManagerModule implements ModuleV1 {
     if (status == null) return;
     status.setText(text);
     status.setTextColor(color);
+  }
+
+  /** Report failures to the LOGGER module through the host event log. */
+  private void logError(String action, Throwable error) {
+    Host owner = host;
+    if (owner == null) return;
+    try {
+      String message = error.getMessage();
+      owner.log(action, error.getClass().getSimpleName()
+          + (message == null || message.isEmpty() ? "" : ": " + message));
+    } catch (Throwable ignored) {
+      // Logging must never break the module.
+    }
   }
 
   private TextView note(String text) {
@@ -846,6 +868,7 @@ public final class FileManagerModule implements ModuleV1 {
       try {
         action.run();
       } catch (Throwable error) {
+        logError("action-failed", error);
         String message = error.getMessage();
         setStatus(message == null ? error.getClass().getSimpleName() : message, RED);
       }

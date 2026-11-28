@@ -30,3 +30,6 @@ PRoot or a second copy of the filesystem.
 
 Requires host 0.4.30 (53) and Android 10+. No root is used: Debian is ordinary app-private
 files, and phone storage access depends on the All files access grant.
+
+Listing, copy, move, delete, rename, PDF and permission failures are reported to the
+**LOGGER** module (`mod6`) through the host event log.

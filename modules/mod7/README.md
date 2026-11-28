@@ -20,3 +20,6 @@ refreshes on demand.
 
 Requires host 0.4.30 (53) and Android 10+. Passwords are stored in the app's private
 SharedPreferences and are only sent to the configured POP3 server over the chosen transport.
+
+Sync, delete and UI failures are reported to the **LOGGER** module (`mod6`) through the host
+event log with `sync-failed`, `delete-failed` or `action-failed` actions.

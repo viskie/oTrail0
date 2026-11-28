@@ -346,6 +346,7 @@ public final class Pop3Module implements ModuleV1 {
           if (!found) error = "Message is no longer on the server; removing the offline copy.";
         }
       } catch (Exception failure) {
+        logError("delete-failed", failure);
         error = failureMessage(failure);
       }
       final String result = error;
@@ -611,6 +612,7 @@ public final class Pop3Module implements ModuleV1 {
         try {
           fetched += syncAccount(account);
         } catch (Exception failure) {
+          logError("sync-failed", failure);
           if (errors.length() > 0) errors.append('\n');
           errors.append(account.label()).append(": ").append(failureMessage(failure));
         }
@@ -692,6 +694,18 @@ public final class Pop3Module implements ModuleV1 {
     return message;
   }
 
+  /** Report failures to the LOGGER module through the host event log. */
+  private void logError(String action, Throwable error) {
+    Host owner = host;
+    if (owner == null) return;
+    try {
+      owner.log(action, failureMessage(
+          error instanceof Exception ? (Exception) error : new Exception(error)));
+    } catch (Throwable ignored) {
+      // Logging must never break the module.
+    }
+  }
+
   private static String shorten(String value, int max) {
     if (value == null) return "";
     String text = value.trim();
@@ -738,6 +752,7 @@ public final class Pop3Module implements ModuleV1 {
       try {
         action.run();
       } catch (Throwable error) {
+        logError("action-failed", error);
         setStatus("Action failed: " + failureMessage(
             error instanceof Exception ? (Exception) error : new Exception(error)), RED);
       }

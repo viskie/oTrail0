@@ -39,6 +39,8 @@ Readline's erase replies are applied immediately to the terminal buffer. Backspa
 - `SEL ALL` selects the terminal for a manual copy.
 - Shortcuts: `Ctrl+Shift+C` copy, `Ctrl+Shift+V` paste, `Ctrl+Shift+A` select all.
 
+Shell, session and terminal failures are reported to the **LOGGER** module (`mod6`) through the host event log, so launch, resize, state-save and copy errors appear there with the `Debian Shell / error` tag.
+
 ## Compatibility
 
-Debian Shell 2.1.3 requires host oTraiL 0.4.38 (61) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.
+Debian Shell 2.1.4 requires host oTraiL 0.4.38 (61) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.

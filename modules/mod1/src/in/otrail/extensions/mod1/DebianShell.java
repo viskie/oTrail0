@@ -222,6 +222,7 @@ public final class DebianShell implements ModuleV1 {
       terminal.loadData(android.util.Base64.encodeToString(bytes.toByteArray(),
           android.util.Base64.NO_WRAP), "text/html", "base64");
     } catch (Exception failure) {
+      logHost("error", "terminal · " + failure);
       throw new IllegalStateException("Unable to load packaged terminal", failure);
     }
     return terminal;
@@ -638,11 +639,26 @@ public final class DebianShell implements ModuleV1 {
   }
 
   private void debug(String message) {
+    // Surface failures in the LOGGER module, not only the local status strip.
+    if (message != null && (message.startsWith("FAIL") || message.startsWith("State ")
+        || message.startsWith("Copy failed") || message.startsWith("Resize"))) {
+      logHost("error", message);
+    }
     ui(() -> {
       if (debugText == null) return;
       String time = new java.text.SimpleDateFormat("HH:mm:ss", Locale.US).format(new java.util.Date());
       debugText.setText(time + " · " + message);
     });
+  }
+
+  private void logHost(String action, String detail) {
+    Host owner = host;
+    if (owner == null) return;
+    try {
+      owner.log(action, detail);
+    } catch (Throwable ignored) {
+      // Logging must never break the shell.
+    }
   }
 
   private View navRow() {

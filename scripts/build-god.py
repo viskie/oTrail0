@@ -277,12 +277,12 @@ def package(debian_only=False):
     debian_manifest = dict(
         id='mod3',
         name='Debian Shell',
-        version='2.1.3',
+        version='2.1.4',
         api=1,
         minApp=61,
         minSdk=35,
         entry='in.otrail.extensions.mod1.DebianShell')
-    debian_package = RELEASES / 'DEBIAN-2.1.3.oTrail0'
+    debian_package = RELEASES / 'DEBIAN-2.1.4.oTrail0'
     with zipfile.ZipFile(debian_package, 'w', zipfile.ZIP_DEFLATED) as out:
         out.write(code / 'classes.dex', 'classes.dex')
         out.writestr('module.json', json.dumps(debian_manifest))
@@ -315,7 +315,7 @@ def package(debian_only=False):
         sha256=sha(debian_package),
         sizeBytes=debian_package.stat().st_size,
         **verifier,
-        notes='Offline xterm.js terminal with ANSI colors, alternate screen, resizable PTY, per-tab scrollback, three themes and adjustable monospace fonts. Long-press now selects the word under the finger, dragging extends the selection and a COPY bar copies it. Requires GOD 4.2.0 and host 0.4.38.')
+        notes='Offline xterm.js terminal with ANSI colors, alternate screen, resizable PTY, per-tab scrollback, three themes and adjustable monospace fonts. Long-press now selects the word under the finger, dragging extends the selection and a COPY bar copies it. Shell, session and terminal failures are reported to the LOGGER module. Requires GOD 4.2.0 and host 0.4.38.')
 
     versions = [debian_release] + ([] if debian_only else [god_release])
     chains = [] if debian_only else [metadata]
