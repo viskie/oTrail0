@@ -4,11 +4,78 @@
 @font-face{font-family:JetBrains;src:url(data:font/woff2;base64,__FONT__) format('woff2')}
 html,body,.screen{margin:0;height:100%;overflow:hidden;background:#080b11}
 .screen,.xterm{touch-action:none;overscroll-behavior:none}
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:6px;align-items:center;
+ padding:6px 8px;background:#0b0e13;border-top:1px solid #2a3555;font:11px/1.2 monospace;color:#8494a3}
+.selbar[hidden]{display:none}
+.selbar .msg{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8494a3}
+.selbar button{background:#000;border:1px solid #2a3555;border-radius:7px;color:#00d4ff;
+ font:bold 11px monospace;padding:7px 11px;touch-action:manipulation}
+.selbar button:active{border-color:#00d4ff;color:#fff}
 __CSS__
 </style><body><script>__XTERM__</script><script>__FIT__</script>
 <script>
 const tabs=new Map();
 let active, prefs={size:13,font:'monospace',theme:0};
+let selecting=false, pressTimer=0, pressX=0, pressY=0, pressMoved=false, anchor=null;
+const selbar=document.createElement('div');
+selbar.className='selbar';selbar.hidden=true;
+selbar.innerHTML='<span class="msg"></span><button data-a="copy">COPY</button>'
+ +'<button data-a="all">ALL</button><button data-a="done">DONE</button>';
+document.body.appendChild(selbar);
+function flash(text){const msg=selbar.querySelector('.msg');if(msg)msg.textContent=text;}
+function hideSelectionBar(){selbar.hidden=true;}
+function clearSelection(){selecting=false;anchor=null;hideSelectionBar();
+ if(active&&active.term)active.term.clearSelection();}
+function cancelPress(){if(pressTimer){clearTimeout(pressTimer);pressTimer=0;}}
+function bufferText(tab){
+ const b=tab.term.buffer.active, lines=[];
+ for(let i=0;i<b.length;i++){const line=b.getLine(i);if(line)lines.push(line.translateToString(true));}
+ return lines.join('\n').trimEnd();
+}
+function cellAt(tab,x,y){
+ const rect=tab.el.getBoundingClientRect();
+ const cols=Math.max(1,tab.term.cols), rows=Math.max(1,tab.term.rows);
+ const cw=rect.width/cols, ch=rect.height/rows;
+ const col=Math.max(0,Math.min(cols-1,Math.floor((x-rect.left)/cw)));
+ const viewRow=Math.max(0,Math.min(rows-1,Math.floor((y-rect.top)/ch)));
+ return {col,row:tab.term.buffer.active.viewportY+viewRow};
+}
+function wordAt(tab,cell){
+ const line=tab.term.buffer.active.getLine(cell.row);
+ const text=line?line.translateToString(true):'';
+ if(!text){return {start:cell.col,row:cell.row,length:1};}
+ const isWord=c=>/[A-Za-z0-9_\-./:@]/.test(c);
+ let start=Math.min(cell.col,text.length-1), end=start;
+ if(!isWord(text[start])){return {start:cell.col,row:cell.row,length:1};}
+ while(start>0&&isWord(text[start-1]))start--;
+ while(end<text.length-1&&isWord(text[end+1]))end++;
+ return {start,row:cell.row,length:end-start+1};
+}
+function selectRange(tab,a,b){
+ const cols=Math.max(1,tab.term.cols);
+ if(a.row<b.row||(a.row===b.row&&a.col<=b.col))
+  tab.term.select(a.col,a.row,(b.row-a.row)*cols+(b.col-a.col)+1);
+ else
+  tab.term.select(b.col,b.row,(a.row-b.row)*cols+(a.col-b.col)+1);
+}
+async function copyText(text){
+ try{if(navigator.clipboard&&navigator.clipboard.writeText){
+  await navigator.clipboard.writeText(text);return true;}}catch(e){}
+ try{const area=document.createElement('textarea');area.value=text;
+  area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);
+  area.focus();area.select();const ok=document.execCommand('copy');area.remove();return ok;
+ }catch(e){return false;}
+}
+selbar.addEventListener('click',async event=>{
+ const action=event.target.getAttribute&&event.target.getAttribute('data-a');
+ if(!action||!active)return;
+ if(action==='copy'||action==='all'){
+  if(action==='all'){active.term.selectAll();selecting=true;anchor=null;selbar.hidden=false;}
+  const text=active.term.getSelection()||bufferText(active);
+  if(!text.trim()){flash('Nothing to copy');return;}
+  flash(await copyText(text)?'Copied '+text.length+' chars':'Copy unavailable');
+ }else{clearSelection();}
+});
 const themes=[
  {background:'#080b11',foreground:'#d7f5f7',cursor:'#54e5d8'},
  {background:'#000000',foreground:'#e6e6e6',cursor:'#b2ff59'},
@@ -48,6 +115,7 @@ function focusTerminal(id){
  const tab=tabs.get(id);if(tab)tab.term.focus();
 }
 function select(id){
+ if(active&&active!==tabs.get(id))clearSelection();
  if(active)active.el.hidden=true;
  if(!tabs.has(id)){
   const el=document.createElement('div');el.className='screen';document.body.appendChild(el);
@@ -59,12 +127,51 @@ function select(id){
   },true);
   term.textarea.addEventListener('focus',()=>Shell.focused(id));
   const tab={id,el,term,fit:addon};
+  el.addEventListener('contextmenu',event=>event.preventDefault());
+  el.addEventListener('touchstart',event=>{
+   if(tab!==active)return;
+   cancelPress();
+   if(event.touches.length!==1){pressMoved=true;return;}
+   pressMoved=false;
+   pressX=event.touches[0].clientX;
+   pressY=event.touches[0].clientY;
+   pressTimer=setTimeout(()=>{
+    pressTimer=0;
+    if(tab!==active||pressMoved)return;
+    const cell=cellAt(tab,pressX,pressY);
+    const word=wordAt(tab,cell);
+    anchor={col:word.start,row:cell.row};
+    tab.term.select(word.start,word.row,word.length);
+    selecting=true;
+    selbar.hidden=false;
+    flash('Selected · drag to extend · COPY');
+   },420);
+  },{passive:true});
+  el.addEventListener('touchmove',event=>{
+   if(event.touches.length!==1)return;
+   const point=event.touches[0];
+   if(!selecting){
+    if(Math.abs(point.clientX-pressX)>10||Math.abs(point.clientY-pressY)>10){
+     pressMoved=true;cancelPress();
+    }
+    return;
+   }
+   if(tab!==active)return;
+   event.preventDefault();
+   const cell=cellAt(tab,point.clientX,point.clientY);
+   if(anchor)selectRange(tab,anchor,cell);
+   flash('Selected · drag to extend · COPY');
+  },{passive:false});
+  const endPress=()=>{cancelPress();};
+  el.addEventListener('touchend',endPress);
+  el.addEventListener('touchcancel',endPress);
   let touch={on:false,last:0,acc:0};
   el.addEventListener('touchstart',event=>{
    if(event.touches.length!==1)return;
    touch={on:true,last:event.touches[0].clientY,acc:0};
   },{passive:true});
   el.addEventListener('touchmove',event=>{
+   if(selecting)return;
    if(!touch.on||event.touches.length!==1)return;
    if(tab.term.buffer.active.type!=='alternate')return;
    event.preventDefault();
@@ -83,7 +190,7 @@ function select(id){
 }
 function drop(id){
  const tab=tabs.get(id);if(!tab)return;
- if(active===tab)active=null;
+ if(active===tab){clearSelection();active=null;}
  tab.term.dispose();tab.el.remove();tabs.delete(id);
 }
 function selected(){

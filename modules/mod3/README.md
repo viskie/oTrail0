@@ -22,6 +22,8 @@ If GOD is missing, Debian Shell explains what to install instead of downloading 
 - The clipboard row collapses to the height of its text when shown, saving vertical space for the terminal.
 - Tabs, PTYs, command history and scrollback survive rotation, returning to the map/extensions and normal backgrounding. Reopening the manager restores the same sessions. If Android kills the module process, the last tab snapshot is restored on next open and each tab starts a fresh shell.
 
+Long-press a terminal line to select the word under your finger. Keep dragging to extend the selection across lines, then tap **COPY** in the selection bar (or **ALL** to select the whole transcript and **DONE** to clear). Tapping a normal key or switching tabs clears the selection. This replaces the previous behaviour where long-pressing a canvas-rendered terminal selected nothing.
+
 The full manager bundles xterm.js 5.5.0 and FitAddon 0.10.0. Each tab has a terminal grid, a separate alternate screen and up to 3,000 lines of scrollback. Changing the viewport updates the Debian PTY dimensions. Swiping vertically in a full-screen TUI (Codex, Freebuff and similar) sends wheel events; TUIs without mouse reporting fall back to PageUp/PageDown.
 
 Tap **Aa** to choose oTrail Dark, AMOLED or High contrast, switch between System Mono and JetBrains Mono, set the font size from 10 to 24, or collapse the clipboard and keyboard rows. The shell keypad uses 11 sp labels with rows 4% taller than 2.1.1; the bottom navigation row wraps to its text height.
@@ -39,4 +41,4 @@ Readline's erase replies are applied immediately to the terminal buffer. Backspa
 
 ## Compatibility
 
-Debian Shell 2.1.2 requires host oTraiL 0.4.38 (61) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.
+Debian Shell 2.1.3 requires host oTraiL 0.4.38 (61) or newer and GOD 4.2.0. It uses the host's packaged PRoot binaries. Shells share the app UID; the fake Debian root is not Android root.
