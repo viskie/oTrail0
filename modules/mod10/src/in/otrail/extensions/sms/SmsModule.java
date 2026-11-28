@@ -448,38 +448,57 @@ public final class SmsModule implements ModuleV1 {
           return;
         }
         inboxBody.removeAllViews();
-        for (ThreadItem item : items) inboxBody.addView(threadRow(item));
+        fillCards(items);
         setStatus(items.size() + " conversation(s)", MUTED);
       });
     }, "sms-inbox").start();
   }
 
-  private View threadRow(ThreadItem item) {
-    LinearLayout row = new LinearLayout(activity);
-    row.setGravity(Gravity.CENTER_VERTICAL);
-    row.setPadding(dp(10), dp(8), dp(10), dp(8));
-    row.setBackground(panel(SURFACE, BORDER, 8));
+  /** Lays the conversations out as floating cards, three per row on phones and four on wide screens. */
+  private void fillCards(List<ThreadItem> items) {
+    int widthDp = Math.round(activity.getResources().getDisplayMetrics().widthPixels
+        / activity.getResources().getDisplayMetrics().density);
+    int columns = widthDp >= 560 ? 4 : 3;
+    for (int start = 0; start < items.size(); start += columns) {
+      LinearLayout row = new LinearLayout(activity);
+      row.setOrientation(LinearLayout.HORIZONTAL);
+      for (int offset = 0; offset < columns; offset++) {
+        int index = start + offset;
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1f);
+        params.setMargins(dp(4), dp(4), dp(4), dp(4));
+        if (index < items.size()) row.addView(threadCard(items.get(index)), params);
+        else row.addView(new View(activity), params);
+      }
+      inboxBody.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    }
+  }
 
-    LinearLayout text = new LinearLayout(activity);
-    text.setOrientation(LinearLayout.VERTICAL);
-    LinearLayout titleRow = new LinearLayout(activity);
-    titleRow.setGravity(Gravity.CENTER_VERTICAL);
-    TextView name = label(display(item.address), 14, item.unread ? CYAN : TEXT);
+  private View threadCard(ThreadItem item) {
+    LinearLayout card = new LinearLayout(activity);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setPadding(dp(9), dp(8), dp(9), dp(8));
+    card.setBackground(panel(item.unread ? SURFACE_ALT : SURFACE,
+        item.unread ? CYAN : BORDER, 12));
+    card.setElevation(dp(3));
+
+    TextView name = label(display(item.address), 11, item.unread ? CYAN : TEXT);
     name.setSingleLine(true);
-    titleRow.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-    titleRow.addView(label(shortTime(item.date), 9, MUTED));
-    text.addView(titleRow);
-    TextView snippet = label(item.snippet.replace('\n', ' '), 11, MUTED);
-    snippet.setSingleLine(true);
-    snippet.setEllipsize(TextUtils.TruncateAt.END);
-    text.addView(snippet);
-    row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
+    name.setEllipsize(TextUtils.TruncateAt.END);
+    card.addView(name);
 
-    row.setOnClickListener(view -> openThread(item.address, item.threadId));
-    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-    params.setMargins(0, dp(2), 0, dp(2));
-    row.setLayoutParams(params);
-    return row;
+    TextView snippet = label(item.snippet.replace('\n', ' ').trim(), 9, MUTED);
+    snippet.setMaxLines(3);
+    snippet.setMinLines(2);
+    snippet.setEllipsize(TextUtils.TruncateAt.END);
+    card.addView(snippet, new LinearLayout.LayoutParams(-1, -2));
+
+    TextView stamp = label(shortTime(item.date), 8, item.unread ? AMBER : MUTED);
+    stamp.setSingleLine(true);
+    stamp.setGravity(Gravity.END);
+    card.addView(stamp);
+
+    card.setOnClickListener(view -> openThread(item.address, item.threadId));
+    return card;
   }
 
   private void openThread(String address, long id) {

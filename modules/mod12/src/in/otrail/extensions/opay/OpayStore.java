@@ -65,9 +65,19 @@ public final class OpayStore {
       throw new IllegalStateException("Cannot create the oPay storage directory");
     File file = new File(directory, "opay.db");
     db = SQLiteDatabase.openOrCreateDatabase(file, null);
-    db.execSQL("PRAGMA journal_mode=WAL");
-    db.execSQL("PRAGMA synchronous=NORMAL");
+    // PRAGMA statements that return a row (journal_mode echoes the new mode) must run through
+    // rawQuery; execSQL rejects them with "Queries can be performed using query or rawQuery".
+    pragma("PRAGMA journal_mode=WAL");
+    pragma("PRAGMA synchronous=NORMAL");
     migrate();
+  }
+
+  private void pragma(String sql) {
+    try (Cursor cursor = db.rawQuery(sql, null)) {
+      if (cursor != null) cursor.moveToFirst();
+    } catch (RuntimeException ignored) {
+      // A device without WAL still works with the default rollback journal.
+    }
   }
 
   public void close() {
