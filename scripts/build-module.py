@@ -2,7 +2,7 @@
 """Compile a separate module and append its version to the signed catalog, preserving old artifacts."""
 import argparse,base64,hashlib,json,os,pathlib,subprocess,tempfile,zipfile
 root=pathlib.Path(__file__).resolve().parents[1];releases=root/'modules/releases'
-p=argparse.ArgumentParser();p.add_argument('module',choices=['god','cam','bt','logger','reports','pop3','files']);p.add_argument('version');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('module',choices=['god','cam','bt','logger','reports','pop3','files','phone','sms','browser']);p.add_argument('version');args=p.parse_args()
 sdk=pathlib.Path(os.environ['ANDROID_HOME']);java=pathlib.Path(os.environ['JAVA_HOME']);classes=root/'app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes'
 modules={'god':('GOD','mod1','in.otrail.extensions.mod1.SourceStudio',23,35),
          'cam':('CAM','mod2','in.otrail.extensions.cam.CameraModule',24,30),
@@ -10,7 +10,10 @@ modules={'god':('GOD','mod1','in.otrail.extensions.mod1.SourceStudio',23,35),
          'logger':('LOGGER','mod6','in.otrail.extensions.logger.LoggerModule',58,30),
          'reports':('REPORTS','mod5','in.otrail.extensions.reports.ReportsModule',53,30),
          'pop3':('POP3','mod7','in.otrail.extensions.pop3.Pop3Module',53,30),
-         'files':('FILES','mod8','in.otrail.extensions.files.FileManagerModule',53,30)}
+         'files':('FILES','mod8','in.otrail.extensions.files.FileManagerModule',53,30),
+         'phone':('PHONE','mod9','in.otrail.extensions.phone.PhoneModule',63,30),
+         'sms':('SMS','mod10','in.otrail.extensions.sms.SmsModule',63,30),
+         'browser':('BROWSER','mod11','in.otrail.extensions.browser.BrowserModule',53,30)}
 name,mid,entry,min_app,min_sdk=modules[args.module]
 build=root/f'modules/{mid}/build/package-{args.version}';build.mkdir(parents=True,exist_ok=True);compiled=build/'classes';compiled.mkdir(exist_ok=True)
 subprocess.run([str(java/'bin/javac'),'-source','8','-target','8','-Xlint:-options','-classpath',str(sdk/'platforms/android-37.0/android.jar')+os.pathsep+str(classes),'-d',str(compiled),*map(str,(root/f'modules/{mid}/src').rglob('*.java'))],check=True)
@@ -35,7 +38,10 @@ notes={'god':'Three-column landscape controls; existing GOD settings, drafts, so
        'logger':'Host-observed module lifecycle, task and crash log with searchable UI, error filter and text export.',
        'reports':'Interactive daily, weekly, monthly and custom trail reports with distance cards, a tappable activity chart and derived insights from recorded GPS data.',
        'pop3':'Multi-mailbox POP3 client with an offline inbox per account, encrypted transport and automatic sync whenever the module opens.',
-       'files':'File manager for the installed Debian root filesystem and phone storage with copy, move, rename, delete, text preview and an offline PDF viewer.'}[args.module]
+       'files':'File manager for the installed Debian root filesystem and phone storage with copy, move, rename, delete, text preview and an offline PDF viewer.',
+       'phone':'Car-style large-touch dialer with keypad, contacts, call history and in-module call, contacts and call-log permissions.',
+       'sms':'Car-style SMS inbox, conversation threads and compose/reply with in-module read, send and contacts permissions.',
+       'browser':'WebView browser with a collapsible top 40% developer panel: console, network timings, JavaScript evaluation and page info.'}[args.module]
 release=dict(manifest,url='https://raw.githubusercontent.com/viskie/oTrail0/main/modules/releases/'+output.name,sha256=hashlib.sha256(output.read_bytes()).hexdigest(),sizeBytes=output.stat().st_size,notes=notes)
 if args.module=='god':
  previous=next(item for item in catalog['versions'] if item['id']=='mod1');release.update(installSalt=previous['installSalt'],installHash=previous['installHash'])

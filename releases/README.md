@@ -1,5 +1,22 @@
 # Installable builds
 
+## 0.4.40 — 2026-11-28
+
+`oTraiL-0.4.40-debug.apk` — versionCode 63. The host manifest now declares
+`CALL_PHONE`, `READ_CONTACTS`, `READ_CALL_LOG`, `SEND_SMS` and `READ_SMS`, which
+runtime module permission requests need. Three new extension modules ship with
+this build: **PHONE 1.0.0** (car-style keypad, contacts and call history with its
+own permission prompts), **SMS 1.0.0** (car-style inbox, threads, composer and
+inline reply) and **BROWSER 1.0.0** (system-WebView browser whose developer panel
+fills the top 40% of the view with console, network timings, JavaScript
+evaluation and page info). Same signing certificate, install in place.
+
+Verified by signing and inspecting the APK (versionCode 63, all five new
+permissions present, certificate `78:CF:A6:…:78:27`), compiling and packaging the
+three modules into the signed catalog, and building the host. No Android device
+was connected, so calls, SMS provider reads/sends and the browser panel were not
+exercised on hardware.
+
 ## 0.4.39 — 2026-11-26
 
 `oTraiL-0.4.39-debug.apk` — versionCode 62. Extension-module cards now expand and
